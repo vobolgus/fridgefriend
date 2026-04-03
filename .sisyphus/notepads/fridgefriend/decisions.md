@@ -36,3 +36,10 @@
 **Decision**: Use Python 3.14 (what's available)  
 **Reason**: Python 3.12 not installed; 3.14 is a superset  
 **Risk**: Minor — some 3.12-only packages may behave differently; negligible for this stack
+
+## 2026-04-03 — P0-2 Dependency pinning for Python 3.14
+- Chose FastAPI 0.135.3 / Uvicorn 0.43.0 / Pydantic 2.12.5 / pydantic-settings 2.13.1 because older requested minimums triggered `pydantic-core` source builds incompatible with the local Python 3.14 environment.
+
+## 2026-04-03 — P1-4/P1-5 expiry implementation shape
+- Kept expiry logic as three small pure modules: rules lookup, expiry-date calculation service, and urgency bucketing enum/helper.
+- Used `StrEnum` for urgency buckets so downstream API/schema layers can serialize enum values directly without extra conversion.

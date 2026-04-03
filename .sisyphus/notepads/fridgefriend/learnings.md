@@ -47,3 +47,13 @@
 - AWS/Terraform
 - LightGBM ML ranking
 - Flutter app running on real device
+
+## 2026-04-03 — P0-2 Backend scaffold
+- FastAPI scaffold under `backend/app/` with settings in `app/core/config.py` using uppercase env-backed fields (`APP_NAME`, `VERSION`, `DEBUG`).
+- For Python 3.14, `pydantic-core==2.41.5` provides a compatible wheel; pinned `pydantic==2.12.5` and `pydantic-settings==2.13.1` to avoid source-build failures.
+- Async API tests use `httpx.AsyncClient` with `ASGITransport`; no `TestClient`.
+
+## 2026-04-03 — P1-4/P1-5 Expiry domain modules
+- Pure domain logic for expiry lives cleanly under `backend/app/modules/expiry/` with no FastAPI, SQLAlchemy, or DB dependencies.
+- Name/storage normalization should strip whitespace and lowercase before lookup so service behavior stays stable across UI/API input variations.
+- Name-only fallback works well for unknown storage values by reusing the first known rule for that ingredient before falling back to the default shelf life.
