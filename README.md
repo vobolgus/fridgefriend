@@ -13,7 +13,7 @@
 cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e '.[dev]'
-python3 -m pytest tests/ -v   # 90+ tests should pass
+python3 -m pytest tests/ -v   # 99 tests should pass
 uvicorn app.main:app --reload  # Start dev server on :8000
 ```
 
@@ -64,7 +64,7 @@ curl -X POST http://localhost:8000/v1/plans \
 ## Tech Stack
 | Layer | Technology |
 |-------|-----------|
-| Backend | Python 3.14, FastAPI, Pydantic v2, SQLAlchemy 2.x |
+| Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.x |
 | Database | PostgreSQL 16 (dev), SQLite (tests) |
 | Cache/Broker | Redis 7 |
 | Mobile | Flutter 3.24, Riverpod, Drift, GoRouter |
@@ -73,7 +73,7 @@ curl -X POST http://localhost:8000/v1/plans \
 
 ## Tests
 ```
-90+ tests covering:
+99 tests covering:
   ✅ Health endpoint
   ✅ Database models (User, InventoryItem, Recipe, MealPlan)
   ✅ Inventory CRUD API
