@@ -38,7 +38,7 @@ void main() {
         child: const MaterialApp(home: InventoryScreen()),
       ),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(find.text('Milk'), findsOneWidget);
     expect(find.text('This Week'), findsOneWidget);
