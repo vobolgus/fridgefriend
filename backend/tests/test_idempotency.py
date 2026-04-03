@@ -200,3 +200,35 @@ async def test_idempotency_key_on_plans(
     assert r1.status_code == 200
     assert r2.status_code == 200
     assert r1.json() == r2.json()
+
+
+@pytest.mark.asyncio
+async def test_idempotency_key_isolated_across_endpoints(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    create_payload = {
+        "display_name": "Apple",
+        "quantity": 1.0,
+        "unit": "piece",
+        "storage_location": "bowl",
+    }
+    rec_payload = {"servings": 2}
+    same_key = "shared-key-xyz"
+
+    r_item = await client.post(
+        "/v1/items",
+        headers={**test_headers, "Idempotency-Key": same_key},
+        json=create_payload,
+    )
+    r_rec = await client.post(
+        "/v1/recommendations",
+        headers={**test_headers, "Idempotency-Key": same_key},
+        json=rec_payload,
+    )
+
+    assert r_item.status_code == 201
+    assert r_rec.status_code == 200
+    assert "display_name" in r_item.json()
+    assert "recipes" in r_rec.json()

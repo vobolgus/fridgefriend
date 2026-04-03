@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -29,10 +29,11 @@ async def get_recommendations(
     payload: RecommendationRequest,
     recommendation_service: Annotated[RecommendationService, Depends(get_recommendation_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> RecommendationResponse:
     if idempotency_key:
-        cached = get_cached(idempotency_key)
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
         if cached:
             return RecommendationResponse(**cached)
 
@@ -40,6 +41,6 @@ async def get_recommendations(
     response = RecommendationResponse(recipes=recipes)
 
     if idempotency_key:
-        store_cached(idempotency_key, response.model_dump(mode="json"))
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response

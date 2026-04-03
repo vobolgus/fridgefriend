@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated, NoReturn
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Header, Request, Response, status
 
 from app.core.idempotency import get_cached, store_cached
 from app.models.user import User
@@ -26,10 +26,11 @@ async def create_item(
     payload: ItemCreate,
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> ItemResponse:
     if idempotency_key:
-        cached = get_cached(idempotency_key)
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
         if cached:
             return ItemResponse(**cached)
 
@@ -37,7 +38,7 @@ async def create_item(
     response = ItemResponse.model_validate(item)
 
     if idempotency_key:
-        store_cached(idempotency_key, response.model_dump(mode="json"))
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -69,10 +70,11 @@ async def update_item(
     payload: ItemUpdate,
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> ItemResponse:
     if idempotency_key:
-        cached = get_cached(idempotency_key)
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
         if cached:
             return ItemResponse(**cached)
 
@@ -84,7 +86,7 @@ async def update_item(
         _raise_not_found()
 
     if idempotency_key:
-        store_cached(idempotency_key, response.model_dump(mode="json"))
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -94,11 +96,21 @@ async def delete_item(
     item_id: UUID,
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    request: Request,
+    idempotency_key: Annotated[str | None, Header()] = None,
 ) -> Response:
+    if idempotency_key:
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+        if cached is not None:
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+
     try:
         await inventory_service.delete_item(item_id, current_user)
     except InventoryItemNotFoundError:
         _raise_not_found()
+
+    if idempotency_key:
+        store_cached(str(current_user.id), request.url.path, idempotency_key, {})
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -109,10 +121,11 @@ async def update_item_status(
     payload: ItemStatusUpdate,
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> ItemResponse:
     if idempotency_key:
-        cached = get_cached(idempotency_key)
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
         if cached:
             return ItemResponse(**cached)
 
@@ -124,6 +137,6 @@ async def update_item_status(
         _raise_not_found()
 
     if idempotency_key:
-        store_cached(idempotency_key, response.model_dump(mode="json"))
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
