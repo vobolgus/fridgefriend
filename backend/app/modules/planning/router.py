@@ -1,11 +1,14 @@
+# pyright: reportAny=false
+
 from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.idempotency import get_cached, store_cached
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
@@ -26,8 +29,19 @@ async def create_plan(
     payload: PlanRequest,
     planning_service: Annotated[PlanningService, Depends(get_planning_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    idempotency_key: Annotated[str | None, Header()] = None,
 ) -> PlanResult:
-    return await planning_service.generate_plan(current_user, payload)
+    if idempotency_key:
+        cached = get_cached(idempotency_key)
+        if cached:
+            return PlanResult(**cached)
+
+    response = await planning_service.generate_plan(current_user, payload)
+
+    if idempotency_key:
+        store_cached(idempotency_key, response.model_dump(mode="json"))
+
+    return response
 
 
 @router.get("/v1/shopping-list", response_model=ShoppingListResponse)

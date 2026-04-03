@@ -11,8 +11,14 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.idempotency import clear_cache
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
+
+
+@pytest.fixture(autouse=True)
+def _reset_idempotency_cache() -> None:
+    clear_cache()
 
 
 @pytest_asyncio.fixture
