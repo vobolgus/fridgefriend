@@ -1,9 +1,15 @@
+# pyright: reportMissingImports=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
+
 from fastapi import FastAPI
 
-from app.core.config import settings
+from .core.config import settings
+from .modules.catalog.router import router as catalog_router
+from .modules.inventory.router import router as inventory_router
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, debug=settings.DEBUG)
+app.include_router(inventory_router)
+app.include_router(catalog_router)
 
 
 @app.get("/health")

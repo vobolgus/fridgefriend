@@ -1,5 +1,8 @@
+# pyright: reportAny=false, reportUnusedParameter=false, reportUnusedCallResult=false, reportMissingImports=false, reportUnknownVariableType=false
+
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from datetime import date, timedelta
 import uuid
 
@@ -16,13 +19,13 @@ from app.modules.inventory.dependencies import get_current_user
 
 
 @pytest_asyncio.fixture
-async def test_user(app: FastAPI, db_session: AsyncSession) -> User:
+async def test_user(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[User]:
     user = User(email="inventory-api@example.com")
     db_session.add(user)
     await db_session.commit()
     await db_session.refresh(user)
 
-    async def override_get_db() -> AsyncSession:
+    async def override_get_db() -> AsyncIterator[AsyncSession]:
         yield db_session
 
     async def override_get_current_user() -> User:
