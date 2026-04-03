@@ -32,43 +32,43 @@
 
 ### Phase 0: Project Scaffolding
 
-- [ ] **P0-1**: Initialize GitHub repo `vobolgus/fridgefriend` as public monorepo with MIT license, .gitignore, and README
-- [ ] **P0-2**: Scaffold backend Python project structure (`backend/`) with pyproject.toml, FastAPI app, health endpoint, and pytest config — TDD: health test first
-- [ ] **P0-3**: Scaffold Flutter project (`mobile/`) with pubspec.yaml, Riverpod, Drift, Dio, and navigation shell — with passing widget tests
-- [ ] **P0-4**: Add GitHub Actions CI for backend (`pytest`) and Flutter (`flutter test`) 
+- [x] **P0-1**: Initialize GitHub repo `vobolgus/fridgefriend` as public monorepo with MIT license, .gitignore, and README
+- [x] **P0-2**: Scaffold backend Python project structure (`backend/`) with pyproject.toml, FastAPI app, health endpoint, and pytest config — TDD: health test first
+- [x] **P0-3**: Scaffold Flutter project (`mobile/`) with pubspec.yaml, Riverpod, Drift, Dio, and navigation shell — with passing widget tests
+- [x] **P0-4**: Add GitHub Actions CI for backend (`pytest`) and Flutter (`flutter test`) 
 
 ### Phase 1: Backend Core
 
-- [ ] **P1-1**: Add SQLAlchemy 2.x models and database configuration (Alembic migrations, test DB setup)
-- [ ] **P1-2**: Implement Inventory CRUD API — TDD first: tests for create/read/update/delete/mark-used/discard/freeze
-- [ ] **P1-3**: Implement Catalog/Normalization service — TDD first: barcode→canonical ingredient with mocked Open Food Facts interface
-- [ ] **P1-4**: Implement Expiry rules engine — TDD first: shelf-life calculation for known ingredients, confidence scoring
-- [ ] **P1-5**: Implement urgency bucketing — TDD first: Today/This Week/Safe Later assignment logic
-- [ ] **P1-6**: Implement Recipe Recommendation engine — TDD first: rules-based ranking with known inventory + canned recipe data
-- [ ] **P1-7**: Implement Meal Planning algorithm — TDD first: greedy planner prioritizing expiring items, inventory reservation
-- [ ] **P1-8**: Implement Shopping List derivation — TDD first: gap calculation between plan requirements and inventory
+- [x] **P1-1**: Add SQLAlchemy 2.x models and database configuration (Alembic migrations, test DB setup)
+- [x] **P1-2**: Implement Inventory CRUD API — TDD first: tests for create/read/update/delete/mark-used/discard/freeze
+- [x] **P1-3**: Implement Catalog/Normalization service — TDD first: barcode→canonical ingredient with mocked Open Food Facts interface
+- [x] **P1-4**: Implement Expiry rules engine — TDD first: shelf-life calculation for known ingredients, confidence scoring
+- [x] **P1-5**: Implement urgency bucketing — TDD first: Today/This Week/Safe Later assignment logic
+- [x] **P1-6**: Implement Recipe Recommendation engine — TDD first: rules-based ranking with known inventory + canned recipe data
+- [x] **P1-7**: Implement Meal Planning algorithm — TDD first: greedy planner prioritizing expiring items, inventory reservation
+- [x] **P1-8**: Implement Shopping List derivation — TDD first: gap calculation between plan requirements and inventory
 
 ### Phase 2: Flutter Scaffold (tests-first)
 
-- [ ] **P2-1**: Add Drift database schema and DAOs for inventory items — TDD first: insert/read/update/delete tests
-- [ ] **P2-2**: Add Riverpod providers for inventory state — TDD first: loading/data/error states
-- [ ] **P2-3**: Add Inventory List and Add Item screens with widget tests
-- [ ] **P2-4**: Add API client layer (Dio) with mock backend and tests
-- [ ] **P2-5**: Add Expiry urgency display screens with widget tests
-- [ ] **P2-6**: Add Recipe Recommendation screen with provider and widget tests
-- [ ] **P2-7**: Add Meal Plan and Shopping List screens with widget tests
+- [x] **P2-1**: Add Drift database schema and DAOs for inventory items — TDD first: insert/read/update/delete tests
+- [x] **P2-2**: Add Riverpod providers for inventory state — TDD first: loading/data/error states
+- [x] **P2-3**: Add Inventory List and Add Item screens with widget tests
+- [x] **P2-4**: Add API client layer (Dio) with mock backend and tests
+- [x] **P2-5**: Add Expiry urgency display screens with widget tests
+- [x] **P2-6**: Add Recipe Recommendation screen with provider and widget tests
+- [x] **P2-7**: Add Meal Plan and Shopping List screens with widget tests
 
 ### Phase 3: Integration & Polish
 
-- [ ] **P3-1**: Add backend integration tests (full flow: add item → recommendations → generate plan → shopping list)
-- [ ] **P3-2**: Add Docker Compose for local backend dev (PostgreSQL + Redis)
-- [ ] **P3-3**: Final commit: comprehensive README with quickstart, architecture, API docs
+- [x] **P3-1**: Add backend integration tests (full flow: add item → recommendations → generate plan → shopping list)
+- [x] **P3-2**: Add Docker Compose for local backend dev (PostgreSQL + Redis)
+- [x] **P3-3**: Final commit: comprehensive README with quickstart, architecture, API docs
 
 ---
 
 ## Final Verification Wave
 
-- [ ] **F1**: All backend tests pass (`cd backend && python -m pytest tests/ -v` → 0 failures)
-- [ ] **F2**: All Flutter tests pass (`cd mobile && flutter test` → 0 failures, via CI)
-- [ ] **F3**: GitHub Actions CI green on all workflows
-- [ ] **F4**: Backend API functional verification (curl all 8 endpoints, verify response shapes match spec)
+- [x] **F1**: All backend tests pass (`cd backend && python -m pytest tests/ -v` → 0 failures)
+- [x] **F2**: All Flutter tests pass (`cd mobile && flutter test` → 0 failures, via CI)
+- [x] **F3**: GitHub Actions CI green on all workflows
+- [x] **F4**: Backend API functional verification (curl all 8 endpoints, verify response shapes match spec)

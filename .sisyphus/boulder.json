@@ -1,6 +1,23 @@
 {
   "active_plan": "/Users/svyatoslav.suglobov/AILab_project/.sisyphus/plans/fridgefriend.md",
   "started_at": "2026-04-03T18:46:43.622Z",
-  "session_ids": ["ses_2ab54bbb9ffefIphtoAMYnBe7t"],
-  "plan_name": "fridgefriend"
+  "session_ids": [
+    "ses_2ab54bbb9ffefIphtoAMYnBe7t",
+    "ses_2ab4659c3ffetR7W7BkgLWyKnQ",
+    "ses_2ab43f5c2ffeqoJSL0d9Av2vkt",
+    "ses_2ab437316ffeyPLr5ZUlhO8OpN",
+    "ses_2ab33e5e6ffey5Dv80SRBWu76E",
+    "ses_2ab338f34ffeDfgoKDZdHRGTUd",
+    "ses_2ab2d7b2bffeaudLUivDmrmsah",
+    "ses_2ab2de733ffej3HLtLPXvRusY2",
+    "ses_2ab2d178cffeMZK0uTFX142obm",
+    "ses_2ab24e1d8ffeiJED4bYwhvgv0g",
+    "ses_2ab245795ffeLXwOYp1ljCzVMl",
+    "ses_2ab1b1debffehTds27OoUyEWey",
+    "ses_2ab1a87e5ffe7VC6i5IxSNkCRa",
+    "ses_2ab118e82ffexQ9pVX85LfN6zi",
+    "ses_2ab101623ffe4F1o4cNFwtXDc7"
+  ],
+  "plan_name": "fridgefriend",
+  "task_sessions": {}
 }

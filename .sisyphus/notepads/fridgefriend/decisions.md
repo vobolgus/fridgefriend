@@ -43,3 +43,13 @@
 ## 2026-04-03 — P1-4/P1-5 expiry implementation shape
 - Kept expiry logic as three small pure modules: rules lookup, expiry-date calculation service, and urgency bucketing enum/helper.
 - Used `StrEnum` for urgency buckets so downstream API/schema layers can serialize enum values directly without extra conversion.
+
+## 2026-04-03 — P1-2 inventory module shape
+- Implemented inventory CRUD as a dedicated module with repository/service/router layering so upcoming expiry, recommendation, and planning features can reuse item access and mutation logic without coupling to FastAPI handlers.
+- Kept `GET /v1/items` scoped to active items only, matching the product requirement that used/discarded/frozen items drop out of the default inventory list.
+
+## 2026-04-03 — P1-3 catalog service shape
+- Implemented catalog as a small pure-service module (`interfaces.py`, `mock_barcode_api.py`, `normalizer.py`, `service.py`, `schemas.py`, `router.py`) rather than coupling normalization into inventory code, because barcode lookup and canonicalization are a separate backend boundary reused by multiple future flows.
+- Added `/v1/scan/barcode` as its own router under `app/modules/catalog/` and wired it into `app/main.py` so inventory capture can call a dedicated catalog endpoint instead of overloading `/v1/items`.
+# 2026-04-03
+- Keep the real `get_current_user` path functional for local/dev usage instead of hard-failing with 500, while still allowing tests to override it.
