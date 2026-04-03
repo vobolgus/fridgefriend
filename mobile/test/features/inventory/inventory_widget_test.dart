@@ -22,7 +22,7 @@ void main() {
       quantity: 1,
       unit: 'L',
       storageLocation: 'Fridge',
-      estimatedExpiryDate: DateTime.now().add(const Duration(days: 2)),
+      estimatedExpiryDate: DateTime.now().add(const Duration(days: 4)),
       confidence: 0.9,
       status: 'active',
       source: 'manual',
