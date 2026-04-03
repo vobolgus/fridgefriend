@@ -1,0 +1,31 @@
+name: Mobile Tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['mobile/**']
+  pull_request:
+    branches: [main]
+    paths: ['mobile/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test --reporter expanded
