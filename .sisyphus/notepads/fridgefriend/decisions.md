@@ -53,3 +53,7 @@
 - Added `/v1/scan/barcode` as its own router under `app/modules/catalog/` and wired it into `app/main.py` so inventory capture can call a dedicated catalog endpoint instead of overloading `/v1/items`.
 # 2026-04-03
 - Keep the real `get_current_user` path functional for local/dev usage instead of hard-failing with 500, while still allowing tests to override it.
+
+## 2026-04-03 — P2-1 Drift codegen strategy
+- Added Drift source files plus committed generated `.g.dart` artifacts for the local inventory database layer so the repo remains self-contained even without local Dart tooling.
+- Updated mobile CI to run `dart run build_runner build --delete-conflicting-outputs` before `flutter test`, making generated Drift code reproducible in CI.

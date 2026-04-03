@@ -74,3 +74,8 @@
 # 2026-04-03
 - Backend package metadata must stay aligned with CI Python version; `requires-python` higher than the runner version blocks installation.
 - Dev-mode auth can safely resolve `Bearer test-token` by creating or reusing a seeded local user, even when tests override the dependency.
+
+## 2026-04-03 — P2-1 Drift local inventory layer
+- Drift table names generated from Dart table classes follow snake_case defaults (`InventoryItemsTable` → `inventory_items_table`), so manual generated-file fallbacks must match those SQL names exactly.
+- When local Dart tooling is unavailable, committing matching Drift `.g.dart` files keeps imports and type references intact while CI regenerates them with `build_runner` before `flutter test`.
+- Filtering active inventory in Drift is simplest with `table.status.isNotIn(const ['used', 'discarded'])`.

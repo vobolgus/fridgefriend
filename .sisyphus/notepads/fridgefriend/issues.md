@@ -12,3 +12,8 @@
 
 ## 2026-04-03 — P1-3 typing/tooling note
 - basedpyright again reported unresolved absolute imports for newly added module files and tests; adding backend-level path config plus targeted relative imports/dynamic test symbol loading kept changed-file diagnostics clean without changing runtime behavior.
+
+- 2026-04-03 verification: plan file shows all checkboxes marked complete, but the repo does not satisfy the original full-spec claim. Missing major spec areas include photo scan endpoint, households, notifications, offline Drift layer, and real Firebase JWT auth; CI success is not tied to HEAD because workflow path filters skipped the final verification commit.
+
+## 2026-04-03 — P2-1 verification limitation
+- Dart/Flutter are still unavailable locally, so Drift compilation and `flutter test` verification must be deferred to GitHub Actions; local `lsp_diagnostics` for changed Dart files failed because the Dart language server is not installed.
