@@ -33,7 +33,7 @@ async def scan_barcode(
             detail="Barcode not found in catalog",
         )
 
-    return BarcodeScanResponse(
+    response = BarcodeScanResponse(
         barcode=result.barcode,
         display_name=result.display_name,
         canonical_name=result.canonical_name,

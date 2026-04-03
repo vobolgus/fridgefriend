@@ -232,3 +232,57 @@ async def test_idempotency_key_isolated_across_endpoints(
     assert r_rec.status_code == 200
     assert "display_name" in r_item.json()
     assert "recipes" in r_rec.json()
+
+
+@pytest.mark.asyncio
+async def test_idempotency_key_isolated_across_users(
+    app: FastAPI,
+    db_session: AsyncSession,
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    """Same idempotency key used by two different users must produce independent results."""
+    same_key = "cross-user-key-abc"
+    payload = {
+        "display_name": "Tomato",
+        "quantity": 3.0,
+        "unit": "count",
+        "storage_location": "fridge",
+    }
+
+    # First user (test_user) creates an item
+    r_user1 = await client.post(
+        "/v1/items",
+        headers={**test_headers, "Idempotency-Key": same_key},
+        json=payload,
+    )
+    assert r_user1.status_code == 201
+    item_id_user1 = r_user1.json()["id"]
+
+    # Second user with the SAME idempotency key — should get a NEW item, not the cached one
+    user2 = User(email="user2-idempotency@example.com")
+    db_session.add(user2)
+    await db_session.commit()
+    await db_session.refresh(user2)
+
+    async def override_get_db() -> AsyncIterator[AsyncSession]:
+        yield db_session
+
+    async def override_get_current_user_2() -> User:
+        return user2
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user_2
+
+    r_user2 = await client.post(
+        "/v1/items",
+        headers={**test_headers, "Idempotency-Key": same_key},
+        json=payload,
+    )
+
+    app.dependency_overrides.clear()
+
+    assert r_user2.status_code == 201
+    # Different users → different item IDs even with same idempotency key
+    assert r_user2.json()["id"] != item_id_user1
