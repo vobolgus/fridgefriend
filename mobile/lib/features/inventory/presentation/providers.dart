@@ -18,6 +18,10 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
     loadItems();
   }
 
+  InventoryNotifier.withInitialData(List<InventoryItem> items)
+      : _repository = _NoopRepository(),
+        super(AsyncValue.data(items));
+
   final InventoryRepository _repository;
 
   Future<void> loadItems() async {
@@ -86,3 +90,24 @@ final mealPlanProvider = FutureProvider<MealPlan>((ref) {
 final shoppingListProvider = FutureProvider<List<ShoppingItem>>((ref) {
   return ref.watch(apiClientProvider).getShoppingList();
 });
+
+/// A no-op repository used by [InventoryNotifier.withInitialData].
+class _NoopRepository implements InventoryRepository {
+  @override
+  Future<List<InventoryItem>> getInventoryItems() async => const [];
+
+  @override
+  Future<InventoryItem> createInventoryItem({
+    required String displayName,
+    required double quantity,
+    required String unit,
+    required String storageLocation,
+  }) {
+    throw UnimplementedError('_NoopRepository is for testing only');
+  }
+
+  @override
+  Future<void> updateItemStatus(String id, String status) {
+    throw UnimplementedError('_NoopRepository is for testing only');
+  }
+}

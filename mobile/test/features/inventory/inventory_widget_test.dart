@@ -16,29 +16,35 @@ void main() {
     tester,
   ) async {
     final mockClient = MockApiClient();
-    when(() => mockClient.getInventoryItems()).thenAnswer(
-      (_) async => [
-        InventoryItem(
-          id: '1',
-          displayName: 'Milk',
-          quantity: 1,
-          unit: 'L',
-          storageLocation: 'Fridge',
-          estimatedExpiryDate: DateTime.now().add(const Duration(days: 2)),
-          confidence: 0.9,
-          status: 'active',
-          source: 'manual',
-        ),
-      ],
+    final testItem = InventoryItem(
+      id: '1',
+      displayName: 'Milk',
+      quantity: 1,
+      unit: 'L',
+      storageLocation: 'Fridge',
+      estimatedExpiryDate: DateTime.now().add(const Duration(days: 2)),
+      confidence: 0.9,
+      status: 'active',
+      source: 'manual',
     );
+
+    when(() => mockClient.getInventoryItems()).thenAnswer(
+      (_) async => [testItem],
+    );
+
+    // Override inventoryProvider to start with data immediately (no async wait)
+    final preloadedNotifier = InventoryNotifier.withInitialData([testItem]);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(mockClient)],
+        overrides: [
+          apiClientProvider.overrideWithValue(mockClient),
+          inventoryProvider.overrideWith((ref) => preloadedNotifier),
+        ],
         child: const MaterialApp(home: InventoryScreen()),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(find.text('Milk'), findsOneWidget);
     expect(find.text('This Week'), findsOneWidget);
