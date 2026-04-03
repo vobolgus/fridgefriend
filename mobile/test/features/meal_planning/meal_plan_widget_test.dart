@@ -17,7 +17,7 @@ void main() {
     when(() => mockClient.generatePlan()).thenAnswer(
       (_) async => MealPlan(
         planId: 'plan-1',
-        days: const [
+        days: [
           PlanDay(
             date: DateTime(2026, 4, 3),
             recipeId: 'recipe-1',

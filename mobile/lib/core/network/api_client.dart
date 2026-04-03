@@ -56,7 +56,7 @@ class ApiClient {
       },
       options: Options(
         headers: {
-          'Idempotency-Key': '${displayName}_$quantity_$unit_$storageLocation',
+          'Idempotency-Key': '${displayName}_${quantity}_${unit}_$storageLocation',
         },
       ),
     );
