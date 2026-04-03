@@ -1,4 +1,4 @@
-# pyright: reportAny=false, reportUnusedParameter=false, reportUnusedCallResult=false, reportMissingImports=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
+# pyright: reportAny=false, reportUnusedParameter=false, reportUnusedCallResult=false, reportMissingImports=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownMemberType=false, reportUnknownParameterType=false
 
 from __future__ import annotations
 
@@ -38,6 +38,24 @@ def _recipe(
         "dietary_tags": dietary_tags,
         "ingredients": ingredients,
     }
+
+
+def _string_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]
+
+
+def _ingredient_list(value: object) -> list[dict[str, object]]:
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)]
+
+
+def _int_value(value: object) -> int:
+    if not isinstance(value, int | str | float):
+        raise TypeError("Unsupported numeric value")
+    return int(value)
 
 
 def _plan_with_recipe_ingredients(recipe_id: str, title: str, ingredients: list[dict[str, object]]) -> PlanResult:
@@ -194,9 +212,9 @@ async def _seed_recipes(db_session: AsyncSession, recipes: list[dict[str, object
         [
             Recipe(
                 title=str(recipe["title"]),
-                prep_minutes=int(recipe["prep_minutes"]),
-                dietary_tags=list(recipe["dietary_tags"]),
-                ingredients=list(recipe["ingredients"]),
+                prep_minutes=_int_value(recipe["prep_minutes"]),
+                dietary_tags=_string_list(recipe["dietary_tags"]),
+                ingredients=_ingredient_list(recipe["ingredients"]),
             )
             for recipe in recipes
         ],

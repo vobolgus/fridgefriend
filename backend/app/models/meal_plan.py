@@ -15,9 +15,11 @@ from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 class MealPlan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "meal_plans"
 
+    user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"), index=True, nullable=True)
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
 
+    user: Mapped[Any] = relationship("User", back_populates="meal_plans")
     days: Mapped[list["MealPlanDay"]] = relationship(
         back_populates="meal_plan",
         cascade="all, delete-orphan",

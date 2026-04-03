@@ -19,3 +19,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "InventoryItem",
         back_populates="user",
     )
+    meal_plans: Mapped[list[Any]] = relationship(
+        "MealPlan",
+        back_populates="user",
+    )
