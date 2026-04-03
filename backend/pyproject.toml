@@ -11,6 +11,8 @@ dependencies = [
   "uvicorn[standard]==0.43.0",
   "pydantic==2.12.5",
   "pydantic-settings==2.13.1",
+  "sqlalchemy[asyncio]>=2.0.36",
+  "aiosqlite>=0.20.0",
 ]
 
 [project.optional-dependencies]

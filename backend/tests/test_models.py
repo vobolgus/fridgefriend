@@ -1,10 +1,12 @@
+# pyright: reportUnknownParameterType=false, reportMissingParameterType=false, reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false, reportUnknownLambdaType=false
+
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
-from uuid import uuid4
+from datetime import date, datetime
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.inventory_item import InventoryItem, InventoryStatus, InventorySource
 from app.models.meal_plan import MealPlan, MealPlanDay
@@ -13,7 +15,7 @@ from app.models.user import User
 
 
 @pytest.mark.asyncio
-async def test_user_creation(db_session) -> None:
+async def test_user_creation(db_session: AsyncSession) -> None:
     user = User(email="cook@example.com")
 
     db_session.add(user)
@@ -29,7 +31,7 @@ async def test_user_creation(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_inventory_item_creation(db_session) -> None:
+async def test_inventory_item_creation(db_session: AsyncSession) -> None:
     user = User(email="inventory@example.com")
     db_session.add(user)
     await db_session.flush()
@@ -69,7 +71,7 @@ async def test_inventory_item_creation(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_inventory_item_status_enum(db_session) -> None:
+async def test_inventory_item_status_enum(db_session: AsyncSession) -> None:
     user = User(email="status@example.com")
     db_session.add(user)
     await db_session.flush()
@@ -106,7 +108,7 @@ async def test_inventory_item_status_enum(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_inventory_item_source_enum(db_session) -> None:
+async def test_inventory_item_source_enum(db_session: AsyncSession) -> None:
     user = User(email="source@example.com")
     db_session.add(user)
     await db_session.flush()
@@ -139,7 +141,7 @@ async def test_inventory_item_source_enum(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_recipe_creation(db_session) -> None:
+async def test_recipe_creation(db_session: AsyncSession) -> None:
     recipe = Recipe(
         title="Vegetable Stir Fry",
         prep_minutes=25,
@@ -167,7 +169,7 @@ async def test_recipe_creation(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_meal_plan_with_days(db_session) -> None:
+async def test_meal_plan_with_days(db_session: AsyncSession) -> None:
     recipe_one = Recipe(
         title="Pasta Primavera",
         prep_minutes=30,
@@ -207,7 +209,7 @@ async def test_meal_plan_with_days(db_session) -> None:
 
 
 @pytest.mark.asyncio
-async def test_inventory_item_expiry_date(db_session) -> None:
+async def test_inventory_item_expiry_date(db_session: AsyncSession) -> None:
     user = User(email="expiry@example.com")
     db_session.add(user)
     await db_session.flush()
