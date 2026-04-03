@@ -27,5 +27,9 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[tool.basedpyright]
+include = ["app", "tests"]
+extraPaths = ["."]
+
 [tool.setuptools.packages.find]
 include = ["app*"]

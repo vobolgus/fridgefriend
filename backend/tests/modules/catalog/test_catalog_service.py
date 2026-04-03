@@ -1,14 +1,61 @@
+from collections.abc import Callable
+from importlib import import_module
+from types import ModuleType
+from typing import Protocol, cast
+
 import httpx
 import pytest
 
-from app.modules.catalog.interfaces import BarcodeAPIInterface
-from app.modules.catalog.schemas import BarcodeResult
-from app.modules.catalog.service import CatalogService
-from app.modules.catalog.normalizer import normalize_ingredient_name
+
+class BarcodeResultLike(Protocol):
+    barcode: str
+    display_name: str
+    canonical_name: str
+    brand: str
 
 
-class CustomBarcodeAPI(BarcodeAPIInterface):
-    def lookup(self, barcode: str) -> BarcodeResult | None:
+class BarcodeResultFactory(Protocol):
+    def __call__(
+        self,
+        *,
+        barcode: str,
+        display_name: str,
+        canonical_name: str,
+        brand: str,
+    ) -> BarcodeResultLike: ...
+
+
+class CatalogServiceLike(Protocol):
+    def lookup_barcode(self, barcode: str) -> BarcodeResultLike | None: ...
+
+    def normalize(self, name: str) -> str: ...
+
+
+class CatalogServiceFactory(Protocol):
+    def __call__(self, barcode_api: object | None = None) -> CatalogServiceLike: ...
+
+
+def _load_symbol(module_name: str, symbol_name: str) -> object:
+    module: ModuleType = import_module(module_name)
+    return cast(object, getattr(module, symbol_name))
+
+
+normalize_ingredient_name = cast(
+    Callable[[str], str],
+    _load_symbol("app.modules.catalog.normalizer", "normalize_ingredient_name"),
+)
+BarcodeResult = cast(
+    BarcodeResultFactory,
+    _load_symbol("app.modules.catalog.schemas", "BarcodeResult"),
+)
+CatalogService = cast(
+    CatalogServiceFactory,
+    _load_symbol("app.modules.catalog.service", "CatalogService"),
+)
+
+
+class CustomBarcodeAPI:
+    def lookup(self, barcode: str) -> BarcodeResultLike | None:
         if barcode == "custom-1":
             return BarcodeResult(
                 barcode=barcode,
@@ -19,9 +66,12 @@ class CustomBarcodeAPI(BarcodeAPIInterface):
         return None
 
 
-def test_lookup_known_barcode() -> None:
-    service = CatalogService()
+@pytest.fixture
+def service() -> CatalogServiceLike:
+    return CatalogService()
 
+
+def test_lookup_known_barcode(service: CatalogServiceLike) -> None:
     result = service.lookup_barcode("8710847909610")
 
     assert result is not None
@@ -29,17 +79,13 @@ def test_lookup_known_barcode() -> None:
     assert result.brand == "Generic"
 
 
-def test_lookup_unknown_barcode() -> None:
-    service = CatalogService()
-
+def test_lookup_unknown_barcode(service: CatalogServiceLike) -> None:
     result = service.lookup_barcode("9999999999999")
 
     assert result is None
 
 
-def test_lookup_known_barcode_returns_expected_payload() -> None:
-    service = CatalogService()
-
+def test_lookup_known_barcode_returns_expected_payload(service: CatalogServiceLike) -> None:
     result = service.lookup_barcode("5000112637939")
 
     assert result == BarcodeResult(
@@ -85,7 +131,8 @@ async def test_barcode_api_endpoint_not_found(client: httpx.AsyncClient) -> None
     )
 
     assert response.status_code == 404
-    assert "not found" in response.json()["detail"].lower()
+    detail = cast(str, response.json()["detail"])
+    assert "not found" in detail.lower()
 
 
 @pytest.mark.asyncio
