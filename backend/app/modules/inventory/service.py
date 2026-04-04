@@ -129,12 +129,13 @@ class InventoryService:
         user: User,
         household_id: UUID,
         status: InventoryStatus,
+        version: int | None = None,
     ) -> InventoryItem:
         existing = await self._repository.get_by_id(item_id, household_id)
         if existing is None:
             raise InventoryItemNotFoundError
         previous_state = snapshot_item(existing)
-        item = await self._repository.update_status(item_id, household_id, status)
+        item = await self._repository.update_status(item_id, household_id, status, version)
         if item is None:
             raise InventoryItemNotFoundError
         _ = await self._event_service.log_event(

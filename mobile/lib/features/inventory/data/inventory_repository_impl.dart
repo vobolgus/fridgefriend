@@ -146,10 +146,10 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<void> updateItemStatus(String id, String status) async {
+  Future<void> updateItemStatus(String id, String status, {int? version}) async {
     await _inventoryDao.updateItemStatus(id, status);
     try {
-      await _apiClient.updateItemStatus(id, status);
+      await _apiClient.updateItemStatus(id, status, version: version);
     } catch (_) {
       await _syncManager.queueStatusUpdate(itemId: id, status: status);
     }

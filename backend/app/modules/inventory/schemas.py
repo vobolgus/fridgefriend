@@ -52,6 +52,7 @@ class ItemUpdate(BaseModel):
 
 class ItemStatusUpdate(BaseModel):
     status: InventoryStatus
+    version: int | None = None
 
 
 class ItemResponse(BaseModel):

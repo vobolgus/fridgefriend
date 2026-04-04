@@ -46,7 +46,7 @@ class DriftInventoryRepository implements InventoryRepository {
       canonicalIngredientId: canonicalIngredientId,
     );
 
-      await _inventoryDao.insertItem(
+    await _inventoryDao.insertItem(
       InventoryItemsTableCompanion.insert(
         id: item.id,
         displayName: item.displayName,
@@ -92,7 +92,8 @@ class DriftInventoryRepository implements InventoryRepository {
   }
 
   @override
-  Future<void> updateItemStatus(String id, String status) {
+  Future<void> updateItemStatus(String id, String status, {int? version}) {
+    if (version != null) {}
     return _inventoryDao.updateItemStatus(id, status);
   }
 

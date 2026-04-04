@@ -158,8 +158,12 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
 
   Future<void> _updateStatus(String itemId, String status) async {
     final currentItems = state.valueOrNull ?? const <InventoryItem>[];
+    final itemVersion = currentItems
+        .where((item) => item.id == itemId)
+        .map((item) => item.version)
+        .fold<int?>(null, (previous, current) => previous ?? current);
     try {
-      await _repository.updateItemStatus(itemId, status);
+      await _repository.updateItemStatus(itemId, status, version: itemVersion);
       state = AsyncValue.data(
         currentItems
             .map(
@@ -272,7 +276,9 @@ class _NoopRepository implements InventoryRepository {
   }
 
   @override
-  Future<void> updateItemStatus(String id, String status) async {}
+  Future<void> updateItemStatus(String id, String status, {int? version}) async {
+    if (version != null) {}
+  }
 
   @override
   Future<void> undoItem(String id) async {}

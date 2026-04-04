@@ -150,10 +150,18 @@ async def update_item_status(
 
     try:
         response = ItemResponse.model_validate(
-            await inventory_service.update_status(item_id, current_user, household_id, payload.status),
+            await inventory_service.update_status(
+                item_id,
+                current_user,
+                household_id,
+                payload.status,
+                payload.version,
+            ),
         )
     except InventoryItemNotFoundError:
         _raise_not_found()
+    except StaleDataError:
+        _raise_version_conflict()
 
     store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 

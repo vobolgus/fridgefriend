@@ -181,13 +181,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
           .read(householdRepositoryProvider)
           .setActiveHousehold(household.id);
 
-      final db = ref.read(appDatabaseProvider);
-      await db.inventoryDao.clearAll();
-      await db.recipeDao.clear();
-      await db.mealPlanDao.clear();
-
-      final syncManager = ref.read(syncManagerProvider);
-      await syncManager.clearPendingMutations();
+      await _clearHouseholdCaches();
 
       ref.invalidate(householdsProvider);
       ref.invalidate(inventory_providers.inventoryProvider);
@@ -213,6 +207,16 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
     }
   }
 
+  Future<void> _clearHouseholdCaches() async {
+    final db = ref.read(appDatabaseProvider);
+    await db.inventoryDao.clearAll();
+    await db.recipeDao.clear();
+    await db.mealPlanDao.clear();
+
+    final syncManager = ref.read(syncManagerProvider);
+    await syncManager.clearPendingMutations();
+  }
+
   void _showCreateDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
     showDialog(
@@ -235,6 +239,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               Navigator.pop(dialogContext);
               try {
                 await ref.read(householdRepositoryProvider).createHousehold(name);
+                await _clearHouseholdCaches();
                 ref.invalidate(householdsProvider);
               } catch (e) {
                 if (context.mounted) {
@@ -273,6 +278,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               Navigator.pop(dialogContext);
               try {
                 await ref.read(householdRepositoryProvider).joinHousehold(code);
+                await _clearHouseholdCaches();
                 ref.invalidate(householdsProvider);
               } catch (e) {
                 if (context.mounted) {

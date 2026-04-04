@@ -71,10 +71,14 @@ class InventoryRepository:
         item_id: UUID,
         household_id: UUID,
         status: InventoryStatus,
+        expected_version: int | None = None,
     ) -> InventoryItem | None:
         item = await self.get_by_id(item_id, household_id)
         if item is None:
             return None
+
+        if expected_version is not None and item.version != expected_version:
+            raise StaleDataError
 
         item.status = status
         item.version += 1
