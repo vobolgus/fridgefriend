@@ -1,0 +1,33 @@
+name: Dashboard Tests
+
+on:
+  push:
+    branches: [main]
+    paths: ['dashboard/**', '.github/workflows/dashboard.yml']
+  pull_request:
+    branches: [main]
+    paths: ['dashboard/**', '.github/workflows/dashboard.yml']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install -e backend
+          pip install -r dashboard/requirements.txt
+          pip install pytest
+
+      - name: Run dashboard tests
+        run: PYTHONPATH=dashboard python -m pytest dashboard/tests/ -v --tb=short
+
+      - name: Build dashboard image
+        run: docker build -f dashboard/Dockerfile -t fridgefriend-dashboard:test dashboard/

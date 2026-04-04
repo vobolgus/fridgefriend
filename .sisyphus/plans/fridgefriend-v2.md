@@ -42,19 +42,19 @@
 
 ### Wave 1A: Database & Configuration (sequential)
 
-- [ ] **1A-1**: Make database URL configurable via Settings
-- [ ] **1A-2**: Add `version` column for optimistic concurrency
-- [ ] **1A-3**: Add Redis configuration to Settings
+- [x] **1A-1**: Make database URL configurable via Settings
+- [x] **1A-2**: Add `version` column for optimistic concurrency
+- [x] **1A-3**: Add Redis configuration to Settings
 
 ### Wave 1B: Auth Architecture (sequential)
 
-- [ ] **1B-1**: Extract auth to shared module with toggleable mock
-- [ ] **1B-2**: Implement Firebase JWT validation (behind AUTH_MOCK=false)
+- [x] **1B-1**: Extract auth to shared module with toggleable mock
+- [x] **1B-2**: Implement Firebase JWT validation (behind AUTH_MOCK=false)
 
 ### Wave 1C: Infrastructure Docker (parallelizable)
 
-- [ ] **1C-1**: Create backend Dockerfile and wire docker-compose
-- [ ] **1C-2**: Add LocalStack for S3 and SQS emulation
+- [x] **1C-1**: Create backend Dockerfile and wire docker-compose
+- [x] **1C-2**: Add LocalStack for S3 and SQS emulation
 
 ---
 
@@ -65,14 +65,14 @@
 
 ### Wave 2A: Household & Member models (sequential)
 
-- [ ] **2A-1**: Add Household and HouseholdMember models
-- [ ] **2A-2**: Add default household auto-creation to auth flow
+- [x] **2A-1**: Add Household and HouseholdMember models
+- [x] **2A-2**: Add default household auto-creation to auth flow
 
 ### Wave 2B: Remaining models (parallelizable)
 
-- [ ] **2B-1**: Add CanonicalIngredient and ProductBarcode models
-- [ ] **2B-2**: Add notification and device token models
-- [ ] **2B-3**: Add event tracking models (InventoryEvent, AnalyticsEvent, RecommendationSession, ReservedIngredient)
+- [x] **2B-1**: Add CanonicalIngredient and ProductBarcode models
+- [x] **2B-2**: Add notification and device token models
+- [x] **2B-3**: Add event tracking models (InventoryEvent, AnalyticsEvent, RecommendationSession, ReservedIngredient)
 
 ---
 
@@ -83,13 +83,13 @@
 
 ### Wave 3A: Household CRUD API
 
-- [ ] **3A-1**: Create household module with CRUD endpoints
+- [x] **3A-1**: Create household module with CRUD endpoints
 
 ### Wave 3B: Household scoping (sequential)
 
-- [ ] **3B-1**: Scope inventory queries by household
-- [ ] **3B-2**: Scope recommendations and planning by household
-- [ ] **3B-3**: Add InventoryEvent logging on all inventory mutations
+- [x] **3B-1**: Scope inventory queries by household
+- [x] **3B-2**: Scope recommendations and planning by household
+- [x] **3B-3**: Add InventoryEvent logging on all inventory mutations
 
 ---
 
@@ -100,21 +100,21 @@
 
 ### Wave 4A: Catalog & Expiry upgrades (parallelizable)
 
-- [ ] **4A-1**: Migrate shelf-life rules from Python dict to database
-- [ ] **4A-2**: Integrate CanonicalIngredient into catalog normalization
-- [ ] **4A-3**: Add Spoonacular recipe API interface
+- [x] **4A-1**: Migrate shelf-life rules from Python dict to database
+- [x] **4A-2**: Integrate CanonicalIngredient into catalog normalization
+- [x] **4A-3**: Add Spoonacular recipe API interface
 
 ### Wave 4B: Photo scan endpoint
 
-- [ ] **4B-1**: Add photo scan endpoint with LLM interface
+- [x] **4B-1**: Add photo scan endpoint with LLM interface
 
 ### Wave 4C: Transactional meal plan reservation
 
-- [ ] **4C-1**: Implement ReservedIngredient transactional reservation
+- [x] **4C-1**: Implement ReservedIngredient transactional reservation
 
 ### Wave 4D: Enhanced recommendation scoring
 
-- [ ] **4D-1**: Add substitutions and dietary fit to recommendation engine
+- [x] **4D-1**: Add substitutions and dietary fit to recommendation engine
 
 ---
 
@@ -125,13 +125,13 @@
 
 ### Wave 5A: Celery setup
 
-- [ ] **5A-1**: Add Celery worker configuration with Redis broker
+- [x] **5A-1**: Add Celery worker configuration with Redis broker
 
 ### Wave 5B: Notification module
 
-- [ ] **5B-1**: Create notification preferences API
-- [ ] **5B-2**: Add expiry reminder Celery task
-- [ ] **5B-3**: Add Celery Beat schedule for periodic reminders
+- [x] **5B-1**: Create notification preferences API
+- [x] **5B-2**: Add expiry reminder Celery task
+- [x] **5B-3**: Add Celery Beat schedule for periodic reminders
 
 ---
 
@@ -140,8 +140,8 @@
 > **Goal**: SSE endpoint for real-time household activity stream.
 > **Dependency**: Phase 3.
 
-- [ ] **6A-1**: Add SSE endpoint for household activity stream
-- [ ] **6A-2**: Add activity log endpoint
+- [x] **6A-1**: Add SSE endpoint for household activity stream
+- [x] **6A-2**: Add activity log endpoint
 
 ---
 
@@ -150,8 +150,8 @@
 > **Goal**: Move idempotency to Redis, add analytics collection.
 > **Dependency**: Phase 1C, Phase 2B.
 
-- [ ] **7A-1**: Migrate idempotency cache to Redis
-- [ ] **7A-2**: Add analytics event collection endpoint
+- [x] **7A-1**: Migrate idempotency cache to Redis
+- [x] **7A-2**: Add analytics event collection endpoint
 
 ---
 
@@ -162,14 +162,14 @@
 
 ### Wave 8A: Auth infrastructure
 
-- [ ] **8A-1**: Add Firebase Auth package and auth service
-- [ ] **8A-2**: Add Sign In screen
+- [x] **8A-1**: Add Firebase Auth package and auth service
+- [x] **8A-2**: Add Sign In screen
 
 ### Wave 8B: New screens (parallelizable after auth)
 
-- [ ] **8B-1**: Add Household management screen
-- [ ] **8B-2**: Add Settings screen
-- [ ] **8B-3**: Add Barcode Scan screen (camera integration)
+- [x] **8B-1**: Add Household management screen
+- [x] **8B-2**: Add Settings screen
+- [x] **8B-3**: Add Barcode Scan screen (camera integration)
 
 ---
 
@@ -180,15 +180,15 @@
 
 ### Wave 9A: Photo and OCR flow
 
-- [ ] **9A-1**: Add Photo Upload screen
-- [ ] **9A-2**: Add OCR Review screen
+- [x] **9A-1**: Add Photo Upload screen
+- [x] **9A-2**: Add OCR Review screen
 
 ### Wave 9B: Enhanced screens (parallelizable)
 
-- [ ] **9B-1**: Add Use Soon screen (expiry urgency dashboard)
-- [ ] **9B-2**: Add Recipe Detail screen
-- [ ] **9B-3**: Enhance Recipe Feed screen
-- [ ] **9B-4**: Enhance Weekly Plan screen with reservation indicators
+- [x] **9B-1**: Add Use Soon screen (expiry urgency dashboard)
+- [x] **9B-2**: Add Recipe Detail screen
+- [x] **9B-3**: Enhance Recipe Feed screen
+- [x] **9B-4**: Enhance Weekly Plan screen with reservation indicators
 
 ---
 
@@ -197,9 +197,9 @@
 > **Goal**: Wire Drift as local cache, implement offline-first with sync.
 > **Dependency**: Phase 9.
 
-- [ ] **10A-1**: Wire Drift database as local cache for inventory
-- [ ] **10A-2**: Add Drift tables for recipes and meal plans
-- [ ] **10A-3**: Add SSE listener for household sync
+- [x] **10A-1**: Wire Drift database as local cache for inventory
+- [x] **10A-2**: Add Drift tables for recipes and meal plans
+- [x] **10A-3**: Add SSE listener for household sync
 
 ---
 
@@ -208,10 +208,10 @@
 > **Goal**: Enhanced CI, Sentry/Amplitude integration, production-ready Docker.
 > **Dependency**: All previous phases.
 
-- [ ] **11A-1**: Enhance GitHub Actions with Docker integration tests
-- [ ] **11A-2**: Add Sentry error tracking
-- [ ] **11A-3**: Add Amplitude analytics integration
-- [ ] **11A-4**: Production Docker Compose with all services
+- [x] **11A-1**: Enhance GitHub Actions with Docker integration tests
+- [x] **11A-2**: Add Sentry error tracking
+- [x] **11A-3**: Add Amplitude analytics integration
+- [x] **11A-4**: Production Docker Compose with all services
 
 ---
 
@@ -220,9 +220,9 @@
 > **Goal**: End-to-end integration tests, API contract verification, documentation.
 > **Dependency**: All previous phases.
 
-- [ ] **12A-1**: Add comprehensive backend integration tests
-- [ ] **12A-2**: API contract verification script
-- [ ] **12A-3**: Update documentation
+- [x] **12A-1**: Add comprehensive backend integration tests
+- [x] **12A-2**: API contract verification script
+- [x] **12A-3**: Update documentation
 
 ---
 

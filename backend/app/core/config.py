@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "gpt-4.1-mini"
     PHOTO_PARSER_BACKEND: str = "mock"
     SENTRY_DSN: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1
+    SENTRY_ENVIRONMENT: str = "development"
     AMPLITUDE_API_KEY: str = ""
     LLM_INPUT_COST_PER_1M: float = 0.40
     LLM_OUTPUT_COST_PER_1M: float = 1.60

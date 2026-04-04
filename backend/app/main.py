@@ -30,7 +30,8 @@ if settings.SENTRY_DSN and sentry_sdk is not None and FastApiIntegration is not 
         _ = init_fn(
             dsn=settings.SENTRY_DSN,
             integrations=[FastApiIntegration()],
-            traces_sample_rate=0.0,
+            traces_sample_rate=settings.SENTRY_TRACES_SAMPLE_RATE,
+            environment=settings.SENTRY_ENVIRONMENT,
         )
 
 

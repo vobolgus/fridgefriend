@@ -3,10 +3,10 @@ name: Backend Tests
 on:
   push:
     branches: [main]
-    paths: ['backend/**', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'dashboard/**', '.github/workflows/backend.yml']
   pull_request:
     branches: [main]
-    paths: ['backend/**', '.github/workflows/backend.yml']
+    paths: ['backend/**', 'dashboard/**', '.github/workflows/backend.yml']
 
 jobs:
   test:
@@ -45,6 +45,12 @@ jobs:
         env:
           DATABASE_URL: "sqlite+aiosqlite:///:memory:"
         run: python -m pytest tests/ -v --tb=short
+
+      - name: Run dashboard tests
+        working-directory: .
+        run: |
+          pip install -r dashboard/requirements.txt
+          PYTHONPATH=dashboard python -m pytest dashboard/tests/ -v --tb=short
 
       - name: Build backend image
         working-directory: .
