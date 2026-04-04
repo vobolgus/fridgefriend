@@ -39,12 +39,16 @@ class SyncManager {
   final ApiClient _apiClient;
   final InventoryDao _inventoryDao;
 
-  Future<void> queueCreate(InventoryItem item) {
+  Future<void> queueCreate(InventoryItem item, {String? idempotencyKey}) {
+    final payload = item.toJson();
+    if (idempotencyKey != null) {
+      payload['_idempotencyKey'] = idempotencyKey;
+    }
     return _enqueue(
       entityType: 'inventory',
       entityId: item.id,
       action: 'create',
-      payload: item.toJson(),
+      payload: payload,
     );
   }
 
@@ -128,6 +132,7 @@ class SyncManager {
                 : DateTime.tryParse(
                     mutation.payload['estimatedExpiryDate'].toString(),
                   ),
+            idempotencyKey: mutation.payload['_idempotencyKey']?.toString(),
           );
           await _retargetPendingMutations(
             fromEntityId: mutation.entityId,

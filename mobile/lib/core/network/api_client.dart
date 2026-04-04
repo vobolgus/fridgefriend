@@ -83,6 +83,7 @@ class ApiClient {
     String? canonicalIngredientId,
     double? confidence,
     DateTime? estimatedExpiryDate,
+    String? idempotencyKey,
   }) async {
     final data = <String, dynamic>{
       'display_name': displayName,
@@ -103,7 +104,7 @@ class ApiClient {
       data: data,
       options: Options(
         headers: {
-          'Idempotency-Key': _uniqueIdempotencyKey('create_item'),
+          'Idempotency-Key': idempotencyKey ?? _uniqueIdempotencyKey('create_item'),
         },
       ),
     );

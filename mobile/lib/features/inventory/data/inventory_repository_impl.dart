@@ -53,14 +53,16 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return created;
     } on DioException catch (e) {
       if (!_isConnectivityError(e)) rethrow;
+      final now = DateTime.now();
+      final idempotencyKey = 'create_item_${now.microsecondsSinceEpoch}';
       final localItem = InventoryItem(
-        id: 'offline_${DateTime.now().microsecondsSinceEpoch}',
+        id: 'offline_${now.microsecondsSinceEpoch}',
         displayName: displayName,
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,
         estimatedExpiryDate:
-            estimatedExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
+            estimatedExpiryDate ?? now.add(const Duration(days: 7)),
         confidence: confidence ?? 0.5,
         status: 'active',
         source: source ?? 'manual',
@@ -68,7 +70,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
         canonicalIngredientId: canonicalIngredientId,
       );
       await _inventoryDao.insertItem(_toCompanion(localItem));
-      await _syncManager.queueCreate(localItem);
+      await _syncManager.queueCreate(localItem, idempotencyKey: idempotencyKey);
       return localItem;
     }
   }
@@ -83,9 +85,37 @@ class InventoryRepositoryImpl implements InventoryRepository {
   @override
   Future<List<InventoryItem>> syncInventoryItems() async {
     await _syncManager.flushPendingMutations();
+    final remaining = await _syncManager.pendingMutations();
     final remoteItems = await _apiClient.getInventoryItems();
+    if (remaining.isEmpty) {
+      await _replaceCache(remoteItems);
+      return remoteItems;
+    }
+    // Merge: keep local offline items alongside server items
     await _replaceCache(remoteItems);
-    return remoteItems;
+    final offlineItems = await Future.wait(
+      remaining
+          .where((m) => m.action == 'create')
+          .map((m) => _inventoryDao.getAllItems().then(
+                (all) => all.where((i) => i.id == m.entityId),
+              )),
+    );
+    final offlineIds = offlineItems.expand((e) => e).map((i) => i.id).toSet();
+    // Re-insert offline-only items so they remain visible
+    for (final m in remaining.where((m) => m.action == 'create')) {
+      if (offlineIds.contains(m.entityId)) continue;
+      final item = InventoryItem(
+        id: m.entityId,
+        displayName: (m.payload['displayName'] ?? '').toString(),
+        quantity: double.tryParse(m.payload['quantity']?.toString() ?? '') ?? 0,
+        unit: (m.payload['unit'] ?? '').toString(),
+        storageLocation: (m.payload['storageLocation'] ?? '').toString(),
+        status: 'active',
+        source: m.payload['source']?.toString() ?? 'manual',
+      );
+      await _inventoryDao.insertItem(_toCompanion(item));
+    }
+    return _loadCachedItems();
   }
 
   @override
