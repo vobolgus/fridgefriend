@@ -314,7 +314,8 @@ async def test_update_item_partial(
     assert payload["storageLocation"] == "freezer"
     assert payload["quantity"] == 1.0
     assert payload["unit"] == "pack"
-    assert payload["estimatedExpiryDate"] == "2026-04-15"
+    # storage_location changed fridge→freezer so expiry is recalculated
+    assert payload["estimatedExpiryDate"] != "2026-04-15"
 
 
 @pytest.mark.asyncio

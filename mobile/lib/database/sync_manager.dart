@@ -134,17 +134,18 @@ class SyncManager {
         final statusVersion = mutation.payload['version'] is int
             ? mutation.payload['version'] as int
             : int.tryParse(mutation.payload['version']?.toString() ?? '');
-        await _apiClient.updateItemStatus(
+        final syncedStatus = await _apiClient.updateItemStatus(
           mutation.entityId,
           (mutation.payload['status'] ?? '').toString(),
           version: statusVersion,
         );
+        await _inventoryDao.insertItem(_toCompanion(syncedStatus));
         await _deleteMutation(mutation.id);
         continue;
       }
 
       if (mutation.action == 'update') {
-        await _apiClient.updateItem(
+        final syncedUpdate = await _apiClient.updateItem(
           id: mutation.entityId,
           displayName: mutation.payload['displayName']?.toString(),
           quantity: mutation.payload['quantity'] != null
@@ -161,6 +162,7 @@ class SyncManager {
               ? mutation.payload['version'] as int
               : int.tryParse(mutation.payload['version']?.toString() ?? ''),
         );
+        await _inventoryDao.insertItem(_toCompanion(syncedUpdate));
         await _deleteMutation(mutation.id);
         continue;
       }

@@ -109,6 +109,22 @@ class InventoryService:
             data = data.model_copy(update={"unit": normalize_unit(data.unit)})
         if data.quantity is not None:
             data = data.model_copy(update={"quantity": max(0.0, round(data.quantity, 3))})
+
+        expiry_fields_changed = (
+            (data.display_name is not None and data.display_name != existing.display_name)
+            or (data.storage_location is not None and data.storage_location != existing.storage_location)
+        )
+        if data.estimated_expiry_date is None and expiry_fields_changed:
+            resolved_name = data.canonical_name or existing.canonical_name or data.display_name or existing.display_name
+            resolved_storage = data.storage_location or existing.storage_location
+            new_expiry, new_confidence = self._expiry_service.calculate_expiry(
+                resolved_name, resolved_storage, date.today(),
+            )
+            data = data.model_copy(update={
+                "estimated_expiry_date": new_expiry,
+                "confidence": new_confidence,
+            })
+
         item = await self._repository.update(item_id, household_id, data)
         if item is None:
             raise InventoryItemNotFoundError

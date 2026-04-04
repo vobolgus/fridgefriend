@@ -34,6 +34,9 @@ class InventoryRepositoryImpl implements InventoryRepository {
     double? confidence,
     DateTime? estimatedExpiryDate,
   }) async {
+    if (displayName.trim().isEmpty || quantity <= 0) {
+      throw ArgumentError('Item must have a non-empty name and positive quantity');
+    }
     try {
       final created = await _apiClient.createInventoryItem(
         displayName: displayName,

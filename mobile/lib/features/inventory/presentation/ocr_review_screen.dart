@@ -25,7 +25,22 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
         .toList();
   }
 
+  bool _validate() {
+    for (final item in _draftItems) {
+      if (item.displayName.trim().isEmpty || item.quantity <= 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> _saveAll() async {
+    if (!_validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All items must have a name and quantity greater than zero')),
+      );
+      return;
+    }
     for (final item in _draftItems) {
       final storage = item.storageLocation.isNotEmpty
           ? item.storageLocation
