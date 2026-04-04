@@ -5,10 +5,10 @@ class InventoryItem {
     required this.quantity,
     required this.unit,
     required this.storageLocation,
-    required this.estimatedExpiryDate,
-    required this.confidence,
     required this.status,
     required this.source,
+    this.estimatedExpiryDate,
+    this.confidence,
     this.canonicalName,
     this.canonicalIngredientId,
   });
@@ -18,15 +18,16 @@ class InventoryItem {
   final double quantity;
   final String unit;
   final String storageLocation;
-  final DateTime estimatedExpiryDate;
-  final double confidence;
+  final DateTime? estimatedExpiryDate;
+  final double? confidence;
   final String status;
   final String source;
   final String? canonicalName;
   final String? canonicalIngredientId;
 
   String get urgencyBucket {
-    final daysLeft = estimatedExpiryDate.difference(DateTime.now()).inDays;
+    if (estimatedExpiryDate == null) return 'safe_later';
+    final daysLeft = estimatedExpiryDate!.difference(DateTime.now()).inDays;
     if (daysLeft < 0) return 'expired';
     if (daysLeft <= 1) return 'today';
     if (daysLeft <= 7) return 'this_week';
@@ -57,26 +58,24 @@ class InventoryItem {
       status: status ?? this.status,
       source: source ?? this.source,
       canonicalName: canonicalName ?? this.canonicalName,
-      canonicalIngredientId:
-          canonicalIngredientId ?? this.canonicalIngredientId,
+      canonicalIngredientId: canonicalIngredientId ?? this.canonicalIngredientId,
     );
   }
 
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
+    final rawExpiry = json['estimatedExpiryDate'] ?? json['estimated_expiry_date'];
+    final rawConfidence = json['confidence'];
+
     return InventoryItem(
       id: (json['itemId'] ?? json['item_id'] ?? json['id'] ?? '').toString(),
       displayName: (json['displayName'] ?? json['display_name'] ?? '').toString(),
       quantity: _asDouble(json['quantity']),
       unit: (json['unit'] ?? '').toString(),
       storageLocation: (json['storageLocation'] ?? json['storage_location'] ?? '').toString(),
-      estimatedExpiryDate: DateTime.tryParse(
-            (json['estimatedExpiryDate'] ??
-                    json['estimated_expiry_date'] ??
-                    '')
-                .toString(),
-          ) ??
-          DateTime.now(),
-      confidence: _asDouble(json['confidence']),
+      estimatedExpiryDate: rawExpiry != null
+          ? DateTime.tryParse(rawExpiry.toString())
+          : null,
+      confidence: rawConfidence != null ? _asDouble(rawConfidence) : null,
       status: (json['status'] ?? 'active').toString(),
       source: (json['source'] ?? 'manual').toString(),
       canonicalName:
@@ -94,8 +93,9 @@ class InventoryItem {
       'quantity': quantity,
       'unit': unit,
       'storageLocation': storageLocation,
-      'estimatedExpiryDate': estimatedExpiryDate.toIso8601String(),
-      'confidence': confidence,
+      if (estimatedExpiryDate != null)
+        'estimatedExpiryDate': estimatedExpiryDate!.toIso8601String(),
+      if (confidence != null) 'confidence': confidence,
       'status': status,
       'source': source,
       'canonicalName': canonicalName,

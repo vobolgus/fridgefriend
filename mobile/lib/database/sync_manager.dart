@@ -167,8 +167,8 @@ class SyncManager {
       quantity: item.quantity,
       unit: item.unit,
       storageLocation: item.storageLocation,
-      estimatedExpiryDate: item.estimatedExpiryDate,
-      confidence: item.confidence,
+      estimatedExpiryDate: item.estimatedExpiryDate ?? DateTime.now(),
+      confidence: item.confidence ?? 0.0,
       status: Value(item.status),
       source: Value(item.source),
     );

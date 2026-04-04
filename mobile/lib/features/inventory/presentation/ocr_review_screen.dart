@@ -25,16 +25,18 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
 
   Future<void> _saveAll() async {
     for (final item in _draftItems) {
+      final storage = item.storageLocation.isNotEmpty
+          ? item.storageLocation
+          : 'fridge';
       await ref.read(inventoryProvider.notifier).addItem(
             displayName: item.displayName,
             quantity: item.quantity,
             unit: item.unit,
-            storageLocation: item.storageLocation,
+            storageLocation: storage,
             source: 'photo',
             canonicalName: item.canonicalName,
             canonicalIngredientId: item.canonicalIngredientId,
             confidence: item.confidence,
-            estimatedExpiryDate: item.estimatedExpiryDate,
           );
     }
     if (mounted) {
@@ -58,35 +60,56 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
               itemCount: _draftItems.length,
               itemBuilder: (context, index) {
                 final item = _draftItems[index];
-                return ListTile(
-                  title: TextFormField(
-                    initialValue: item.displayName,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                    onChanged: (val) => _draftItems[index] = item.copyWith(displayName: val),
-                  ),
-                  subtitle: Row(
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: item.quantity.toString(),
-                          decoration: const InputDecoration(labelText: 'Qty'),
-                          keyboardType: TextInputType.number,
-                          onChanged: (val) => _draftItems[index] = item.copyWith(quantity: double.tryParse(val) ?? item.quantity),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: item.displayName,
+                              decoration: const InputDecoration(labelText: 'Name'),
+                              onChanged: (val) => _draftItems[index] = item.copyWith(displayName: val),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _removeItem(index),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextFormField(
-                          initialValue: item.unit,
-                          decoration: const InputDecoration(labelText: 'Unit'),
-                          onChanged: (val) => _draftItems[index] = item.copyWith(unit: val),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: item.quantity.toString(),
+                              decoration: const InputDecoration(labelText: 'Qty'),
+                              keyboardType: TextInputType.number,
+                              onChanged: (val) => _draftItems[index] = item.copyWith(quantity: double.tryParse(val) ?? item.quantity),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: item.unit,
+                              decoration: const InputDecoration(labelText: 'Unit'),
+                              onChanged: (val) => _draftItems[index] = item.copyWith(unit: val),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: item.storageLocation.isNotEmpty ? item.storageLocation : 'fridge',
+                              decoration: const InputDecoration(labelText: 'Storage'),
+                              onChanged: (val) => _draftItems[index] = item.copyWith(storageLocation: val),
+                            ),
+                          ),
+                        ],
                       ),
+                      const Divider(),
                     ],
-                  ),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _removeItem(index),
                   ),
                 );
               },

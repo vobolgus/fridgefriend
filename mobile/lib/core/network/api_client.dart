@@ -148,6 +148,9 @@ class ApiClient {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/recommendations',
       data: {'servings': servings},
+      options: Options(
+        headers: {'Idempotency-Key': 'recommendations_$servings'},
+      ),
     );
 
     final payload = response.data;

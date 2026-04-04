@@ -104,7 +104,6 @@ void main() {
         canonicalName: 'spinach',
         canonicalIngredientId: 'ingredient-spinach',
         confidence: 0.75,
-        estimatedExpiryDate: DateTime.parse('2026-04-08T00:00:00Z'),
       ),
     ).called(1);
   });
