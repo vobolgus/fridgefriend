@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -140,6 +141,9 @@ void main() {
     });
 
     test('uploadPhoto sends idempotency key header', () async {
+      final tmpFile = File('${Directory.systemTemp.path}/upload_test_${DateTime.now().millisecondsSinceEpoch}.txt');
+      tmpFile.writeAsStringSync('test');
+
       late RequestOptions capturedOptions;
       final adapter = _RecordingAdapter((options) {
         capturedOptions = options;
@@ -149,16 +153,18 @@ void main() {
       final client = ApiClient(baseUrl: 'https://example.test');
       client.rawClient.httpClientAdapter = adapter;
 
-      final imageUrl = await client.uploadPhoto(
-        '/Users/svyatoslav.suglobov/AILab_project/mobile/pubspec.yaml',
-      );
+      try {
+        final imageUrl = await client.uploadPhoto(tmpFile.path);
 
-      expect(capturedOptions.path, '/v1/scan/photo/upload');
-      expect(
-        (capturedOptions.headers['Idempotency-Key'] as String).startsWith('upload_'),
-        isTrue,
-      );
-      expect(imageUrl, 'https://cdn.example.test/image.jpg');
+        expect(capturedOptions.path, '/v1/scan/photo/upload');
+        expect(
+          (capturedOptions.headers['Idempotency-Key'] as String).startsWith('upload_'),
+          isTrue,
+        );
+        expect(imageUrl, 'https://cdn.example.test/image.jpg');
+      } finally {
+        tmpFile.deleteSync();
+      }
     });
   });
 }
