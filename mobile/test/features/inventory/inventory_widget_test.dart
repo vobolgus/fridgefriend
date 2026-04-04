@@ -12,6 +12,40 @@ import 'package:fridgefriend_mobile/features/inventory/presentation/providers.da
 
 class MockApiClient extends Mock implements ApiClient {}
 
+class _TestInventoryNotifier extends InventoryNotifier {
+  _TestInventoryNotifier(List<InventoryItem> items)
+      : super.withInitialData(items);
+
+  @override
+  Future<void> addItem({
+    required String displayName,
+    required double quantity,
+    required String unit,
+    required String storageLocation,
+    String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
+    double? confidence,
+    DateTime? estimatedExpiryDate,
+  }) async {
+    final createdItem = InventoryItem(
+      id: 'created-item',
+      displayName: displayName,
+      quantity: quantity,
+      unit: unit,
+      storageLocation: storageLocation,
+      estimatedExpiryDate: estimatedExpiryDate,
+      confidence: confidence,
+      status: 'active',
+      source: source ?? 'manual',
+      canonicalName: canonicalName,
+      canonicalIngredientId: canonicalIngredientId,
+    );
+    final currentItems = state.valueOrNull ?? const <InventoryItem>[];
+    state = AsyncValue.data([...currentItems, createdItem]);
+  }
+}
+
 void main() {
   testWidgets('InventoryScreen shows item names and urgency badge', (
     tester,
@@ -52,37 +86,13 @@ void main() {
   });
 
   testWidgets('AddItemScreen submits item details', (tester) async {
-    final mockClient = MockApiClient();
-    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => const []);
-    when(
-      () => mockClient.createInventoryItem(
-        displayName: 'Eggs',
-        quantity: 12.0,
-        unit: 'pcs',
-        storageLocation: 'Fridge',
-        source: null,
-        canonicalName: null,
-        canonicalIngredientId: null,
-        confidence: null,
-        estimatedExpiryDate: null,
-      ),
-    ).thenAnswer(
-      (_) async => InventoryItem(
-        id: '2',
-        displayName: 'Eggs',
-        quantity: 12,
-        unit: 'pcs',
-        storageLocation: 'Fridge',
-        estimatedExpiryDate: DateTime.now().add(const Duration(days: 5)),
-        confidence: 0.95,
-        status: 'active',
-        source: 'manual',
-      ),
-    );
+    final inventoryNotifier = _TestInventoryNotifier(const []);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(mockClient)],
+        overrides: [
+          inventoryProvider.overrideWith((ref) => inventoryNotifier),
+        ],
         child: const MaterialApp(home: AddItemScreen()),
       ),
     );
@@ -90,32 +100,23 @@ void main() {
     await tester.enterText(find.byType(TextFormField).at(0), 'Eggs');
     await tester.enterText(find.byType(TextFormField).at(1), '12');
     await tester.enterText(find.byType(TextFormField).at(2), 'pcs');
-    await tester.enterText(find.byType(TextFormField).at(3), 'Fridge');
-    await tester.tap(find.text('Save item'));
-    await tester.pump();
+    await tester.tap(find.text('Pantry'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save Item'));
+    await tester.pumpAndSettle();
 
-    verify(
-      () => mockClient.createInventoryItem(
-        displayName: 'Eggs',
-        quantity: 12.0,
-        unit: 'pcs',
-        storageLocation: 'Fridge',
-        source: null,
-        canonicalName: null,
-        canonicalIngredientId: null,
-        confidence: null,
-        estimatedExpiryDate: null,
-      ),
-    ).called(1);
-    expect(find.text('Save item'), findsOneWidget);
+    final savedItems = inventoryNotifier.state.requireValue;
+    expect(savedItems, hasLength(1));
+    expect(savedItems.single.displayName, 'Eggs');
+    expect(savedItems.single.quantity, 12);
+    expect(savedItems.single.unit, 'pcs');
+    expect(savedItems.single.storageLocation, 'pantry');
+    expect(find.text('Save Item'), findsOneWidget);
   });
 
   testWidgets('AddItemScreen forwards scan metadata from initial item', (
     tester,
   ) async {
-    final mockClient = MockApiClient();
-    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => const []);
-
     final draftItem = InventoryItem(
       id: 'draft-2',
       displayName: 'Greek Yogurt',
@@ -129,52 +130,38 @@ void main() {
       canonicalName: 'Yogurt',
       canonicalIngredientId: 'ingredient-42',
     );
-
-    when(
-      () => mockClient.createInventoryItem(
-        displayName: 'Greek Yogurt',
-        quantity: 1.0,
-        unit: 'container',
-        storageLocation: 'fridge',
-        source: 'barcode',
-        canonicalName: 'Yogurt',
-        canonicalIngredientId: 'ingredient-42',
-        confidence: 0.82,
-        estimatedExpiryDate: DateTime.parse('2026-04-12T00:00:00Z'),
-      ),
-    ).thenAnswer((_) async => draftItem);
+    final inventoryNotifier = _TestInventoryNotifier(const []);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(mockClient)],
+        overrides: [
+          inventoryProvider.overrideWith((ref) => inventoryNotifier),
+        ],
         child: MaterialApp(home: AddItemScreen(initialItem: draftItem)),
       ),
     );
 
-    await tester.tap(find.text('Save item'));
-    await tester.pump();
+    await tester.tap(find.text('Save Item'));
+    await tester.pumpAndSettle();
 
-    verify(
-      () => mockClient.createInventoryItem(
-        displayName: 'Greek Yogurt',
-        quantity: 1.0,
-        unit: 'container',
-        storageLocation: 'fridge',
-        source: 'barcode',
-        canonicalName: 'Yogurt',
-        canonicalIngredientId: 'ingredient-42',
-        confidence: 0.82,
-        estimatedExpiryDate: DateTime.parse('2026-04-12T00:00:00Z'),
-      ),
-    ).called(1);
+    final savedItem = inventoryNotifier.state.requireValue.single;
+    expect(savedItem.displayName, 'Greek Yogurt');
+    expect(savedItem.quantity, 1);
+    expect(savedItem.unit, 'container');
+    expect(savedItem.storageLocation, 'fridge');
+    expect(savedItem.source, 'barcode');
+    expect(savedItem.canonicalName, 'Yogurt');
+    expect(savedItem.canonicalIngredientId, 'ingredient-42');
+    expect(savedItem.confidence, 0.82);
+    expect(
+      savedItem.estimatedExpiryDate,
+      DateTime.parse('2026-04-12T00:00:00Z'),
+    );
   });
 
   testWidgets('AddItemScreen pre-fills values from scanned item', (
     tester,
   ) async {
-    final mockClient = MockApiClient();
-    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => const []);
-
     final draftItem = InventoryItem(
       id: 'draft-1',
       displayName: 'Greek Yogurt',
@@ -189,19 +176,22 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(mockClient)],
         child: MaterialApp(home: AddItemScreen(initialItem: draftItem)),
       ),
     );
 
-    final fields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
+    final fields =
+        tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
     expect(fields[0].controller?.text, 'Greek Yogurt');
     expect(fields[1].controller?.text, '1');
     expect(fields[2].controller?.text, 'container');
-    expect(fields[3].controller?.text, 'fridge');
+    final fridgeChip =
+        tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Fridge'));
+    expect(fridgeChip.selected, isTrue);
   });
 
-  testWidgets('InventoryScreen shows popup menu options and handles actions', (tester) async {
+  testWidgets('InventoryScreen shows popup menu options and handles actions',
+      (tester) async {
     final mockClient = MockApiClient();
     final testItem = InventoryItem(
       id: '1',
@@ -215,7 +205,8 @@ void main() {
       source: 'manual',
     );
 
-    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => [testItem]);
+    when(() => mockClient.getInventoryItems())
+        .thenAnswer((_) async => [testItem]);
 
     final preloadedNotifier = InventoryNotifier.withInitialData([testItem]);
 
@@ -246,7 +237,8 @@ void main() {
     expect(find.text('Undo'), findsOneWidget);
   });
 
-  testWidgets('InventoryScreen shows Use Soon entry for expiring items', (tester) async {
+  testWidgets('InventoryScreen shows Use Soon entry for expiring items',
+      (tester) async {
     final testItem = InventoryItem(
       id: '1',
       displayName: 'Milk',
@@ -268,7 +260,8 @@ void main() {
         ),
         GoRoute(
           path: '/use-soon',
-          builder: (context, state) => const Scaffold(body: Text('Use Soon Page')),
+          builder: (context, state) =>
+              const Scaffold(body: Text('Use Soon Page')),
         ),
       ],
     );
@@ -286,7 +279,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('1 item expiring soon'), findsOneWidget);
-    expect(find.text('Review what to use first'), findsOneWidget);
+    expect(find.text('Tap to see what to use first'), findsOneWidget);
 
     await tester.tap(find.text('1 item expiring soon'));
     await tester.pumpAndSettle();

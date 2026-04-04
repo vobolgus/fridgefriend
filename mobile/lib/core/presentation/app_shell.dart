@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fridgefriend_mobile/core/design/colors.dart';
+import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/features/settings/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/households/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
@@ -20,10 +22,7 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Trigger device token registration (fires once on first build after auth).
     ref.watch(deviceTokenRegistrationProvider);
-
-    // Subscribe to household SSE events and refresh inventory on changes.
     _watchHouseholdEvents(ref);
 
     final location = GoRouterState.of(context).uri.path;
@@ -36,19 +35,47 @@ class AppShell extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('FridgeFriend'),
+        title: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.kitchen_rounded,
+                  size: 18, color: Colors.white),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              'FridgeFriend',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.settings_outlined, size: 20),
+            ),
             onPressed: () => context.push('/settings'),
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: child,
       floatingActionButton: currentIndex == 0
           ? FloatingActionButton(
               onPressed: () => _showAddOptions(context),
-              child: const Icon(Icons.add),
+              child: const Icon(Icons.add_rounded, size: 28),
             )
           : null,
       bottomNavigationBar: NavigationBar(
@@ -59,38 +86,36 @@ class AppShell extends ConsumerWidget {
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.kitchen_outlined),
-            selectedIcon: Icon(Icons.kitchen),
+            selectedIcon: Icon(Icons.kitchen_rounded),
             label: 'Inventory',
           ),
           NavigationDestination(
             icon: Icon(Icons.restaurant_menu_outlined),
-            selectedIcon: Icon(Icons.restaurant_menu),
+            selectedIcon: Icon(Icons.restaurant_menu_rounded),
             label: 'Recipes',
           ),
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Meal Plan',
+            selectedIcon: Icon(Icons.calendar_month_rounded),
+            label: 'Plan',
           ),
           NavigationDestination(
             icon: Icon(Icons.shopping_cart_outlined),
-            selectedIcon: Icon(Icons.shopping_cart),
-            label: 'Shopping',
+            selectedIcon: Icon(Icons.shopping_cart_rounded),
+            label: 'Shop',
           ),
         ],
       ),
     );
   }
 
-  /// Watches the active household's SSE stream and invalidates inventory/activity
-  /// providers whenever an event arrives, giving real-time sync behavior.
   void _watchHouseholdEvents(WidgetRef ref) {
     final householdsAsync = ref.watch(householdsProvider);
     final households = householdsAsync.valueOrNull;
     if (households == null || households.isEmpty) return;
 
-    // Use the active household; fall back to first if none is marked active.
-    final activeHousehold = households.where((h) => h.isActive).firstOrNull ?? households.first;
+    final activeHousehold =
+        households.where((h) => h.isActive).firstOrNull ?? households.first;
     final householdId = activeHousehold.id;
 
     final eventsAsync = ref.watch(householdEventsProvider(householdId));
@@ -107,34 +132,64 @@ class AppShell extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.qr_code_scanner),
-              title: const Text('Scan Barcode'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/scan/barcode');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/scan/photo');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit),
-              title: const Text('Manual Entry'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/add-item');
-              },
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.qr_code_scanner_rounded,
+                      color: AppColors.secondary),
+                ),
+                title: const Text('Scan Barcode'),
+                subtitle: const Text('Quick add with camera'),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/scan/barcode');
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.camera_alt_rounded,
+                      color: AppColors.accent),
+                ),
+                title: const Text('Take Photo'),
+                subtitle: const Text('AI-powered fridge scan'),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/scan/photo');
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.edit_rounded,
+                      color: AppColors.primaryDark),
+                ),
+                title: const Text('Manual Entry'),
+                subtitle: const Text('Type in item details'),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/add-item');
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

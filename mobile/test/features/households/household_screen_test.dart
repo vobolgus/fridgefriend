@@ -18,7 +18,8 @@ class MockHouseholdRepository extends Mock implements HouseholdRepository {}
 class MockSyncManager extends Mock implements SyncManager {}
 
 void main() {
-  testWidgets('HouseholdScreen shows empty state when no households', (WidgetTester tester) async {
+  testWidgets('HouseholdScreen shows empty state when no households',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -35,27 +36,41 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('You are not in any household.'), findsOneWidget);
-    expect(find.text('Create Household'), findsOneWidget);
-    expect(find.text('Join Household'), findsOneWidget);
+    expect(find.text('No households yet'), findsOneWidget);
+    expect(
+      find.text(
+          'Create or join a household to share inventory and plan meals together.'),
+      findsOneWidget,
+    );
+    expect(find.text('Create'), findsOneWidget);
+    expect(find.text('Join'), findsOneWidget);
   });
 
-  testWidgets('HouseholdScreen shows household details when available', (WidgetTester tester) async {
+  testWidgets('HouseholdScreen shows household details when available',
+      (WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           householdsProvider.overrideWith((ref) => Future.value([
-            Household(
-              id: '1',
-              name: 'My House',
-              inviteCode: 'XYZ123',
-              members: [
-                const HouseholdMember(id: '1', userId: 'u1', email: 'alice@test.com', role: 'owner'),
-                const HouseholdMember(id: '2', userId: 'u2', email: 'bob@test.com', role: 'member'),
-              ],
-              isActive: true,
-            ),
-          ])),
+                Household(
+                  id: '1',
+                  name: 'My House',
+                  inviteCode: 'XYZ123',
+                  members: [
+                    const HouseholdMember(
+                        id: '1',
+                        userId: 'u1',
+                        email: 'alice@test.com',
+                        role: 'owner'),
+                    const HouseholdMember(
+                        id: '2',
+                        userId: 'u2',
+                        email: 'bob@test.com',
+                        role: 'member'),
+                  ],
+                  isActive: true,
+                ),
+              ])),
         ],
         child: const MaterialApp(
           home: HouseholdScreen(),
@@ -65,15 +80,17 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Your Households'), findsOneWidget);
+    expect(find.text('YOUR HOUSEHOLDS'), findsOneWidget);
     expect(find.text('My House'), findsOneWidget);
-    expect(find.text('2 members • Invite Code: XYZ123'), findsOneWidget);
-    expect(find.text('Active'), findsOneWidget);
-    expect(find.text('alice@test.com'), findsOneWidget);
-    expect(find.text('bob@test.com'), findsOneWidget);
+    expect(find.text('2 members'), findsOneWidget);
+    expect(find.text('Invite Code:'), findsOneWidget);
+    expect(find.text('XYZ123'), findsOneWidget);
+    expect(find.text('ACTIVE'), findsOneWidget);
+    expect(find.text('Activity'), findsOneWidget);
   });
 
-  testWidgets('HouseholdScreen lets users switch active household', (WidgetTester tester) async {
+  testWidgets('HouseholdScreen lets users switch active household',
+      (WidgetTester tester) async {
     final repository = MockHouseholdRepository();
     when(() => repository.setActiveHousehold('2')).thenAnswer((_) async {});
 
@@ -82,30 +99,38 @@ void main() {
 
     final mockSync = MockSyncManager();
     when(() => mockSync.pendingMutations()).thenAnswer((_) async => []);
-    when(() => mockSync.clearPendingMutations()).thenAnswer((_) async {});
+    when(() => mockSync.flushPendingMutations()).thenAnswer((_) async {});
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           householdsProvider.overrideWith((ref) => Future.value([
-            Household(
-              id: '1',
-              name: 'Home',
-              inviteCode: 'HOME1',
-              members: const [
-                HouseholdMember(id: '1', userId: 'u1', email: 'alice@test.com', role: 'owner'),
-              ],
-              isActive: true,
-            ),
-            Household(
-              id: '2',
-              name: 'Cabin',
-              inviteCode: 'CABIN2',
-              members: const [
-                HouseholdMember(id: '2', userId: 'u2', email: 'bob@test.com', role: 'member'),
-              ],
-            ),
-          ])),
+                Household(
+                  id: '1',
+                  name: 'Home',
+                  inviteCode: 'HOME1',
+                  members: const [
+                    HouseholdMember(
+                        id: '1',
+                        userId: 'u1',
+                        email: 'alice@test.com',
+                        role: 'owner'),
+                  ],
+                  isActive: true,
+                ),
+                Household(
+                  id: '2',
+                  name: 'Cabin',
+                  inviteCode: 'CABIN2',
+                  members: const [
+                    HouseholdMember(
+                        id: '2',
+                        userId: 'u2',
+                        email: 'bob@test.com',
+                        role: 'member'),
+                  ],
+                ),
+              ])),
           householdRepositoryProvider.overrideWithValue(repository),
           inventory_providers.appDatabaseProvider.overrideWithValue(testDb),
           inventory_providers.syncManagerProvider.overrideWithValue(mockSync),
@@ -116,9 +141,9 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Set Active'), findsOneWidget);
+    expect(find.text('Switch'), findsOneWidget);
 
-    await tester.tap(find.text('Set Active'));
+    await tester.tap(find.text('Switch'));
     await tester.pumpAndSettle();
 
     verify(() => repository.setActiveHousehold('2')).called(1);

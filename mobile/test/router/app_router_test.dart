@@ -19,10 +19,14 @@ import 'package:fridgefriend_mobile/router/app_router.dart';
 class MockApiClient extends Mock implements ApiClient {}
 
 void main() {
-  Future<void> pumpRouterApp(
+  Future<MockApiClient> pumpRouterApp(
     WidgetTester tester,
     String initialLocation,
   ) async {
+    tester.view.physicalSize = const Size(1280, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
     final router = AppRouter.createRouter(initialLocation: initialLocation);
     final mockClient = MockApiClient();
 
@@ -39,9 +43,19 @@ void main() {
         source: 'manual',
       ),
     ];
-    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => inventoryItems);
-    
-    // Create a mock notifier with initial data to bypass DB entirely
+    when(() => mockClient.getInventoryItems())
+        .thenAnswer((_) async => inventoryItems);
+    when(() => mockClient.registerDeviceToken(
+            token: any(named: 'token'), platform: any(named: 'platform')))
+        .thenAnswer((_) async => {'token_id': 'device-token'});
+    when(() => mockClient.getHouseholds()).thenAnswer((_) async => const []);
+    when(() => mockClient.getNotificationPreferences()).thenAnswer(
+      (_) async => {
+        'expiry_reminder_enabled': true,
+        'reminder_days_before': 1,
+      },
+    );
+
     final inventoryNotifier = InventoryNotifier.withInitialData(inventoryItems);
 
     when(() => mockClient.getRecommendations()).thenAnswer(
@@ -57,7 +71,8 @@ void main() {
         ),
       ],
     );
-    when(() => mockClient.generatePlan()).thenAnswer(
+    when(() => mockClient.getLatestPlan()).thenAnswer((_) async => null);
+    when(() => mockClient.generatePlan(days: any(named: 'days'))).thenAnswer(
       (_) async => MealPlan(
         planId: 'plan-1',
         days: [
@@ -121,6 +136,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    return mockClient;
   }
 
   testWidgets('home route resolves to inventory screen', (tester) async {
@@ -147,13 +164,14 @@ void main() {
   });
 
   testWidgets('meal-plan route resolves to meal plan screen', (tester) async {
-    await pumpRouterApp(tester, '/meal-plan');
+    final mockClient = await pumpRouterApp(tester, '/meal-plan');
 
     expect(find.byType(MealPlanScreen), findsOneWidget);
-    
+
     await tester.tap(find.text('Generate Plan'));
     await tester.pumpAndSettle();
 
+    verify(() => mockClient.generatePlan(days: 7)).called(1);
     expect(find.text('Pasta Bake'), findsOneWidget);
   });
 

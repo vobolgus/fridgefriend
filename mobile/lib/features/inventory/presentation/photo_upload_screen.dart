@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:fridgefriend_mobile/core/design/colors.dart';
+import 'package:fridgefriend_mobile/core/design/spacing.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/error_view.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
 class PhotoUploadScreen extends ConsumerStatefulWidget {
@@ -54,55 +58,121 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan Photo')),
-      body: Center(
-        child: _isUploading
-            ? const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Analyzing fridge contents...'),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_error != null) ...[
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Error: $_error',
-                        style: const TextStyle(color: Colors.red),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Scan Photo',
+            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800)),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+      ),
+      body: _isUploading
+          ? const LoadingView(message: 'Analyzing fridge contents...')
+          : _error != null
+              ? ErrorView(
+                  message: _error!,
+                  onRetry: () => setState(() => _error = null))
+              : Padding(
+                  padding: AppSpacing.screenPadding,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Add via Photo',
+                        style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 32,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.textPrimary),
                         textAlign: TextAlign.center,
                       ),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => setState(() => _error = null),
-                      child: const Text('Try Again'),
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                  ElevatedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('Take Photo'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(200, 48),
-                    ),
+                      const SizedBox(height: AppSpacing.sm),
+                      const Text(
+                        'Snap your fridge or receipt to add items instantly using AI.',
+                        style: TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 16,
+                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w500),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.xxxl),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => _pickImage(ImageSource.camera),
+                              child: Container(
+                                height: 180,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(
+                                      AppSpacing.cardRadius),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color:
+                                            AppColors.primary.withOpacity(0.3),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 8))
+                                  ],
+                                ),
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.camera_alt_rounded,
+                                        color: Colors.white, size: 56),
+                                    SizedBox(height: AppSpacing.md),
+                                    Text('Camera',
+                                        style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 20)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.lg),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => _pickImage(ImageSource.gallery),
+                              child: Container(
+                                height: 180,
+                                decoration: BoxDecoration(
+                                  color: AppColors.secondary,
+                                  borderRadius: BorderRadius.circular(
+                                      AppSpacing.cardRadius),
+                                  boxShadow: [
+                                    BoxShadow(
+                                        color: AppColors.secondary
+                                            .withOpacity(0.3),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 8))
+                                  ],
+                                ),
+                                child: const Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.photo_library_rounded,
+                                        color: Colors.white, size: 56),
+                                    SizedBox(height: AppSpacing.md),
+                                    Text('Gallery',
+                                        style: TextStyle(
+                                            fontFamily: 'Inter',
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 20)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () => _pickImage(ImageSource.gallery),
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('Upload from Gallery'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(200, 48),
-                    ),
-                  ),
-                ],
-              ),
-      ),
+                ),
     );
   }
 }

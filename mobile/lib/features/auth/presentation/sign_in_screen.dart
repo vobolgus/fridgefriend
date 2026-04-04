@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fridgefriend_mobile/core/design/colors.dart';
+import 'package:fridgefriend_mobile/core/design/spacing.dart';
+
 import 'providers.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
@@ -29,96 +32,146 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.primary,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.kitchen, size: 80, color: Colors.blue),
-                const SizedBox(height: 16),
-                Text(
-                  'FridgeFriend',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                ),
-                const SizedBox(height: 48),
-                if (_showEmailForm) ...[
-                  TextField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
+        child: Column(
+          children: [
+            const Spacer(flex: 2),
+            Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _passwordController,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
-                    ),
-                    obscureText: true,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _signInWithEmail(),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _signInWithEmail,
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Sign In'),
-                  ),
-                  TextButton(
-                    onPressed: () => setState(() => _showEmailForm = false),
-                    child: const Text('Back to sign-in options'),
-                  ),
-                ] else ...[
-                  ElevatedButton.icon(
-                    onPressed: () => setState(() => _showEmailForm = true),
-                    icon: const Icon(Icons.email),
-                    label: const Text('Sign in with Email'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () => _signInWithProvider('google'),
-                    icon: const Icon(Icons.login),
-                    label: const Text('Sign in with Google'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                  ),
-                  if (Platform.isIOS || Platform.isMacOS) ...[
-                    const SizedBox(height: 16),
-                    OutlinedButton.icon(
-                      onPressed: () => _signInWithProvider('apple'),
-                      icon: const Icon(Icons.apple),
-                      label: const Text('Sign in with Apple'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                      ),
-                    ),
-                  ],
                 ],
-              ],
+              ),
+              child: const Icon(Icons.kitchen_rounded,
+                  size: 48, color: AppColors.primary),
             ),
-          ),
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              'FridgeFriend',
+              style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Reduce waste. Eat better.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+            ),
+            const Spacer(flex: 3),
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(AppSpacing.bottomSheetRadius),
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xxl,
+                  AppSpacing.xl, AppSpacing.xxxl),
+              child: _showEmailForm
+                  ? _buildEmailForm(context)
+                  : _buildSocialButtons(context),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSocialButtons(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Get started',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        ElevatedButton.icon(
+          onPressed: () => setState(() => _showEmailForm = true),
+          icon: const Icon(Icons.email_rounded),
+          label: const Text('Continue with Email'),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        OutlinedButton.icon(
+          onPressed: () => _signInWithProvider('google'),
+          icon: const Icon(Icons.login_rounded),
+          label: const Text('Continue with Google'),
+        ),
+        if (Platform.isIOS || Platform.isMacOS) ...[
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton.icon(
+            onPressed: () => _signInWithProvider('apple'),
+            icon: const Icon(Icons.apple_rounded),
+            label: const Text('Continue with Apple'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildEmailForm(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Sign in',
+          style: Theme.of(context).textTheme.headlineMedium,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        TextField(
+          controller: _emailController,
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            prefixIcon: Icon(Icons.email_outlined),
+          ),
+          keyboardType: TextInputType.emailAddress,
+          textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        TextField(
+          controller: _passwordController,
+          decoration: const InputDecoration(
+            labelText: 'Password',
+            prefixIcon: Icon(Icons.lock_outline_rounded),
+          ),
+          obscureText: true,
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _signInWithEmail(),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        ElevatedButton(
+          onPressed: _isLoading ? null : _signInWithEmail,
+          child: _isLoading
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Sign In'),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        TextButton(
+          onPressed: () => setState(() => _showEmailForm = false),
+          child: Text(
+            'Other sign-in options',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      ],
     );
   }
 

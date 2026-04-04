@@ -12,7 +12,8 @@ import 'package:fridgefriend_mobile/features/inventory/presentation/providers.da
 class MockApiClient extends Mock implements ApiClient {}
 
 void main() {
-  testWidgets('OcrReviewScreen shows list of items and save button', (WidgetTester tester) async {
+  testWidgets('OcrReviewScreen shows list of items and save button',
+      (WidgetTester tester) async {
     final items = [
       InventoryItem(
         id: '1',
@@ -35,10 +36,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Review Items'), findsOneWidget);
+    expect(find.text('Review 1 Items'), findsOneWidget);
     expect(find.text('Test Item'), findsOneWidget);
-    expect(find.text('1.0'), findsOneWidget);
-    expect(find.text('Confirm and Save'), findsOneWidget);
+    expect(find.text('90% Match'), findsOneWidget);
+    expect(find.text('Save All Items'), findsOneWidget);
   });
 
   testWidgets('OcrReviewScreen saves OCR metadata with photo source', (
@@ -59,7 +60,8 @@ void main() {
       canonicalIngredientId: 'ingredient-spinach',
     );
 
-    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => const []);
+    when(() => mockClient.getInventoryItems())
+        .thenAnswer((_) async => const []);
     when(
       () => mockClient.createInventoryItem(
         displayName: 'Spinach',
@@ -91,8 +93,8 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Confirm and Save'));
-    await tester.pump();
+    await tester.tap(find.text('Save All Items'));
+    await tester.pumpAndSettle();
 
     verify(
       () => mockClient.createInventoryItem(

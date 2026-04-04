@@ -27,7 +27,8 @@ void main() {
 
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Push Notifications'), findsOneWidget);
+    expect(find.text('Remind days before expiry'), findsOneWidget);
     expect(find.text('Sign Out'), findsOneWidget);
-    expect(find.text('App Version'), findsOneWidget);
+    expect(find.text('v1.0.0'), findsOneWidget);
   });
 }

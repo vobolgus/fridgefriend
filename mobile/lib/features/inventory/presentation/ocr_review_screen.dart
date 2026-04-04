@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fridgefriend_mobile/core/design/colors.dart';
+import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
@@ -37,15 +39,16 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
   Future<void> _saveAll() async {
     if (!_validate()) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All items must have a name and quantity greater than zero')),
+        const SnackBar(
+            content: Text('All items must have a name and quantity > 0',
+                style: TextStyle(fontFamily: 'Inter'))),
       );
       return;
     }
     var savedCount = 0;
     for (final item in _draftItems) {
-      final storage = item.storageLocation.isNotEmpty
-          ? item.storageLocation
-          : 'fridge';
+      final storage =
+          item.storageLocation.isNotEmpty ? item.storageLocation : 'fridge';
       try {
         await ref.read(inventoryProvider.notifier).addItem(
               displayName: item.displayName,
@@ -61,7 +64,10 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
       } catch (_) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to save "${item.displayName}"')),
+            SnackBar(
+                content: Text('Failed to save "${item.displayName}"',
+                    style: const TextStyle(fontFamily: 'Inter')),
+                backgroundColor: AppColors.error),
           );
         }
         return;
@@ -78,77 +84,173 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
     });
   }
 
+  Widget _buildConfidenceBadge(double? confidence) {
+    if (confidence == null) return const SizedBox.shrink();
+    Color color;
+    if (confidence > 0.7) {
+      color = AppColors.safeLater;
+    } else if (confidence >= 0.4) {
+      color = AppColors.thisWeek;
+    } else {
+      color = AppColors.error;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+        border: Border.all(color: color, width: 1.5),
+      ),
+      child: Text(
+        '${(confidence * 100).toInt()}% Match',
+        style: TextStyle(
+            fontFamily: 'Inter',
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Review Items')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: Text('Review ${_draftItems.length} Items',
+            style: const TextStyle(
+                fontFamily: 'Inter', fontWeight: FontWeight.w800)),
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+      ),
       body: _draftItems.isEmpty
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('No items detected'),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
+                  const Text('No items detected',
+                      style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary)),
+                  const SizedBox(height: AppSpacing.lg),
+                  FilledButton.icon(
                     onPressed: () => context.pushReplacement('/add-item'),
-                    child: const Text('Add Manually'),
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Add Manually',
+                        style: TextStyle(
+                            fontFamily: 'Inter', fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
             )
-          : ListView.builder(
+          : ListView.separated(
+              padding: AppSpacing.screenPadding,
               itemCount: _draftItems.length,
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.lg),
               itemBuilder: (context, index) {
                 final item = _draftItems[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                return Container(
+                  padding: AppSpacing.cardPadding,
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                    border: Border.all(color: AppColors.divider, width: 2),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: Offset(0, 2))
+                    ],
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Expanded(
                             child: TextFormField(
                               initialValue: item.displayName,
-                              decoration: const InputDecoration(labelText: 'Name'),
-                              onChanged: (val) => _draftItems[index] = item.copyWith(displayName: val),
+                              style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 20,
+                                  color: AppColors.textPrimary),
+                              decoration: const InputDecoration(
+                                  labelText: 'Name',
+                                  labelStyle: TextStyle(
+                                      fontWeight: FontWeight.normal,
+                                      fontSize: 14)),
+                              onChanged: (val) => _draftItems[index] =
+                                  item.copyWith(displayName: val),
                             ),
                           ),
+                          const SizedBox(width: AppSpacing.sm),
                           IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
+                            icon: const Icon(Icons.delete_outline_rounded,
+                                color: AppColors.error, size: 28),
                             onPressed: () => _removeItem(index),
                           ),
                         ],
                       ),
+                      const SizedBox(height: AppSpacing.md),
                       Row(
                         children: [
                           Expanded(
+                            flex: 2,
                             child: TextFormField(
                               initialValue: item.quantity.toString(),
-                              decoration: const InputDecoration(labelText: 'Qty'),
+                              style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600),
+                              decoration:
+                                  const InputDecoration(labelText: 'Qty'),
                               keyboardType: TextInputType.number,
-                              onChanged: (val) => _draftItems[index] = item.copyWith(quantity: double.tryParse(val) ?? item.quantity),
+                              onChanged: (val) => _draftItems[index] =
+                                  item.copyWith(
+                                      quantity: double.tryParse(val) ??
+                                          item.quantity),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
+                            flex: 3,
                             child: TextFormField(
                               initialValue: item.unit,
-                              decoration: const InputDecoration(labelText: 'Unit'),
-                              onChanged: (val) => _draftItems[index] = item.copyWith(unit: val),
+                              style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600),
+                              decoration:
+                                  const InputDecoration(labelText: 'Unit'),
+                              onChanged: (val) =>
+                                  _draftItems[index] = item.copyWith(unit: val),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
+                            flex: 4,
                             child: TextFormField(
-                              initialValue: item.storageLocation.isNotEmpty ? item.storageLocation : 'fridge',
-                              decoration: const InputDecoration(labelText: 'Storage'),
-                              onChanged: (val) => _draftItems[index] = item.copyWith(storageLocation: val),
+                              initialValue: item.storageLocation.isNotEmpty
+                                  ? item.storageLocation
+                                  : 'fridge',
+                              style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w600),
+                              decoration:
+                                  const InputDecoration(labelText: 'Storage'),
+                              onChanged: (val) => _draftItems[index] =
+                                  item.copyWith(storageLocation: val),
                             ),
                           ),
                         ],
                       ),
-                      const Divider(),
+                      if (item.confidence != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        _buildConfidenceBadge(item.confidence),
+                      ],
                     ],
                   ),
                 );
@@ -156,10 +258,19 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
             ),
       bottomNavigationBar: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton(
+          padding: AppSpacing.screenPadding,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(56),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.buttonRadius)),
+            ),
             onPressed: _draftItems.isEmpty ? null : _saveAll,
-            child: const Text('Confirm and Save'),
+            child: const Text('Save All Items',
+                style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800)),
           ),
         ),
       ),

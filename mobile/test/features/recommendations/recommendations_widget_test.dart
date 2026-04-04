@@ -37,7 +37,8 @@ void main() {
 
     expect(find.text('Creamy Pasta'), findsOneWidget);
     expect(find.text('Coverage: 80%'), findsOneWidget);
-    expect(find.text('Prep time: 20 min'), findsOneWidget);
-    expect(find.text('Missing items: Parmesan'), findsOneWidget);
+    expect(find.text('20 min'), findsOneWidget);
+    expect(find.text('1 missing'), findsOneWidget);
+    expect(find.text('Parmesan'), findsOneWidget);
   });
 }
