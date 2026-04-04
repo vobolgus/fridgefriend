@@ -209,8 +209,11 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
     if (pending.isEmpty) return true;
     try {
       await syncManager.flushPendingMutations();
-      return true;
     } catch (_) {
+      // flush threw — fall through to remaining check
+    }
+    final remaining = await syncManager.pendingMutations();
+    if (remaining.isNotEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sync pending changes before switching households')),
@@ -218,6 +221,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
       }
       return false;
     }
+    return true;
   }
 
   Future<void> _clearHouseholdCaches() async {

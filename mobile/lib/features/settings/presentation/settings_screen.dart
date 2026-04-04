@@ -106,6 +106,10 @@ class SettingsScreen extends ConsumerWidget {
                 try {
                   await syncManager.flushPendingMutations();
                 } catch (_) {
+                  // flush threw — fall through to remaining check
+                }
+                final remaining = await syncManager.pendingMutations();
+                if (remaining.isNotEmpty) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Sync pending changes before signing out')),
