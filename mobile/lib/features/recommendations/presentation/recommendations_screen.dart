@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:go_router/go_router.dart';
+
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
 class RecommendationsScreen extends ConsumerWidget {
@@ -11,7 +13,6 @@ class RecommendationsScreen extends ConsumerWidget {
     final recommendations = ref.watch(recommendationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Recipes')),
       body: recommendations.when(
         data: (recipes) {
           if (recipes.isEmpty) {
@@ -28,11 +29,15 @@ class RecommendationsScreen extends ConsumerWidget {
 
               return Card(
                 margin: const EdgeInsets.all(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                child: InkWell(
+                  onTap: () {
+                    context.push('/recipes/${recipe.id}', extra: recipe);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                       Text(
                         recipe.title,
                         style: Theme.of(context).textTheme.titleMedium,
@@ -44,7 +49,8 @@ class RecommendationsScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-              );
+              ),
+            );
             },
           );
         },

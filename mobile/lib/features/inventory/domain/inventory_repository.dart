@@ -3,6 +3,8 @@ import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dar
 abstract class InventoryRepository {
   Future<List<InventoryItem>> getInventoryItems();
 
+  Future<List<InventoryItem>> syncInventoryItems();
+
   Future<InventoryItem> createInventoryItem({
     required String displayName,
     required double quantity,

@@ -108,15 +108,15 @@ async def test_barcode_api_endpoint_found(client: httpx.AsyncClient) -> None:
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "barcode": "8710847909610",
-        "display_name": "Whole Milk 1L",
-        "canonical_name": "milk",
-        "brand": "Generic",
-        "quantity": 1.0,
-        "storage_location": "fridge",
-        "source": "barcode",
-    }
+    payload = response.json()
+    assert payload["barcode"] == "8710847909610"
+    assert payload["display_name"] == "Whole Milk 1L"
+    assert payload["canonical_name"] == "milk"
+    assert payload["brand"] == "Generic"
+    assert payload["quantity"] == 1.0
+    assert payload["storage_location"] == "fridge"
+    assert payload["source"] == "barcode"
+    assert payload["canonical_ingredient_id"] is not None
 
 
 @pytest.mark.asyncio

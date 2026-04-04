@@ -23,3 +23,8 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "MealPlan",
         back_populates="user",
     )
+    household_memberships: Mapped[list[Any]] = relationship(
+        "HouseholdMember",
+        back_populates="user",
+        lazy="selectin",
+    )

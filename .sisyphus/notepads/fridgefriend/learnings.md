@@ -79,3 +79,7 @@
 - Drift table names generated from Dart table classes follow snake_case defaults (`InventoryItemsTable` → `inventory_items_table`), so manual generated-file fallbacks must match those SQL names exactly.
 - When local Dart tooling is unavailable, committing matching Drift `.g.dart` files keeps imports and type references intact while CI regenerates them with `build_runner` before `flutter test`.
 - Filtering active inventory in Drift is simplest with `table.status.isNotIn(const ['used', 'discarded'])`.
+
+## 2026-04-04 — Verification learnings
+- For FastAPI idempotency handlers, build the response object first, store it conditionally, then return; an early `return` silently disables caching even when `get_cached(...)` is wired correctly.
+- Counting tests by file is not enough for scoped-idempotency verification; the suite must explicitly cover both endpoint isolation and user isolation.

@@ -17,3 +17,7 @@
 
 ## 2026-04-03 — P2-1 verification limitation
 - Dart/Flutter are still unavailable locally, so Drift compilation and `flutter test` verification must be deferred to GitHub Actions; local `lsp_diagnostics` for changed Dart files failed because the Dart language server is not installed.
+
+## 2026-04-04 — Oracle verification findings
+- `backend/app/modules/catalog/router.py` still has broken barcode idempotency: the handler returns the `BarcodeScanResponse` immediately at lines 36-44, so the `store_cached(...)` block at lines 46-49 is unreachable and barcode responses are never cached.
+- `backend/tests/test_idempotency.py` has 8 async tests total, but no cross-user isolation test despite the scoped-key fix requiring user-level isolation coverage.

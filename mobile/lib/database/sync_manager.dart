@@ -1,0 +1,172 @@
+import 'dart:convert';
+
+import 'package:drift/drift.dart';
+
+import 'package:fridgefriend_mobile/core/network/api_client.dart';
+import 'package:fridgefriend_mobile/database/app_database.dart';
+import 'package:fridgefriend_mobile/database/daos/inventory_dao.dart';
+import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
+
+class QueuedMutation {
+  const QueuedMutation({
+    required this.id,
+    required this.entityType,
+    required this.entityId,
+    required this.action,
+    required this.payload,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String entityType;
+  final String entityId;
+  final String action;
+  final Map<String, dynamic> payload;
+  final DateTime createdAt;
+}
+
+class SyncManager {
+  SyncManager({
+    required AppDatabase database,
+    required ApiClient apiClient,
+    required InventoryDao inventoryDao,
+  }) : _database = database,
+       _apiClient = apiClient,
+       _inventoryDao = inventoryDao;
+
+  final AppDatabase _database;
+  final ApiClient _apiClient;
+  final InventoryDao _inventoryDao;
+
+  Future<void> queueCreate(InventoryItem item) {
+    return _enqueue(
+      entityType: 'inventory',
+      entityId: item.id,
+      action: 'create',
+      payload: item.toJson(),
+    );
+  }
+
+  Future<void> queueStatusUpdate({
+    required String itemId,
+    required String status,
+  }) {
+    return _enqueue(
+      entityType: 'inventory',
+      entityId: itemId,
+      action: 'status_update',
+      payload: {'id': itemId, 'status': status},
+    );
+  }
+
+  Future<List<QueuedMutation>> pendingMutations() async {
+    final rows = await _database.customSelect(
+      'SELECT id, entity_type, entity_id, action, payload_json, created_at '
+      'FROM offline_mutation_queue ORDER BY created_at ASC',
+    ).get();
+
+    return rows.map(_mapRow).toList(growable: false);
+  }
+
+  Future<void> flushPendingMutations() async {
+    final mutations = await pendingMutations();
+
+    for (final mutation in mutations) {
+      if (mutation.entityType != 'inventory') {
+        await _deleteMutation(mutation.id);
+        continue;
+      }
+
+      if (mutation.action == 'create') {
+        final syncedItem = await _apiClient.createInventoryItem(
+          displayName: (mutation.payload['displayName'] ?? '').toString(),
+          quantity: _toDouble(mutation.payload['quantity']),
+          unit: (mutation.payload['unit'] ?? '').toString(),
+          storageLocation: (mutation.payload['storageLocation'] ?? '').toString(),
+        );
+
+        await _inventoryDao.deleteItem(mutation.entityId);
+        await _inventoryDao.insertItem(_toCompanion(syncedItem));
+        await _deleteMutation(mutation.id);
+        continue;
+      }
+
+      if (mutation.action == 'status_update') {
+        await _apiClient.updateItemStatus(
+          mutation.entityId,
+          (mutation.payload['status'] ?? '').toString(),
+        );
+        await _deleteMutation(mutation.id);
+        continue;
+      }
+
+      await _deleteMutation(mutation.id);
+    }
+  }
+
+  Future<void> _enqueue({
+    required String entityType,
+    required String entityId,
+    required String action,
+    required Map<String, dynamic> payload,
+  }) {
+    final now = DateTime.now();
+    final id = '${entityType}_${action}_${now.microsecondsSinceEpoch}';
+    return _database.customStatement(
+      'INSERT OR REPLACE INTO offline_mutation_queue '
+      '(id, entity_type, entity_id, action, payload_json, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      <Object?>[
+        id,
+        entityType,
+        entityId,
+        action,
+        jsonEncode(payload),
+        now.toIso8601String(),
+      ],
+    );
+  }
+
+  Future<void> _deleteMutation(String id) {
+    return _database.customStatement(
+      'DELETE FROM offline_mutation_queue WHERE id = ?',
+      <Object?>[id],
+    );
+  }
+
+  QueuedMutation _mapRow(QueryRow row) {
+    return QueuedMutation(
+      id: row.read<String>('id'),
+      entityType: row.read<String>('entity_type'),
+      entityId: row.read<String>('entity_id'),
+      action: row.read<String>('action'),
+      payload: Map<String, dynamic>.from(
+        jsonDecode(row.read<String>('payload_json')) as Map,
+      ),
+      createdAt:
+          DateTime.tryParse(row.read<String>('created_at')) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  InventoryItemsTableCompanion _toCompanion(InventoryItem item) {
+    return InventoryItemsTableCompanion.insert(
+      id: item.id,
+      displayName: item.displayName,
+      quantity: item.quantity,
+      unit: item.unit,
+      storageLocation: item.storageLocation,
+      estimatedExpiryDate: item.estimatedExpiryDate,
+      confidence: item.confidence,
+      status: Value(item.status),
+      source: Value(item.source),
+    );
+  }
+
+  double _toDouble(Object? value) {
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+}

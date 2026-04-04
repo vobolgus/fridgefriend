@@ -9,13 +9,14 @@ from typing import Any
 from sqlalchemy import Date, ForeignKey, Integer, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, VersionMixin
 
 
-class MealPlan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class MealPlan(UUIDPrimaryKeyMixin, TimestampMixin, VersionMixin, Base):
     __tablename__ = "meal_plans"
 
     user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("users.id"), index=True, nullable=True)
+    household_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, ForeignKey("households.id"), index=True, nullable=True)
     start_date: Mapped[date] = mapped_column(Date)
     end_date: Mapped[date] = mapped_column(Date)
 
@@ -25,6 +26,11 @@ class MealPlan(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         cascade="all, delete-orphan",
         order_by="MealPlanDay.date",
         lazy="selectin",
+    )
+    reserved_ingredients: Mapped[list[Any]] = relationship(
+        "ReservedIngredient",
+        back_populates="meal_plan",
+        cascade="all, delete-orphan",
     )
 
 

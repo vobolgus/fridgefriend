@@ -11,3 +11,7 @@
 
 ## 2026-04-03 — P1-3 none
 - No unresolved catalog service issues after green test run and push.
+
+## 2026-04-04 — Verification blockers
+- Barcode idempotency is not actually functional because the cache write is unreachable in `backend/app/modules/catalog/router.py`; repeated requests with the same key will recompute instead of replaying a cached response.
+- Idempotency regression coverage is incomplete: there is cross-endpoint isolation coverage, but no test proving same-key requests from different users stay isolated.

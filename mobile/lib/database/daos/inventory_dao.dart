@@ -30,4 +30,8 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
     await (delete(inventoryItemsTable)..where((table) => table.id.equals(id)))
         .go();
   }
+
+  Future<void> clearAll() async {
+    await delete(inventoryItemsTable).go();
+  }
 }

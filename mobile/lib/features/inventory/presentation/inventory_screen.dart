@@ -13,7 +13,6 @@ class InventoryScreen extends ConsumerWidget {
     final items = ref.watch(inventoryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Inventory')),
       body: items.when(
         data: (inventoryItems) {
           if (inventoryItems.isEmpty) {
@@ -56,10 +55,6 @@ class InventoryScreen extends ConsumerWidget {
         },
         error: (error, _) => Center(child: Text('Failed to load inventory: $error')),
         loading: () => const Center(child: CircularProgressIndicator()),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/add-item'),
-        child: const Icon(Icons.add),
       ),
     );
   }

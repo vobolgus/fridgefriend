@@ -573,7 +573,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 
   late final $InventoryItemsTableTable inventoryItemsTable =
       $InventoryItemsTableTable(this);
-  late final InventoryDao inventoryDao = InventoryDao(this);
+  late final InventoryDao inventoryDao = InventoryDao(this as AppDatabase);
 
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>

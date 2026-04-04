@@ -11,7 +11,6 @@ class ShoppingListScreen extends ConsumerWidget {
     final shoppingItems = ref.watch(shoppingListProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Shopping List')),
       body: shoppingItems.when(
         data: (items) {
           if (items.isEmpty) {

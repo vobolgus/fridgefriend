@@ -11,7 +11,6 @@ class MealPlanScreen extends ConsumerWidget {
     final plan = ref.watch(mealPlanProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Meal Plan')),
       body: plan.when(
         data: (mealPlan) {
           if (mealPlan.days.isEmpty) {

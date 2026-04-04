@@ -25,7 +25,22 @@ class AppShell extends ConsumerWidget {
     };
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('FridgeFriend'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => context.push('/settings'),
+          ),
+        ],
+      ),
       body: child,
+      floatingActionButton: currentIndex == 0
+          ? FloatingActionButton(
+              onPressed: () => _showAddOptions(context),
+              child: const Icon(Icons.add),
+            )
+          : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (index) {
@@ -53,6 +68,43 @@ class AppShell extends ConsumerWidget {
             label: 'Shopping',
           ),
         ],
+      ),
+    );
+  }
+
+  void _showAddOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.qr_code_scanner),
+              title: const Text('Scan Barcode'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/scan/barcode');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/scan/photo');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Manual Entry'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/add-item');
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

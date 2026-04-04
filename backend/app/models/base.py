@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import uuid
 
-from sqlalchemy import DateTime, Uuid
+from sqlalchemy import DateTime, Integer, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -25,3 +25,7 @@ class TimestampMixin:
         default=lambda: datetime.now(UTC),
         onupdate=lambda: datetime.now(UTC),
     )
+
+
+class VersionMixin:
+    version: Mapped[int] = mapped_column(Integer, default=1)

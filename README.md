@@ -1,106 +1,194 @@
 # FridgeFriend
 
-> Reduce food waste by tracking what's in your kitchen and getting meal suggestions before ingredients expire.
+Reduce food waste by tracking kitchen inventory, surfacing expiring items, generating recipe recommendations, building meal plans, and syncing household activity.
 
 ## Status
-🟢 Working prototype — backend fully operational with TDD coverage  
-🟡 Mobile app — scaffold with tests, requires Flutter 3.24+ to run
+
+- Backend: FastAPI prototype with household scoping, inventory events, notifications, analytics, planning, and integration coverage.
+- Mobile: Flutter scaffold with Riverpod, Drift offline cache, SSE household listener, and test coverage for core flows.
+
+## Feature Summary
+
+### Inventory
+- Manual item add
+- Barcode lookup draft flow
+- Photo scan draft flow
+- Expiry confidence + urgency support
+- Inventory lifecycle: active, used, discarded, frozen
+- Optimistic concurrency and undo event support
+
+### Recommendations and Planning
+- Rules-based recipe recommendations
+- Expiry-aware ranking
+- Meal plan generation for 3-7 days
+- Transactional ingredient reservation
+- Shopping list gap detection
+
+### Household and Sync
+- Household CRUD + invite join flow
+- Shared household inventory boundaries
+- Activity log endpoint
+- SSE event stream endpoint
+- Flutter offline mutation queue and cache-first reads
+
+### Platform / Infra
+- PostgreSQL-backed CI workflow
+- Docker Compose production stack
+- Sentry initialization stubs for backend + Flutter
+- Amplitude analytics stubs for backend + Flutter
+
+## Architecture
+
+```text
+Flutter Mobile App
+  ├── Riverpod providers
+  ├── Drift local cache
+  ├── SyncManager offline queue
+  └── SSE household listener
+
+FastAPI Backend
+  ├── /v1/items
+  ├── /v1/scan/barcode
+  ├── /v1/scan/photo
+  ├── /v1/recommendations
+  ├── /v1/plans
+  ├── /v1/shopping-list
+  ├── /v1/households
+  ├── /v1/notifications
+  └── /v1/analytics/events
+
+Supporting Services
+  ├── PostgreSQL
+  ├── Redis
+  ├── Celery worker + beat
+  └── LocalStack (S3/SQS)
+```
 
 ## Quick Start
 
-### Backend
+### Backend local
+
 ```bash
 cd backend
-python3 -m venv .venv && source .venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e '.[dev]'
-python3 -m pytest tests/ -v   # 99 tests should pass
-uvicorn app.main:app --reload  # Start dev server on :8000
+python -m pytest tests/ -v --tb=short
+uvicorn app.main:app --reload
 ```
 
-### With Docker (PostgreSQL + Redis)
+### Flutter local
+
+```bash
+cd mobile
+flutter pub get
+flutter test --reporter expanded
+```
+
+### Docker quickstart
+
+Development services:
+
 ```bash
 docker-compose up -d
-cd backend && uvicorn app.main:app --reload
 ```
 
-### Mobile
+Production-like stack:
+
 ```bash
-cd mobile && flutter pub get && flutter test
+docker-compose -f docker-compose.prod.yml up -d --build
+python scripts/seed_data.py
 ```
 
-## Architecture
-```
-Mobile App (Flutter)
-  └── FastAPI Backend
-        ├── /v1/items           — Inventory CRUD
-        ├── /v1/scan/barcode    — Barcode lookup
-        ├── /v1/recommendations — Recipe suggestions
-        ├── /v1/plans           — Meal plan generation
-        ├── /v1/shopping-list   — Shopping gaps
-        └── /health             — Health check
-```
+Stop stack:
 
-## API Examples
 ```bash
-# Add item
+docker-compose -f docker-compose.prod.yml down
+```
+
+## API Endpoints
+
+Base URL: `http://localhost:8000`
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/health` | GET | Service health |
+| `/v1/items` | GET/POST | List and create inventory items |
+| `/v1/items/{item_id}` | GET/PATCH/PUT/DELETE | Read, update, replace, delete item |
+| `/v1/items/{item_id}/status` | POST | Update inventory status |
+| `/v1/scan/barcode` | POST | Resolve barcode into product draft |
+| `/v1/scan/photo` | POST | Parse photo into editable draft items |
+| `/v1/recommendations` | POST | Get ranked recipes |
+| `/v1/plans` | POST | Generate meal plan |
+| `/v1/plans/{plan_id}` | DELETE | Delete a saved meal plan |
+| `/v1/shopping-list` | GET | Compute current shopping gaps |
+| `/v1/households` | GET/POST | List and create households |
+| `/v1/households/{household_id}` | GET/PATCH | Household detail and update |
+| `/v1/households/join` | POST | Join by invite code |
+| `/v1/households/{household_id}/leave` | POST | Leave household |
+| `/v1/households/{household_id}/members/{user_id}` | DELETE | Remove member |
+| `/v1/households/{household_id}/events` | GET | SSE event stream |
+| `/v1/households/{household_id}/activity` | GET | Household activity log |
+| `/v1/notifications` | GET/PATCH | Notification preferences |
+| `/v1/notifications/devices` | POST | Register device token |
+| `/v1/notifications/devices/{token_id}` | DELETE | Unregister device token |
+| `/v1/analytics/events` | POST | Collect analytics event |
+
+## Example Requests
+
+```bash
 curl -X POST http://localhost:8000/v1/items \
   -H "Authorization: Bearer test-token" \
   -H "Content-Type: application/json" \
-  -d '{"display_name":"Milk","quantity":1,"unit":"gallon","storage_location":"fridge"}'
+  -H "Idempotency-Key: add-milk-1" \
+  -d '{"display_name":"Milk","quantity":1,"unit":"liter","storage_location":"fridge"}'
 
-# Get recommendations
 curl -X POST http://localhost:8000/v1/recommendations \
   -H "Authorization: Bearer test-token" \
   -H "Content-Type: application/json" \
   -d '{"servings":2}'
 
-# Generate meal plan
 curl -X POST http://localhost:8000/v1/plans \
   -H "Authorization: Bearer test-token" \
   -H "Content-Type: application/json" \
-  -d '{"days":7}'
+  -H "Idempotency-Key: plan-7-days" \
+  -d '{"days":7,"servings":2}'
 ```
 
-## Tech Stack
-| Layer | Technology |
-|-------|-----------|
-| Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2.x |
-| Database | PostgreSQL 16 (dev), SQLite (tests) |
-| Cache/Broker | Redis 7 |
-| Mobile | Flutter 3.24, Riverpod, Drift, GoRouter |
-| Auth | Firebase JWT (test: Bearer test-token) |
-| CI | GitHub Actions |
+## Verification Scripts and Test Commands
 
-## Tests
-```
-99 tests covering:
-  ✅ Health endpoint
-  ✅ Database models (User, InventoryItem, Recipe, MealPlan)
-  ✅ Inventory CRUD API
-  ✅ Catalog/barcode service
-  ✅ Expiry rules engine
-  ✅ Recipe recommendation engine
-  ✅ Meal planning algorithm
-  ✅ Integration (full user journey)
-```
+### Backend tests
 
-## Local Development Commands
 ```bash
-# backend tests
 cd backend
 source .venv/bin/activate
-python3 -m pytest tests/ -v
-
-# backend dev server
-uvicorn app.main:app --reload
-
-# docker services only
-docker-compose up -d
-docker-compose down
+python -m pytest tests/ -v --tb=short
 ```
+
+### Flutter tests
+
+```bash
+cd mobile
+flutter test --reporter expanded
+```
+
+### API contract verification
+
+```bash
+source backend/.venv/bin/activate
+python scripts/verify_api_contract.py --base-url http://localhost:8000 --token test-token
+```
+
+## Observability Stubs
+
+- Backend Sentry initializes when `SENTRY_DSN` is set.
+- Flutter Sentry initializes when compiled with `--dart-define=SENTRY_DSN=...`.
+- Backend analytics uses a pluggable `AnalyticsInterface` with `AmplitudeClient` and `NoopAnalytics` stubs.
+- Flutter includes a minimal analytics service abstraction with Amplitude stub wiring.
 
 ## Repository Layout
-```
+
+```text
 backend/
   app/
     core/
@@ -108,9 +196,14 @@ backend/
     modules/
   tests/
 mobile/
+  lib/
+  test/
+scripts/
 .github/workflows/
 docker-compose.yml
+docker-compose.prod.yml
 ```
 
 ## GitHub
+
 https://github.com/vobolgus/fridgefriend

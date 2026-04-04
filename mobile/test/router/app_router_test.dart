@@ -25,21 +25,24 @@ void main() {
     final router = AppRouter.createRouter(initialLocation: initialLocation);
     final mockClient = MockApiClient();
 
-    when(() => mockClient.getInventoryItems()).thenAnswer(
-      (_) async => [
-        InventoryItem(
-          id: '1',
-          displayName: 'Milk',
-          quantity: 1,
-          unit: 'L',
-          storageLocation: 'Fridge',
-          estimatedExpiryDate: DateTime.now().add(const Duration(days: 2)),
-          confidence: 0.9,
-          status: 'active',
-          source: 'manual',
-        ),
-      ],
-    );
+    final inventoryItems = [
+      InventoryItem(
+        id: '1',
+        displayName: 'Milk',
+        quantity: 1,
+        unit: 'L',
+        storageLocation: 'Fridge',
+        estimatedExpiryDate: DateTime.now().add(const Duration(days: 2)),
+        confidence: 0.9,
+        status: 'active',
+        source: 'manual',
+      ),
+    ];
+    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => inventoryItems);
+    
+    // Create a mock notifier with initial data to bypass DB entirely
+    final inventoryNotifier = InventoryNotifier.withInitialData(inventoryItems);
+
     when(() => mockClient.getRecommendations()).thenAnswer(
       (_) async => const [
         Recipe(
@@ -103,7 +106,10 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [apiClientProvider.overrideWithValue(mockClient)],
+        overrides: [
+          apiClientProvider.overrideWithValue(mockClient),
+          inventoryProvider.overrideWith((ref) => inventoryNotifier),
+        ],
         child: MaterialApp.router(routerConfig: router),
       ),
     );

@@ -17,6 +17,9 @@ class DriftInventoryRepository implements InventoryRepository {
   }
 
   @override
+  Future<List<InventoryItem>> syncInventoryItems() => getInventoryItems();
+
+  @override
   Future<InventoryItem> createInventoryItem({
     required String displayName,
     required double quantity,

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import cast
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.canonical_ingredient import CanonicalIngredient, ShelfLifeRule
 
 SHELF_LIFE_DAYS: dict[tuple[str, str], tuple[int, float]] = {
     ("milk", "fridge"): (7, 0.95),
@@ -55,3 +61,41 @@ class ShelfLifeRules:
                 return shelf_life
 
         return self._default_shelf_life
+
+
+async def load_db_shelf_life_rules(
+    session: AsyncSession,
+) -> dict[tuple[str, str], tuple[int, float]]:
+    statement = (
+        select(
+            CanonicalIngredient.name,
+            ShelfLifeRule.storage_type,
+            ShelfLifeRule.shelf_life_days,
+            ShelfLifeRule.confidence,
+        )
+        .join(ShelfLifeRule, ShelfLifeRule.canonical_ingredient_id == CanonicalIngredient.id)
+        .order_by(CanonicalIngredient.name.asc(), ShelfLifeRule.storage_type.asc())
+    )
+    result = await session.execute(statement)
+    rows = cast(list[tuple[str, str, int, float]], result.all())
+
+    return {
+        (name.strip().lower(), storage_type.strip().lower()): (shelf_life_days, confidence)
+        for name, storage_type, shelf_life_days, confidence in rows
+    }
+
+
+class DatabaseShelfLifeRules(ShelfLifeRules):
+    def __init__(
+        self,
+        db_rules: dict[tuple[str, str], tuple[int, float]] | None = None,
+        *,
+        shelf_life_days: Mapping[tuple[str, str], tuple[int, float]] | None = None,
+        default_shelf_life: tuple[int, float] = DEFAULT_SHELF_LIFE,
+    ) -> None:
+        merged = dict(SHELF_LIFE_DAYS)
+        if shelf_life_days:
+            merged.update(shelf_life_days)
+        if db_rules:
+            merged.update(db_rules)
+        super().__init__(shelf_life_days=merged, default_shelf_life=default_shelf_life)

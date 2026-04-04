@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.models.household import Household, HouseholdMember, HouseholdRole
 from app.models.inventory_item import InventoryItem, InventorySource, InventoryStatus
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
@@ -33,9 +34,11 @@ async def add_inventory_item(
     display_name: str | None = None,
     estimated_expiry_date: date | None = None,
     status: InventoryStatus = InventoryStatus.ACTIVE,
+    household_id: object | None = None,
 ) -> InventoryItem:
     item = InventoryItem(
         user_id=user.id,
+        household_id=household_id,
         display_name=display_name or canonical_name.title(),
         quantity=1.0,
         unit="unit",
@@ -50,6 +53,16 @@ async def add_inventory_item(
     await db_session.commit()
     await db_session.refresh(item)
     return item
+
+
+async def ensure_household(db_session: AsyncSession, user: User, *, name: str, invite_code: str) -> Household:
+    household = Household(name=name, invite_code=invite_code)
+    db_session.add(household)
+    await db_session.flush()
+    db_session.add(HouseholdMember(household_id=household.id, user_id=user.id, role=HouseholdRole.OWNER))
+    await db_session.commit()
+    await db_session.refresh(household)
+    return household
 
 
 @pytest_asyncio.fixture
@@ -302,8 +315,14 @@ async def test_api_endpoint_recommendations(
     test_user: User,
     db_session: AsyncSession,
 ) -> None:
-    await add_inventory_item(db_session, test_user, "eggs")
-    await add_inventory_item(db_session, test_user, "butter")
+    household = await ensure_household(
+        db_session,
+        test_user,
+        name="API Recommendations Household",
+        invite_code="api-recommend-household",
+    )
+    await add_inventory_item(db_session, test_user, "eggs", household_id=household.id)
+    await add_inventory_item(db_session, test_user, "butter", household_id=household.id)
 
     response = await client.post("/v1/recommendations", headers=test_headers, json={})
 
@@ -326,3 +345,43 @@ async def test_api_endpoint_recommendations_empty_inventory(
     assert "recipes" in payload
     if payload["recipes"]:
         assert all(recipe["coverage_pct"] == pytest.approx(0.0) for recipe in payload["recipes"])
+
+
+@pytest.mark.asyncio
+async def test_recommendations_scoped_by_household(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    user_household = await ensure_household(
+        db_session,
+        test_user,
+        name="Recommendation Scope User Household",
+        invite_code="recommend-scope-user-house",
+    )
+    other_user = User(email="recommendations-other-user@example.com")
+    db_session.add(other_user)
+    await db_session.commit()
+    await db_session.refresh(other_user)
+    other_household = await ensure_household(
+        db_session,
+        other_user,
+        name="Recommendation Scope Other Household",
+        invite_code="recommend-scope-other-hh",
+    )
+
+    await add_inventory_item(db_session, test_user, "eggs", household_id=user_household.id)
+    await add_inventory_item(db_session, test_user, "butter", household_id=user_household.id)
+    await add_inventory_item(db_session, other_user, "beef", household_id=other_household.id)
+
+    response = await client.post(
+        "/v1/recommendations",
+        headers=test_headers,
+        json={"max_prep_minutes": 15},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    titles = [recipe["title"] for recipe in payload["recipes"]]
+    assert "Scrambled Eggs" in titles

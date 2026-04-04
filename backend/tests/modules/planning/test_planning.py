@@ -14,13 +14,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.models.household import Household, HouseholdMember, HouseholdRole
 from app.models.inventory_item import InventoryItem, InventorySource, InventoryStatus
 from app.models.meal_plan import MealPlan
 from app.models.recipe import Recipe
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 from app.modules.planning.planner import MealPlanner
-from app.modules.planning.schemas import PlanDay, PlanRequest, PlanResult
+from app.modules.planning.schemas import PlanDay, PlanRequest, PlanResult, RecipeIngredient
 from app.modules.planning.shopping_list import derive_shopping_list
 
 
@@ -68,7 +69,7 @@ def _plan_with_recipe_ingredients(recipe_id: str, title: str, ingredients: list[
                 recipe_title=title,
                 servings=2,
                 reserved_items=[str(ingredient["name"]) for ingredient in ingredients],
-                recipe_ingredients=ingredients,
+                recipe_ingredients=[RecipeIngredient.model_validate(ingredient) for ingredient in ingredients],
             ),
         ],
         shopping_list=[],
@@ -82,9 +83,11 @@ def _inventory_item(
     expiry_offset_days: int,
     *,
     user_id: uuid.UUID | None = None,
+    household_id: uuid.UUID | None = None,
 ) -> InventoryItem:
     return InventoryItem(
         user_id=user_id or uuid.uuid4(),
+        household_id=household_id,
         display_name=name.title(),
         quantity=quantity,
         unit=unit,
@@ -220,6 +223,16 @@ async def _seed_recipes(db_session: AsyncSession, recipes: list[dict[str, object
         ],
     )
     await db_session.commit()
+
+
+async def _seed_household(db_session: AsyncSession, user: User, *, name: str, invite_code: str) -> Household:
+    household = Household(name=name, invite_code=invite_code)
+    db_session.add(household)
+    await db_session.flush()
+    db_session.add(HouseholdMember(household_id=household.id, user_id=user.id, role=HouseholdRole.OWNER))
+    await db_session.commit()
+    await db_session.refresh(household)
+    return household
 
 
 def test_plan_request_validates_days_bounds() -> None:
@@ -488,3 +501,58 @@ async def test_plan_saved_to_db(
 
     assert saved_plan.user_id == planning_test_user.id
     assert len(saved_plan.days) == 3
+
+
+@pytest.mark.asyncio
+async def test_planning_scoped_by_household(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    user_household = await _seed_household(
+        db_session,
+        planning_test_user,
+        name="Planning Scope User Household",
+        invite_code="planning-scope-user-hh",
+    )
+    other_user = User(email="planning-other-user@example.com")
+    db_session.add(other_user)
+    await db_session.commit()
+    await db_session.refresh(other_user)
+    other_household = await _seed_household(
+        db_session,
+        other_user,
+        name="Planning Scope Other Household",
+        invite_code="planning-scope-other-hh",
+    )
+    await _seed_recipes(db_session, planner_recipes)
+    await _seed_inventory(
+        db_session,
+        planning_test_user,
+        [
+            _inventory_item("eggs", 8.0, "count", 2, household_id=user_household.id),
+            _inventory_item("milk", 4.0, "cup", 2, household_id=user_household.id),
+            _inventory_item("spinach", 2.0, "bag", 1, household_id=user_household.id),
+        ],
+    )
+    await _seed_inventory(
+        db_session,
+        other_user,
+        [
+            _inventory_item("beef", 3.0, "lb", 2, household_id=other_household.id),
+            _inventory_item("onion", 2.0, "count", 4, household_id=other_household.id),
+        ],
+    )
+
+    response = await client.post(
+        "/v1/plans",
+        headers=test_headers,
+        json={"days": 3, "servings": 2, "max_prep_minutes": 15},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    titles = [day["recipe_title"] for day in payload["days"]]
+    assert "Slow Braised Beef" not in titles

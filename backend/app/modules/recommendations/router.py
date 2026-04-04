@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.idempotency import get_cached, store_cached
 from app.models.user import User
-from app.modules.inventory.dependencies import get_current_user
+from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
+from .mock_recipe_source import MockRecipeSource
 from .schemas import RecommendationRequest, RecommendationResponse
+from .spoonacular import SpoonacularClient
 from .service import RecommendationService
 
 router = APIRouter(prefix="/v1/recommendations", tags=["recommendations"])
@@ -21,7 +25,12 @@ router = APIRouter(prefix="/v1/recommendations", tags=["recommendations"])
 async def get_recommendation_service(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RecommendationService:
-    return RecommendationService(db)
+    recipe_source = (
+        SpoonacularClient(settings.SPOONACULAR_API_KEY)
+        if settings.RECIPE_SOURCE == "spoonacular" and settings.SPOONACULAR_API_KEY
+        else MockRecipeSource()
+    )
+    return RecommendationService(db, recipe_source=recipe_source)
 
 
 @router.post("", response_model=RecommendationResponse)
@@ -29,6 +38,7 @@ async def get_recommendations(
     payload: RecommendationRequest,
     recommendation_service: Annotated[RecommendationService, Depends(get_recommendation_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> RecommendationResponse:
@@ -37,7 +47,7 @@ async def get_recommendations(
         if cached:
             return RecommendationResponse(**cached)
 
-    recipes = await recommendation_service.get_recommendations(current_user.id, payload)
+    recipes = await recommendation_service.get_recommendations(current_user.id, payload, household_id=household_id)
     response = RecommendationResponse(recipes=recipes)
 
     if idempotency_key:

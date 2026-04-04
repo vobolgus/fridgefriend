@@ -1,5 +1,31 @@
-version: '3.9'
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+      - localstack
+    environment:
+      DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@db:5432/fridgefriend
+      REDIS_URL: redis://redis:6379/0
+      AUTH_MOCK: "true"
+      S3_ENDPOINT_URL: http://localstack:4566
+      S3_BUCKET: fridgefriend-uploads
+      AWS_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      STORAGE_BACKEND: local
+      FIREBASE_PROJECT_ID: ""
+      LLM_API_URL: https://litellm.labs.jb.gg
+      LLM_MODEL: gpt-4.1-mini
+      SPOONACULAR_API_KEY: ""
+      SENTRY_DSN: ""
+      AMPLITUDE_API_KEY: ""
+
   db:
     image: postgres:16-alpine
     environment:
@@ -15,6 +41,18 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+
+  localstack:
+    image: localstack/localstack:3
+    ports:
+      - "4566:4566"
+    environment:
+      SERVICES: s3,sqs
+      DEFAULT_REGION: us-east-1
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   pgdata:

@@ -18,6 +18,7 @@ class ItemCreate(BaseModel):
     storage_location: str = Field(min_length=1)
     source: InventorySource = InventorySource.MANUAL
     canonical_name: str | None = None
+    canonical_ingredient_id: uuid.UUID | None = None
     estimated_expiry_date: date | None = None
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
 
@@ -36,6 +37,7 @@ class ItemUpdate(BaseModel):
     unit: str | None = Field(default=None, min_length=1)
     storage_location: str | None = Field(default=None, min_length=1)
     estimated_expiry_date: date | None = None
+    version: int | None = None
 
 
 class ItemStatusUpdate(BaseModel):
@@ -56,5 +58,7 @@ class ItemResponse(BaseModel):
     status: InventoryStatus
     source: InventorySource
     canonical_name: str
+    canonical_ingredient_id: uuid.UUID | None = None
+    version: int
     created_at: datetime
     updated_at: datetime

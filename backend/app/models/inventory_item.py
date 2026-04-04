@@ -10,7 +10,7 @@ from typing import Any
 from sqlalchemy import Date, Enum, Float, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, VersionMixin
 
 
 class InventoryStatus(StrEnum):
@@ -30,10 +30,22 @@ def enum_values(enum_cls: type[StrEnum]) -> list[str]:
     return [item.value for item in enum_cls]
 
 
-class InventoryItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+class InventoryItem(UUIDPrimaryKeyMixin, TimestampMixin, VersionMixin, Base):
     __tablename__ = "inventory_items"
 
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    household_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("households.id"),
+        index=True,
+        nullable=True,
+    )
+    canonical_ingredient_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("canonical_ingredients.id"),
+        nullable=True,
+        index=True,
+    )
     display_name: Mapped[str] = mapped_column(String(255))
     quantity: Mapped[float] = mapped_column(Float)
     unit: Mapped[str] = mapped_column(String(50))
@@ -50,3 +62,4 @@ class InventoryItem(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     canonical_name: Mapped[str] = mapped_column(String(255))
 
     user: Mapped[Any] = relationship("User", back_populates="inventory_items")
+    household: Mapped[Any] = relationship("Household", back_populates="inventory_items")

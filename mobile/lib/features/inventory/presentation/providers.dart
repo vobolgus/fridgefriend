@@ -1,16 +1,43 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
+import 'package:fridgefriend_mobile/database/app_database.dart';
+import 'package:fridgefriend_mobile/database/sync_manager.dart';
+import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/data/inventory_repository_impl.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_repository.dart';
 import 'package:fridgefriend_mobile/features/meal_planning/domain/meal_plan.dart';
 import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+final apiClientProvider = Provider<ApiClient>((ref) {
+  final token = ref.watch(authStateProvider).valueOrNull;
+  return ApiClient(token: token);
+});
+
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final database = AppDatabase();
+  ref.onDispose(database.close);
+  return database;
+});
+
+final syncManagerProvider = Provider<SyncManager>((ref) {
+  final database = ref.watch(appDatabaseProvider);
+  return SyncManager(
+    database: database,
+    apiClient: ref.watch(apiClientProvider),
+    inventoryDao: database.inventoryDao,
+  );
+});
 
 final inventoryRepositoryProvider = Provider<InventoryRepository>(
-  (ref) => InventoryRepositoryImpl(ref.watch(apiClientProvider)),
+  (ref) => InventoryRepositoryImpl(
+    ref.watch(apiClientProvider),
+    inventoryDao: ref.watch(appDatabaseProvider).inventoryDao,
+    syncManager: ref.watch(syncManagerProvider),
+  ),
 );
 
 class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
@@ -29,8 +56,18 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
     try {
       final items = await _repository.getInventoryItems();
       state = AsyncValue.data(items);
+      unawaited(refreshFromSync());
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> refreshFromSync() async {
+    try {
+      final items = await _repository.syncInventoryItems();
+      state = AsyncValue.data(items);
+    } catch (_) {
+      // Preserve cached state when background sync fails.
     }
   }
 
@@ -95,6 +132,9 @@ final shoppingListProvider = FutureProvider<List<ShoppingItem>>((ref) {
 class _NoopRepository implements InventoryRepository {
   @override
   Future<List<InventoryItem>> getInventoryItems() async => const [];
+
+  @override
+  Future<List<InventoryItem>> syncInventoryItems() async => const [];
 
   @override
   Future<InventoryItem> createInventoryItem({
