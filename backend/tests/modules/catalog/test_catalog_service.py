@@ -30,7 +30,7 @@ class BarcodeResultFactory(Protocol):
 
 
 class CatalogServiceLike(Protocol):
-    def lookup_barcode(self, barcode: str) -> BarcodeResultLike | None: ...
+    async def lookup_barcode(self, barcode: str) -> BarcodeResultLike | None: ...
 
     def normalize(self, name: str) -> str: ...
 
@@ -59,7 +59,7 @@ CatalogService = cast(
 
 
 class CustomBarcodeAPI:
-    def lookup(self, barcode: str) -> BarcodeResultLike | None:
+    async def lookup(self, barcode: str) -> BarcodeResultLike | None:
         if barcode == "custom-1":
             return BarcodeResult(
                 barcode=barcode,
@@ -75,22 +75,25 @@ def service() -> CatalogServiceLike:
     return CatalogService()
 
 
-def test_lookup_known_barcode(service: CatalogServiceLike) -> None:
-    result = service.lookup_barcode("8710847909610")
+@pytest.mark.asyncio
+async def test_lookup_known_barcode(service: CatalogServiceLike) -> None:
+    result = await service.lookup_barcode("8710847909610")
 
     assert result is not None
     assert result.canonical_name == "milk"
     assert result.brand == "Generic"
 
 
-def test_lookup_unknown_barcode(service: CatalogServiceLike) -> None:
-    result = service.lookup_barcode("9999999999999")
+@pytest.mark.asyncio
+async def test_lookup_unknown_barcode(service: CatalogServiceLike) -> None:
+    result = await service.lookup_barcode("9999999999999")
 
     assert result is None
 
 
-def test_lookup_known_barcode_returns_expected_payload(service: CatalogServiceLike) -> None:
-    result = service.lookup_barcode("5000112637939")
+@pytest.mark.asyncio
+async def test_lookup_known_barcode_returns_expected_payload(service: CatalogServiceLike) -> None:
+    result = await service.lookup_barcode("5000112637939")
 
     assert result == BarcodeResult(
         barcode="5000112637939",
@@ -204,10 +207,11 @@ def test_normalize_maps_common_variants() -> None:
     assert normalize_ingredient_name("Tomatoes") == "tomatoes"
 
 
-def test_catalog_service_uses_interface() -> None:
+@pytest.mark.asyncio
+async def test_catalog_service_uses_interface() -> None:
     service = CatalogService(barcode_api=CustomBarcodeAPI())
 
-    result = service.lookup_barcode("custom-1")
+    result = await service.lookup_barcode("custom-1")
 
     assert result is not None
     assert result.brand == "Tesco"

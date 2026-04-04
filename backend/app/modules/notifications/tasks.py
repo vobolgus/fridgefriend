@@ -9,13 +9,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.celery_app import celery_app
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.household import HouseholdMember
 from app.models.inventory_item import InventoryItem, InventoryStatus
 from app.models.notification import DeviceToken, NotificationPreference
 from app.models.user import User
 
-from .push import FCMPushService, PushServiceInterface
+from .push import FCMPushService, MockPushService, PushServiceInterface
 
 
 def _is_within_quiet_hours(current: time, start: time | None, end: time | None) -> bool:
@@ -63,7 +64,7 @@ async def send_expiry_reminders(
 ) -> int:
     owns_session = session is None
     active_session = session or AsyncSessionLocal()
-    service = push_service or FCMPushService()
+    service = push_service or (FCMPushService() if settings.FCM_ENABLED else MockPushService())
     current_time = now or datetime.now(UTC)
     notifications_sent = 0
 

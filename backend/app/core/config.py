@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     LLM_API_URL: str = "https://litellm.labs.jb.gg"
     LLM_MODEL: str = "gpt-4.1-mini"
     PHOTO_PARSER_BACKEND: str = "mock"
+    BARCODE_API_SOURCE: str = "mock"
     SENTRY_DSN: str = ""
     SENTRY_TRACES_SAMPLE_RATE: float = 0.1
     SENTRY_ENVIRONMENT: str = "development"
@@ -29,6 +30,8 @@ class Settings(BaseSettings):
     LLM_INPUT_COST_PER_1M: float = 0.40
     LLM_OUTPUT_COST_PER_1M: float = 1.60
     SPOONACULAR_POINT_COST: float = 0.005
+    FIREBASE_CREDENTIALS_PATH: str = ""
+    FCM_ENABLED: bool = False
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env",

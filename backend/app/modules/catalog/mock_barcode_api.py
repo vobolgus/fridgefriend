@@ -61,5 +61,5 @@ MOCK_BARCODES = {
 
 
 class MockBarcodeAPI:
-    def lookup(self, barcode: str) -> BarcodeResult | None:
+    async def lookup(self, barcode: str) -> BarcodeResult | None:
         return MOCK_BARCODES.get(barcode)

@@ -21,8 +21,8 @@ class CatalogService:
         self.barcode_api: BarcodeAPIInterface = barcode_api or MockBarcodeAPI()
         self._db_session: AsyncSession | None = db_session
 
-    def lookup_barcode(self, barcode: str) -> BarcodeResult | None:
-        return self.barcode_api.lookup(barcode)
+    async def lookup_barcode(self, barcode: str) -> BarcodeResult | None:
+        return await self.barcode_api.lookup(barcode)
 
     def normalize(self, name: str) -> str:
         return normalize_ingredient_name(name)
@@ -54,7 +54,7 @@ class CatalogService:
         self,
         barcode: str,
     ) -> tuple[BarcodeResult, CanonicalIngredient | None] | None:
-        result = self.lookup_barcode(barcode)
+        result = await self.lookup_barcode(barcode)
         if result is None:
             return None
 

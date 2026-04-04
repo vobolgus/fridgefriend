@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import 'package:fridgefriend_mobile/database/app_database.dart';
 import 'package:fridgefriend_mobile/database/daos/inventory_dao.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_repository.dart';
@@ -53,8 +54,8 @@ class DriftInventoryRepository implements InventoryRepository {
         quantity: item.quantity,
         unit: item.unit,
         storageLocation: item.storageLocation,
-        estimatedExpiryDate: item.estimatedExpiryDate,
-        confidence: item.confidence,
+        estimatedExpiryDate: item.estimatedExpiryDate!,
+        confidence: item.confidence!,
         status: Value(item.status),
         source: Value(item.source),
         version: Value(item.version),
@@ -92,7 +93,8 @@ class DriftInventoryRepository implements InventoryRepository {
   }
 
   @override
-  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+  Future<InventoryItem> updateItemStatus(String id, String status,
+      {int? version}) async {
     await _inventoryDao.updateItemStatus(id, status);
     final items = await _inventoryDao.getAllItems();
     final local = items.where((entry) => entry.id == id).firstOrNull;

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
 
@@ -25,7 +27,8 @@ class MockPushNotificationService implements PushNotificationService {
         token: 'mock-device-token-${DateTime.now().millisecondsSinceEpoch}',
         platform: _currentPlatform,
       );
-      _registeredTokenId = result['token_id'] as String? ?? result['id'] as String?;
+      _registeredTokenId =
+          result['token_id'] as String? ?? result['id'] as String?;
     } catch (e) {
       debugPrint('Mock push token registration failed: $e');
     }
@@ -61,42 +64,108 @@ class MockPushNotificationService implements PushNotificationService {
 /// (e.g., in tests), falls back to the mock behavior.
 class FirebasePushNotificationService implements PushNotificationService {
   String? _registeredTokenId;
+  ApiClient? _apiClient;
+  StreamSubscription<String>? _tokenRefreshSubscription;
 
   @override
   Future<void> registerToken(ApiClient apiClient) async {
-    try {
-      // Dynamic import pattern — firebase_messaging may not be compiled in all
-      // build configurations. We use a manual token string approach that works
-      // with or without the firebase_messaging dependency being present.
-      //
-      // In a real production build with firebase_messaging in pubspec.yaml:
-      //   final messaging = FirebaseMessaging.instance;
-      //   final token = await messaging.getToken();
-      //
-      // For this prototype, we capture a platform-specific token stub that
-      // exercises the full registration flow end-to-end.
-      final token = 'fcm-${DateTime.now().millisecondsSinceEpoch}';
-      final platform = _currentPlatform;
+    _apiClient = apiClient;
 
+    FirebaseMessaging messaging;
+    try {
+      messaging = FirebaseMessaging.instance;
+    } catch (e) {
+      debugPrint('Failed to access Firebase Messaging instance: $e');
+      return;
+    }
+
+    try {
+      await messaging.requestPermission();
+    } catch (e) {
+      debugPrint('FCM permission request failed: $e');
+    }
+
+    String? token;
+    try {
+      token = await messaging.getToken();
+    } catch (e) {
+      debugPrint('FCM token retrieval failed: $e');
+      return;
+    }
+
+    if (token == null) {
+      debugPrint(
+          'FCM token retrieval returned null. Skipping device registration.');
+      return;
+    }
+
+    try {
       final result = await apiClient.registerDeviceToken(
         token: token,
-        platform: platform,
+        platform: _currentPlatform,
       );
-      _registeredTokenId = result['token_id'] as String? ?? result['id'] as String?;
-      debugPrint('Device token registered: $token ($platform)');
+      _registeredTokenId =
+          result['token_id'] as String? ?? result['id'] as String?;
+      debugPrint('Device token registered: $token ($_currentPlatform)');
     } catch (e) {
       debugPrint('FCM token registration failed: $e');
+    }
+
+    await _tokenRefreshSubscription?.cancel();
+    try {
+      _tokenRefreshSubscription =
+          messaging.onTokenRefresh.listen((newToken) async {
+        final refreshApiClient = _apiClient;
+        if (refreshApiClient == null) {
+          debugPrint(
+              'Skipping FCM token refresh registration: missing API client.');
+          return;
+        }
+
+        try {
+          final previousTokenId = _registeredTokenId;
+          if (previousTokenId != null) {
+            await refreshApiClient.unregisterDeviceToken(previousTokenId);
+          }
+
+          final result = await refreshApiClient.registerDeviceToken(
+            token: newToken,
+            platform: _currentPlatform,
+          );
+          _registeredTokenId =
+              result['token_id'] as String? ?? result['id'] as String?;
+          debugPrint('Device token refreshed: $newToken ($_currentPlatform)');
+        } catch (e) {
+          debugPrint('FCM token refresh registration failed: $e');
+        }
+      });
+    } catch (e) {
+      debugPrint('FCM token refresh listener setup failed: $e');
     }
   }
 
   @override
   Future<void> unregisterToken(ApiClient apiClient) async {
     final tokenId = _registeredTokenId;
-    if (tokenId == null) return;
+    await _tokenRefreshSubscription?.cancel();
+    _tokenRefreshSubscription = null;
+
+    if (tokenId != null) {
+      try {
+        await apiClient.unregisterDeviceToken(tokenId);
+        _registeredTokenId = null;
+      } catch (e) {
+        debugPrint('FCM token unregistration failed: $e');
+      }
+    }
+
     try {
-      await apiClient.unregisterDeviceToken(tokenId);
-      _registeredTokenId = null;
-    } catch (_) {}
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (e) {
+      debugPrint('FCM token deletion failed: $e');
+    }
+
+    _apiClient = null;
   }
 
   String get _currentPlatform {

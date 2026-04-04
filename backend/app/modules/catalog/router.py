@@ -11,6 +11,8 @@ from app.core.storage import LocalStorage, S3Storage, StorageInterface
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
+from .interfaces import BarcodeAPIInterface
+from .mock_barcode_api import MockBarcodeAPI
 from .photo_interfaces import LLMPhotoParser, MockPhotoParser, PhotoParserInterface
 from .schemas import (
     BarcodeScanRequest,
@@ -27,7 +29,15 @@ router = APIRouter(prefix="/v1/scan", tags=["catalog"])
 async def get_catalog_service(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> CatalogService:
-    return CatalogService(db_session=db)
+    from app.core.config import settings
+
+    if settings.BARCODE_API_SOURCE == "openfoodfacts":
+        from .openfoodfacts import OpenFoodFactsAPI
+
+        barcode_api: BarcodeAPIInterface = OpenFoodFactsAPI()
+    else:
+        barcode_api = MockBarcodeAPI()
+    return CatalogService(barcode_api=barcode_api, db_session=db)
 
 
 def get_photo_parser() -> PhotoParserInterface:
