@@ -81,6 +81,7 @@ void main() {
     addTearDown(testDb.close);
 
     final mockSync = MockSyncManager();
+    when(() => mockSync.pendingMutations()).thenAnswer((_) async => []);
     when(() => mockSync.clearPendingMutations()).thenAnswer((_) async {});
 
     await tester.pumpWidget(

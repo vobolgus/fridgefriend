@@ -177,6 +177,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
     });
 
     try {
+      if (!await _flushOrWarnPendingMutations()) return;
       await ref
           .read(householdRepositoryProvider)
           .setActiveHousehold(household.id);
@@ -202,14 +203,28 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
     }
   }
 
+  Future<bool> _flushOrWarnPendingMutations() async {
+    final syncManager = ref.read(syncManagerProvider);
+    final pending = await syncManager.pendingMutations();
+    if (pending.isEmpty) return true;
+    try {
+      await syncManager.flushPendingMutations();
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sync pending changes before switching households')),
+        );
+      }
+      return false;
+    }
+  }
+
   Future<void> _clearHouseholdCaches() async {
     final db = ref.read(appDatabaseProvider);
     await db.inventoryDao.clearAll();
     await db.recipeDao.clear();
     await db.mealPlanDao.clear();
-
-    final syncManager = ref.read(syncManagerProvider);
-    await syncManager.clearPendingMutations();
   }
 
   void _invalidateHouseholdScopedProviders() {
@@ -241,6 +256,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               if (name.isEmpty) return;
               Navigator.pop(dialogContext);
               try {
+                if (!await _flushOrWarnPendingMutations()) return;
                 await ref.read(householdRepositoryProvider).createHousehold(name);
                 await _clearHouseholdCaches();
                 _invalidateHouseholdScopedProviders();
@@ -280,6 +296,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               if (code.isEmpty) return;
               Navigator.pop(dialogContext);
               try {
+                if (!await _flushOrWarnPendingMutations()) return;
                 await ref.read(householdRepositoryProvider).joinHousehold(code);
                 await _clearHouseholdCaches();
                 _invalidateHouseholdScopedProviders();
