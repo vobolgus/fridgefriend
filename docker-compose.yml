@@ -12,7 +12,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@db:5432/fridgefriend
       REDIS_URL: redis://redis:6379/0
-      AUTH_MOCK: "true"
+      AUTH_MOCK: "false"
       S3_ENDPOINT_URL: http://localstack:4566
       S3_BUCKET: fridgefriend-uploads
       AWS_REGION: us-east-1
@@ -20,7 +20,7 @@ services:
       AWS_SECRET_ACCESS_KEY: test
       STORAGE_BACKEND: local
       PHOTO_PARSER_BACKEND: mock
-      FIREBASE_PROJECT_ID: ""
+      FIREBASE_PROJECT_ID: "fridge-friend-c5a88"
       LLM_API_URL: https://litellm.labs.jb.gg
       LLM_MODEL: gpt-4.1-mini
       SPOONACULAR_API_KEY: ""

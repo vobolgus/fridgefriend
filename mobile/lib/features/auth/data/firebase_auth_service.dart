@@ -40,7 +40,10 @@ class FirebaseAuthService implements AuthService {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
     } on fb.FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        // User doesn't exist — create account.
+        // Firebase v6+ returns 'invalid-credential' instead of 'user-not-found'
+        // when email enumeration protection is enabled (default).
         await _auth.createUserWithEmailAndPassword(email: email, password: password);
       } else {
         rethrow;

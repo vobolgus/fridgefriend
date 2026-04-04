@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "237941153604",
+    "project_id": "fridge-friend-c5a88",
+    "storage_bucket": "fridge-friend-c5a88.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237941153604:android:e541ad28dc9584ec774111",
+        "android_client_info": {
+          "package_name": "com.suglobov.fridgefriend"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "237941153604-le1isrg04tli02c6e4f69j4jflg6tn7h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.suglobov.fridgefriend",
+            "certificate_hash": "f379f19e4495109fdbcb39607d6b37ba18176d3b"
+          }
+        },
+        {
+          "client_id": "237941153604-4aqe4ng8q5delparelarlvvbehjavled.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWBn_uFJfRMVwDKT1ddfD-ko6Cuz0svQ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "237941153604-4aqe4ng8q5delparelarlvvbehjavled.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "237941153604-1uvnrltve8fmkodir1kaq9k558rq97sc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.suglobov.fridgefriend"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

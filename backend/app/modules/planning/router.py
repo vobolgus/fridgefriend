@@ -61,8 +61,8 @@ async def get_shopping_list(
 ) -> ShoppingListResponse:
     try:
         return await planning_service.get_shopping_list(current_user, household_id)
-    except MealPlanNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found") from exc
+    except MealPlanNotFoundError:
+        return ShoppingListResponse(items=[])
 
 
 @router.delete("/v1/plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)

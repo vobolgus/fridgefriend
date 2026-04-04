@@ -58,6 +58,25 @@
 	<string>FridgeFriend needs camera access to scan barcodes and take photos of your fridge.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>FridgeFriend needs photo library access to upload fridge photos for item detection.</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.237941153604-1uvnrltve8fmkodir1kaq9k558rq97sc</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>Google Sign-In</string>
+		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app-1-237941153604-ios-5e7640a99357e829774111</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>Firebase Auth</string>
+		</dict>
+	</array>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
