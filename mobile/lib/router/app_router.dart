@@ -124,7 +124,7 @@ class AppRouter {
           name: 'scan-photo-review',
           builder: (context, state) {
             final extra = state.extra;
-            final items = switch (extra) {
+            final rawItems = switch (extra) {
               final List<dynamic> value => value,
               final Map<String, dynamic> value =>
                 (value['draft_items'] ?? value['draftItems'] ?? value['items'])
@@ -132,8 +132,10 @@ class AppRouter {
                     const [],
               _ => const <dynamic>[],
             };
-            // Cast list to actual InventoryItem type (would be robustly done in real app)
-            return OcrReviewScreen(items: items.cast<InventoryItem>());
+            final items = rawItems
+                .whereType<InventoryItem>()
+                .toList(growable: false);
+            return OcrReviewScreen(items: items);
           },
         ),
         GoRoute(
@@ -145,8 +147,11 @@ class AppRouter {
           path: '/recipes/:id',
           name: 'recipe-detail',
           builder: (context, state) {
-            final recipe = state.extra as Recipe;
-            return RecipeDetailScreen(recipe: recipe);
+            final extra = state.extra;
+            if (extra is Recipe) {
+              return RecipeDetailScreen(recipe: extra);
+            }
+            return const RecommendationsScreen();
           },
         ),
       ],
