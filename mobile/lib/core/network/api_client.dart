@@ -152,14 +152,20 @@ class ApiClient {
     throw const FormatException('Invalid inventory item response');
   }
 
-  Future<void> updateItemStatus(String id, String status, {int? version}) async {
-    await _dio.post(
+  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+    final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/items/$id/status',
       data: {'status': status, if (version != null) 'version': version},
       options: Options(
-        headers: {'Idempotency-Key': '${id}_status_$status'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('${id}_status_$status')},
       ),
     );
+
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      return InventoryItem.fromJson(payload);
+    }
+    throw const FormatException('Invalid status update response');
   }
 
   Future<void> undoItem(String id) async {

@@ -163,11 +163,11 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
         .map((item) => item.version)
         .fold<int?>(null, (previous, current) => previous ?? current);
     try {
-      await _repository.updateItemStatus(itemId, status, version: itemVersion);
+      final updated = await _repository.updateItemStatus(itemId, status, version: itemVersion);
       state = AsyncValue.data(
         currentItems
             .map(
-              (item) => item.id == itemId ? item.copyWith(status: status) : item,
+              (item) => item.id == itemId ? updated : item,
             )
             .toList(growable: false),
       );
@@ -276,8 +276,17 @@ class _NoopRepository implements InventoryRepository {
   }
 
   @override
-  Future<void> updateItemStatus(String id, String status, {int? version}) async {
-    if (version != null) {}
+  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+    return InventoryItem(
+      id: id,
+      displayName: '',
+      quantity: 0,
+      unit: '',
+      storageLocation: '',
+      status: status,
+      source: 'manual',
+      version: version ?? 1,
+    );
   }
 
   @override

@@ -146,12 +146,42 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<void> updateItemStatus(String id, String status, {int? version}) async {
+  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
     await _inventoryDao.updateItemStatus(id, status);
     try {
-      await _apiClient.updateItemStatus(id, status, version: version);
+      final updated = await _apiClient.updateItemStatus(id, status, version: version);
+      await _cacheItems([updated]);
+      return updated;
     } catch (_) {
       await _syncManager.queueStatusUpdate(itemId: id, status: status);
+      // Return local state when offline
+      final items = await _inventoryDao.getAllItems();
+      final local = items.where((item) => item.id == id).firstOrNull;
+      if (local != null) {
+        return InventoryItem(
+          id: local.id,
+          displayName: local.displayName,
+          quantity: local.quantity,
+          unit: local.unit,
+          storageLocation: local.storageLocation,
+          estimatedExpiryDate: local.estimatedExpiryDate,
+          confidence: local.confidence,
+          status: local.status,
+          source: local.source,
+          canonicalName: local.canonicalName,
+          canonicalIngredientId: local.canonicalIngredientId,
+          version: local.version,
+        );
+      }
+      return InventoryItem(
+        id: id,
+        displayName: '',
+        quantity: 0,
+        unit: '',
+        storageLocation: '',
+        status: status,
+        source: 'manual',
+      );
     }
   }
 

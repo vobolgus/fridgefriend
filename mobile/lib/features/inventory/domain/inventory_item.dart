@@ -29,7 +29,14 @@ class InventoryItem {
 
   String get urgencyBucket {
     if (estimatedExpiryDate == null) return 'safe_later';
-    final daysLeft = estimatedExpiryDate!.difference(DateTime.now()).inDays;
+    final now = DateTime.now();
+    final todayDate = DateTime(now.year, now.month, now.day);
+    final expiryDate = DateTime(
+      estimatedExpiryDate!.year,
+      estimatedExpiryDate!.month,
+      estimatedExpiryDate!.day,
+    );
+    final daysLeft = expiryDate.difference(todayDate).inDays;
     if (daysLeft < 0) return 'expired';
     if (daysLeft <= 1) return 'today';
     if (daysLeft <= 7) return 'this_week';

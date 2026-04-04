@@ -92,9 +92,22 @@ class DriftInventoryRepository implements InventoryRepository {
   }
 
   @override
-  Future<void> updateItemStatus(String id, String status, {int? version}) {
-    if (version != null) {}
-    return _inventoryDao.updateItemStatus(id, status);
+  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+    await _inventoryDao.updateItemStatus(id, status);
+    final items = await _inventoryDao.getAllItems();
+    final local = items.where((entry) => entry.id == id).firstOrNull;
+    if (local != null) {
+      return _mapToDomain(local);
+    }
+    return InventoryItem(
+      id: id,
+      displayName: '',
+      quantity: 0,
+      unit: '',
+      storageLocation: '',
+      status: status,
+      source: 'manual',
+    );
   }
 
   @override
