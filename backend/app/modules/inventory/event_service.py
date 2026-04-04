@@ -65,7 +65,7 @@ class InventoryEventService:
         db.add(event)
         await db.commit()
         await db.refresh(event)
-        await household_event_bus.publish(
+        _ = await household_event_bus.publish(
             household_id,
             {
                 "id": str(event.id),

@@ -17,12 +17,16 @@ final householdsProvider = FutureProvider<List<Household>>((ref) {
   return ref.watch(householdRepositoryProvider).getHouseholds();
 });
 
-final activityLogProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, householdId) {
+final activityLogProvider =
+    FutureProvider.family<List<Map<String, dynamic>>, String>(
+        (ref, householdId) {
   return ref.watch(apiClientProvider).getActivityLog(householdId);
 });
 
-final householdEventsProvider = StreamProvider.family<HouseholdSseEvent, String>(
+final householdEventsProvider =
+    StreamProvider.family<HouseholdSseEvent, String>(
   (ref, householdId) {
+    // Reconnection is handled inside HouseholdSseClient.connect.
     return ref.watch(householdSseClientProvider).connect(householdId);
   },
 );

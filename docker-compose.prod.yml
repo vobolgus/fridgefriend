@@ -1,86 +1,48 @@
 services:
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    image: ${ECR_REGISTRY}/fridgefriend-backend:${IMAGE_TAG:-latest}
+    env_file:
+      - .env.production
     ports:
       - "8000:8000"
-    depends_on:
-      - postgres
-      - redis
-      - localstack
-    environment:
-      DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@postgres:5432/fridgefriend
-      REDIS_URL: redis://redis:6379/0
-      AUTH_MOCK: "false"
-      FIREBASE_PROJECT_ID: "${FIREBASE_PROJECT_ID:-}"
-      S3_ENDPOINT_URL: http://localstack:4566
-      S3_BUCKET: fridgefriend-uploads
-      AWS_REGION: us-east-1
-      # Required in production: FIREBASE_PROJECT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SENTRY_DSN, AMPLITUDE_API_KEY
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
-      STORAGE_BACKEND: s3
-      PHOTO_PARSER_BACKEND: "${PHOTO_PARSER_BACKEND:-llm}"
-      LLM_API_URL: "${LLM_API_URL:-https://litellm.labs.jb.gg}"
-      LLM_MODEL: "${LLM_MODEL:-gpt-4.1-mini}"
-      SENTRY_DSN: ""
-      AMPLITUDE_API_KEY: ""
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
 
   celery-worker:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    command: celery -A app.core.celery_app.celery_app worker --loglevel=info
-    depends_on:
-      - backend
-      - redis
-      - postgres
-    environment:
-      DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@postgres:5432/fridgefriend
-      REDIS_URL: redis://redis:6379/0
+    image: ${ECR_REGISTRY}/fridgefriend-backend:${IMAGE_TAG:-latest}
+    env_file:
+      - .env.production
+    command: celery -A app.core.celery_app.celery_app worker --loglevel=info --concurrency=4
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
   celery-beat:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ${ECR_REGISTRY}/fridgefriend-backend:${IMAGE_TAG:-latest}
+    env_file:
+      - .env.production
     command: celery -A app.core.celery_app.celery_app beat --loglevel=info
-    depends_on:
-      - backend
-      - redis
-      - postgres
-    environment:
-      DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@postgres:5432/fridgefriend
-      REDIS_URL: redis://redis:6379/0
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 512M
 
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: fridgefriend
-      POSTGRES_PASSWORD: fridgefriend
-      POSTGRES_DB: fridgefriend
+  dashboard:
+    image: ${ECR_REGISTRY}/fridgefriend-dashboard:${IMAGE_TAG:-latest}
+    env_file:
+      - .env.production
     ports:
-      - "5432:5432"
-    volumes:
-      - pgdata_prod:/var/lib/postgresql/data
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-
-  localstack:
-    image: localstack/localstack:3
-    environment:
-      SERVICES: s3,sqs
-      DEFAULT_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
-    ports:
-      - "4566:4566"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-
-volumes:
-  pgdata_prod:
+      - "8501:8501"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]

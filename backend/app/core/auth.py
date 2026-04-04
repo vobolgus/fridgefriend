@@ -1,11 +1,11 @@
-# pyright: reportMissingImports=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false
+# pyright: reportMissingImports=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownParameterType=false, reportUnknownArgumentType=false, reportArgumentType=false, reportInvalidCast=false, reportCallInDefaultInitializer=false, reportUnnecessaryComparison=false
 
 from __future__ import annotations
 
 import secrets
-from typing import Annotated
+from typing import Annotated, cast
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,11 +21,18 @@ DEFAULT_INVITE_CODE_LENGTH = 20
 async def get_current_user(
     authorization: Annotated[str | None, Header()] = None,
     *,
+    request: Request = cast(Request, None),
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
     if settings.AUTH_MOCK:
-        return await _mock_auth(authorization, db)
-    return await _firebase_auth(authorization, db)
+        user = await _mock_auth(authorization, db)
+    else:
+        user = await _firebase_auth(authorization, db)
+
+    request_state = getattr(request, "state", None)
+    if request_state is not None:
+        request_state.user_id = str(user.id)
+    return user
 
 
 async def _mock_auth(authorization: str | None, db: AsyncSession) -> User:
@@ -49,8 +56,8 @@ def get_firebase_auth_service() -> FirebaseAuthInterface:
     if not settings.AUTH_MOCK:
         raise RuntimeError(
             "AUTH_MOCK is disabled but FIREBASE_PROJECT_ID is not set. "
-            "Set FIREBASE_PROJECT_ID to a valid Firebase project, "
-            "or enable AUTH_MOCK for development."
+            + "Set FIREBASE_PROJECT_ID to a valid Firebase project, "
+            + "or enable AUTH_MOCK for development."
         )
     return MockFirebaseAuth()
 

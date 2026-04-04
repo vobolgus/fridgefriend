@@ -56,6 +56,29 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
+  opensearch-node1:
+    profiles: ["search"]
+    image: opensearchproject/opensearch:2.17.0
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: -Xms256m -Xmx256m
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+
+  opensearch-dashboards:
+    profiles: ["search"]
+    image: opensearchproject/opensearch-dashboards:2.17.0
+    depends_on:
+      - opensearch-node1
+    ports:
+      - "5601:5601"
+    environment:
+      OPENSEARCH_HOSTS: http://opensearch-node1:9200
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+
   dashboard:
     build:
       context: .
@@ -79,3 +102,4 @@ services:
 
 volumes:
   pgdata:
+  opensearch-data:

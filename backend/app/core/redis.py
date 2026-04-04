@@ -1,16 +1,27 @@
-# pyright: reportMissingImports=false, reportUnknownVariableType=false, reportUnknownMemberType=false
+# pyright: reportUnknownMemberType=false
 
 from __future__ import annotations
 
-try:
-    from redis.asyncio import Redis
-except ImportError:
-    Redis = None  # type: ignore[assignment,misc]
+from typing import TYPE_CHECKING
 
 from app.core.config import settings
 
+try:
+    import redis.asyncio as redis_asyncio
+except ImportError:
+    redis_asyncio = None
 
-async def get_redis() -> object | None:
-    if Redis is None:
+if TYPE_CHECKING:
+    from redis.asyncio import Redis
+
+
+def get_redis_client() -> Redis | None:
+    if redis_asyncio is None:
         return None
-    return Redis.from_url(settings.REDIS_URL)
+    if settings.DATABASE_URL.startswith("sqlite+aiosqlite:///:memory:"):
+        return None
+    return redis_asyncio.Redis.from_url(settings.REDIS_URL)
+
+
+async def get_redis() -> Redis | None:
+    return get_redis_client()

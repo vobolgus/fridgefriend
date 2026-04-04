@@ -15,8 +15,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
     this._apiClient, {
     required InventoryDao inventoryDao,
     required SyncManager syncManager,
-  }) : _inventoryDao = inventoryDao,
-       _syncManager = syncManager;
+  })  : _inventoryDao = inventoryDao,
+        _syncManager = syncManager;
 
   final ApiClient _apiClient;
   final InventoryDao _inventoryDao;
@@ -35,7 +35,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
     DateTime? estimatedExpiryDate,
   }) async {
     if (displayName.trim().isEmpty || quantity <= 0) {
-      throw ArgumentError('Item must have a non-empty name and positive quantity');
+      throw ArgumentError(
+          'Item must have a non-empty name and positive quantity');
     }
     try {
       final created = await _apiClient.createInventoryItem(
@@ -192,7 +193,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return updated;
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
-        throw StateError('Item was modified by another user. Please refresh and try again.');
+        throw StateError(
+            'Item was modified by another user. Please refresh and try again.');
       }
       if (!_isConnectivityError(e)) rethrow;
 
@@ -208,7 +210,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         quantity: quantity ?? existing.quantity,
         unit: unit ?? existing.unit,
         storageLocation: storageLocation ?? existing.storageLocation,
-        estimatedExpiryDate: estimatedExpiryDate ?? existing.estimatedExpiryDate,
+        estimatedExpiryDate:
+            estimatedExpiryDate ?? existing.estimatedExpiryDate,
         confidence: existing.confidence,
         status: existing.status,
         source: existing.source,
@@ -219,6 +222,20 @@ class InventoryRepositoryImpl implements InventoryRepository {
       await _inventoryDao.insertItem(_toCompanion(updatedLocal));
       await _syncManager.queueUpdate(
         itemId: id,
+        oldItem: InventoryItem(
+          id: existing.id,
+          displayName: existing.displayName,
+          quantity: existing.quantity,
+          unit: existing.unit,
+          storageLocation: existing.storageLocation,
+          estimatedExpiryDate: existing.estimatedExpiryDate,
+          confidence: existing.confidence,
+          status: existing.status,
+          source: existing.source,
+          canonicalName: existing.canonicalName,
+          canonicalIngredientId: existing.canonicalIngredientId,
+          version: existing.version,
+        ),
         displayName: displayName,
         quantity: quantity,
         unit: unit,
@@ -231,28 +248,54 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
-  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+  Future<InventoryItem> updateItemStatus(String id, String status,
+      {int? version}) async {
     final allItems = await _inventoryDao.getAllItems();
+    final existing = allItems.where((item) => item.id == id).firstOrNull;
     final previousStatus = allItems
-        .where((item) => item.id == id)
-        .map((item) => item.status)
-        .firstOrNull ?? 'active';
+            .where((item) => item.id == id)
+            .map((item) => item.status)
+            .firstOrNull ??
+        'active';
 
     await _inventoryDao.updateItemStatus(id, status);
     try {
-      final updated = await _apiClient.updateItemStatus(id, status, version: version);
+      final updated =
+          await _apiClient.updateItemStatus(id, status, version: version);
       await _cacheItems([updated]);
       return updated;
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
         await _inventoryDao.updateItemStatus(id, previousStatus);
-        throw StateError('Item was modified by another user. Please refresh and try again.');
+        throw StateError(
+            'Item was modified by another user. Please refresh and try again.');
       }
       if (!_isConnectivityError(e)) {
         await _inventoryDao.updateItemStatus(id, previousStatus);
         rethrow;
       }
-      await _syncManager.queueStatusUpdate(itemId: id, status: status, version: version);
+      if (existing == null) {
+        await _inventoryDao.updateItemStatus(id, previousStatus);
+        rethrow;
+      }
+      await _syncManager.queueStatusUpdate(
+        baseItem: InventoryItem(
+          id: existing.id,
+          displayName: existing.displayName,
+          quantity: existing.quantity,
+          unit: existing.unit,
+          storageLocation: existing.storageLocation,
+          estimatedExpiryDate: existing.estimatedExpiryDate,
+          confidence: existing.confidence,
+          status: previousStatus,
+          source: existing.source,
+          canonicalName: existing.canonicalName,
+          canonicalIngredientId: existing.canonicalIngredientId,
+          version: version ?? existing.version,
+        ),
+        status: status,
+        version: version,
+      );
       return _localItemFallback(id, status);
     }
   }

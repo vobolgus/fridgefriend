@@ -226,9 +226,17 @@ async def stream_household_events(
     except HouseholdNotFoundError:
         _raise_not_found()
 
+    last_event_id = request.headers.get("Last-Event-ID")
+
     async def stream() -> AsyncIterator[str]:
         async with household_event_bus.subscribe(household_id) as queue:
-            async for chunk in household_event_stream(request, queue):
+            async for chunk in household_event_stream(
+                request,
+                household_event_bus,
+                household_id,
+                queue,
+                last_event_id,
+            ):
                 yield chunk
 
     return StreamingResponse(stream(), media_type="text/event-stream")

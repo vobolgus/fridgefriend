@@ -15,6 +15,7 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
 from .mock_recipe_source import MockRecipeSource
+from .opensearch_client import OpenSearchRecipeSource
 from .schemas import RecommendationRequest, RecommendationResponse
 from .spoonacular import SpoonacularClient
 from .service import RecommendationService
@@ -25,11 +26,12 @@ router = APIRouter(prefix="/v1/recommendations", tags=["recommendations"])
 async def get_recommendation_service(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RecommendationService:
-    recipe_source = (
-        SpoonacularClient(settings.SPOONACULAR_API_KEY)
-        if settings.RECIPE_SOURCE == "spoonacular" and settings.SPOONACULAR_API_KEY
-        else MockRecipeSource()
-    )
+    if settings.RECIPE_SOURCE == "spoonacular" and settings.SPOONACULAR_API_KEY:
+        recipe_source = SpoonacularClient(settings.SPOONACULAR_API_KEY)
+    elif settings.RECIPE_SOURCE == "opensearch":
+        recipe_source = OpenSearchRecipeSource()
+    else:
+        recipe_source = MockRecipeSource()
     return RecommendationService(db, recipe_source=recipe_source)
 
 

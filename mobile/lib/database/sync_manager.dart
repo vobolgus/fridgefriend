@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
 import 'package:fridgefriend_mobile/database/app_database.dart';
+import 'package:fridgefriend_mobile/database/conflict_resolver.dart';
 import 'package:fridgefriend_mobile/database/daos/inventory_dao.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 
@@ -31,9 +32,9 @@ class SyncManager {
     required AppDatabase database,
     required ApiClient apiClient,
     required InventoryDao inventoryDao,
-  }) : _database = database,
-       _apiClient = apiClient,
-       _inventoryDao = inventoryDao;
+  })  : _database = database,
+        _apiClient = apiClient,
+        _inventoryDao = inventoryDao;
 
   final AppDatabase _database;
   final ApiClient _apiClient;
@@ -53,20 +54,29 @@ class SyncManager {
   }
 
   Future<void> queueStatusUpdate({
-    required String itemId,
+    required InventoryItem baseItem,
     required String status,
     int? version,
   }) {
+    final localItem = baseItem.copyWith(status: status, version: version);
+
     return _enqueue(
       entityType: 'inventory',
-      entityId: itemId,
+      entityId: baseItem.id,
       action: 'status_update',
-      payload: {'id': itemId, 'status': status, if (version != null) 'version': version},
+      payload: {
+        ...localItem.toJson(),
+        'id': baseItem.id,
+        'base': baseItem.toJson(),
+        'dirty_fields': const ['status'],
+        if (version != null) 'version': version,
+      },
     );
   }
 
   Future<void> queueUpdate({
     required String itemId,
+    required InventoryItem oldItem,
     String? displayName,
     double? quantity,
     String? unit,
@@ -74,28 +84,52 @@ class SyncManager {
     DateTime? estimatedExpiryDate,
     int? version,
   }) {
+    final payload = {
+      'id': itemId,
+      'displayName': displayName ?? oldItem.displayName,
+      'quantity': quantity ?? oldItem.quantity,
+      'unit': unit ?? oldItem.unit,
+      'storageLocation': storageLocation ?? oldItem.storageLocation,
+      'estimatedExpiryDate':
+          (estimatedExpiryDate ?? oldItem.estimatedExpiryDate)
+              ?.toIso8601String(),
+      'status': oldItem.status,
+      'source': oldItem.source,
+      'canonicalName': oldItem.canonicalName,
+      'canonicalIngredientId': oldItem.canonicalIngredientId,
+      'base': oldItem.toJson(),
+      'dirty_fields': _dirtyFields(
+        oldItem: oldItem,
+        newItem: oldItem.copyWith(
+          displayName: displayName,
+          quantity: quantity,
+          unit: unit,
+          storageLocation: storageLocation,
+          estimatedExpiryDate: estimatedExpiryDate,
+        ),
+      ).toList(growable: false),
+      if (version != null) 'version': version,
+    };
+
+    if (payload['estimatedExpiryDate'] == null) {
+      payload.remove('estimatedExpiryDate');
+    }
+
     return _enqueue(
       entityType: 'inventory',
       entityId: itemId,
       action: 'update',
-      payload: {
-        'id': itemId,
-        if (displayName != null) 'displayName': displayName,
-        if (quantity != null) 'quantity': quantity,
-        if (unit != null) 'unit': unit,
-        if (storageLocation != null) 'storageLocation': storageLocation,
-        if (estimatedExpiryDate != null)
-          'estimatedExpiryDate': estimatedExpiryDate.toIso8601String(),
-        if (version != null) 'version': version,
-      },
+      payload: payload,
     );
   }
 
   Future<List<QueuedMutation>> pendingMutations() async {
-    final rows = await _database.customSelect(
-      'SELECT id, entity_type, entity_id, action, payload_json, created_at '
-      'FROM offline_mutation_queue ORDER BY created_at ASC',
-    ).get();
+    final rows = await _database
+        .customSelect(
+          'SELECT id, entity_type, entity_id, action, payload_json, created_at '
+          'FROM offline_mutation_queue ORDER BY created_at ASC',
+        )
+        .get();
 
     return rows.map(_mapRow).toList(growable: false);
   }
@@ -119,7 +153,8 @@ class SyncManager {
             displayName: (mutation.payload['displayName'] ?? '').toString(),
             quantity: _toDouble(mutation.payload['quantity']),
             unit: (mutation.payload['unit'] ?? '').toString(),
-            storageLocation: (mutation.payload['storageLocation'] ?? '').toString(),
+            storageLocation:
+                (mutation.payload['storageLocation'] ?? '').toString(),
             source: mutation.payload['source']?.toString(),
             canonicalName: mutation.payload['canonicalName']?.toString(),
             canonicalIngredientId:
@@ -150,9 +185,15 @@ class SyncManager {
           final statusVersion = mutation.payload['version'] is int
               ? mutation.payload['version'] as int
               : int.tryParse(mutation.payload['version']?.toString() ?? '');
-          final syncedStatus = await _apiClient.updateItemStatus(
-            mutation.entityId,
-            (mutation.payload['status'] ?? '').toString(),
+          final localStatusItem = _itemFromPayload(mutation.payload);
+          final syncedStatus = await _applyWithConflictResolution(
+            mutation: mutation,
+            submit: (item, version) => _apiClient.updateItemStatus(
+              item.id,
+              item.status,
+              version: version,
+            ),
+            localItem: localStatusItem,
             version: statusVersion,
           );
           await _rebasePendingMutations(
@@ -165,19 +206,19 @@ class SyncManager {
         }
 
         if (mutation.action == 'update') {
-          final syncedUpdate = await _apiClient.updateItem(
-            id: mutation.entityId,
-            displayName: mutation.payload['displayName']?.toString(),
-            quantity: mutation.payload['quantity'] != null
-                ? _toDouble(mutation.payload['quantity'])
-                : null,
-            unit: mutation.payload['unit']?.toString(),
-            storageLocation: mutation.payload['storageLocation']?.toString(),
-            estimatedExpiryDate: mutation.payload['estimatedExpiryDate'] != null
-                ? DateTime.tryParse(
-                    mutation.payload['estimatedExpiryDate'].toString(),
-                  )
-                : null,
+          final localUpdateItem = _itemFromPayload(mutation.payload);
+          final syncedUpdate = await _applyWithConflictResolution(
+            mutation: mutation,
+            submit: (item, version) => _apiClient.updateItem(
+              id: item.id,
+              displayName: item.displayName,
+              quantity: item.quantity,
+              unit: item.unit,
+              storageLocation: item.storageLocation,
+              estimatedExpiryDate: item.estimatedExpiryDate,
+              version: version,
+            ),
+            localItem: localUpdateItem,
             version: mutation.payload['version'] is int
                 ? mutation.payload['version'] as int
                 : int.tryParse(mutation.payload['version']?.toString() ?? ''),
@@ -279,6 +320,126 @@ class SyncManager {
     );
   }
 
+  Future<InventoryItem> _applyWithConflictResolution({
+    required QueuedMutation mutation,
+    required Future<InventoryItem> Function(InventoryItem item, int? version)
+        submit,
+    required InventoryItem localItem,
+    required int? version,
+  }) async {
+    try {
+      return await submit(localItem, version);
+    } on DioException catch (error) {
+      if (error.response?.statusCode != 409) {
+        rethrow;
+      }
+
+      final serverItem = await _fetchServerItem(mutation.entityId);
+      final resolver =
+          ConflictResolver(baseItem: _baseItemFromPayload(mutation.payload));
+      final dirtyFields = _dirtyFieldsFromPayload(mutation.payload);
+      final mergedItem = resolver.resolve(serverItem, localItem, dirtyFields);
+
+      try {
+        return await submit(mergedItem, serverItem.version);
+      } on DioException catch (retryError) {
+        if (retryError.response?.statusCode == 409) {
+          throw _UnresolvedConflictException();
+        }
+        rethrow;
+      }
+    }
+  }
+
+  Future<InventoryItem> _fetchServerItem(String itemId) async {
+    final items = await _apiClient.getInventoryItems();
+    return items.firstWhere((item) => item.id == itemId);
+  }
+
+  InventoryItem _baseItemFromPayload(Map<String, dynamic> payload) {
+    final base = payload['base'];
+    if (base is Map<String, dynamic>) {
+      return InventoryItem.fromJson(base);
+    }
+    if (base is Map) {
+      return InventoryItem.fromJson(Map<String, dynamic>.from(base));
+    }
+
+    return _itemFromPayload(payload);
+  }
+
+  Set<String> _dirtyFieldsFromPayload(Map<String, dynamic> payload) {
+    final value = payload['dirty_fields'];
+    if (value is List) {
+      return value.map((entry) => entry.toString()).toSet();
+    }
+
+    return const <String>{};
+  }
+
+  InventoryItem _itemFromPayload(Map<String, dynamic> payload) {
+    return InventoryItem(
+      id: (payload['id'] ?? payload['itemId'] ?? '').toString(),
+      displayName: (payload['displayName'] ?? '').toString(),
+      quantity: _toDouble(payload['quantity']),
+      unit: (payload['unit'] ?? '').toString(),
+      storageLocation: (payload['storageLocation'] ?? '').toString(),
+      estimatedExpiryDate: payload['estimatedExpiryDate'] == null
+          ? null
+          : DateTime.tryParse(payload['estimatedExpiryDate'].toString()),
+      confidence: payload['confidence'] == null
+          ? null
+          : _toDouble(payload['confidence']),
+      status: (payload['status'] ?? 'active').toString(),
+      source: (payload['source'] ?? 'manual').toString(),
+      canonicalName: payload['canonicalName']?.toString(),
+      canonicalIngredientId: payload['canonicalIngredientId']?.toString(),
+      version: payload['version'] is int
+          ? payload['version'] as int
+          : int.tryParse(payload['version']?.toString() ?? '') ?? 1,
+    );
+  }
+
+  Set<String> _dirtyFields({
+    required InventoryItem oldItem,
+    required InventoryItem newItem,
+  }) {
+    final fields = <String>{};
+
+    if (oldItem.displayName != newItem.displayName) {
+      fields.add('displayName');
+    }
+    if (oldItem.quantity != newItem.quantity) {
+      fields.add('quantity');
+    }
+    if (oldItem.unit != newItem.unit) {
+      fields.add('unit');
+    }
+    if (oldItem.storageLocation != newItem.storageLocation) {
+      fields.add('storageLocation');
+    }
+    if (!_dateTimeEquals(
+        oldItem.estimatedExpiryDate, newItem.estimatedExpiryDate)) {
+      fields.add('estimatedExpiryDate');
+    }
+    if (oldItem.status != newItem.status) {
+      fields.add('status');
+    }
+    if (oldItem.canonicalName != newItem.canonicalName) {
+      fields.add('canonicalName');
+    }
+
+    return fields;
+  }
+
+  bool _dateTimeEquals(DateTime? left, DateTime? right) {
+    if (left == null || right == null) {
+      return left == right;
+    }
+
+    return left.isAtSameMomentAs(right);
+  }
+
   QueuedMutation _mapRow(QueryRow row) {
     return QueuedMutation(
       id: row.read<String>('id'),
@@ -288,8 +449,7 @@ class SyncManager {
       payload: Map<String, dynamic>.from(
         jsonDecode(row.read<String>('payload_json')) as Map,
       ),
-      createdAt:
-          DateTime.tryParse(row.read<String>('created_at')) ??
+      createdAt: DateTime.tryParse(row.read<String>('created_at')) ??
           DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
@@ -319,3 +479,5 @@ class SyncManager {
     return double.tryParse(value?.toString() ?? '') ?? 0;
   }
 }
+
+class _UnresolvedConflictException implements Exception {}

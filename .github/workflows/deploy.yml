@@ -1,0 +1,231 @@
+name: Deploy to Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+  BACKEND_ECR_REPOSITORY: fridgefriend-backend
+  DASHBOARD_ECR_REPOSITORY: fridgefriend-dashboard
+  ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+  ECS_BACKEND_SERVICE: ${{ vars.ECS_BACKEND_SERVICE }}
+  ECS_DASHBOARD_SERVICE: ${{ vars.ECS_DASHBOARD_SERVICE }}
+  ECS_BACKEND_TASK_FAMILY: ${{ vars.ECS_BACKEND_TASK_FAMILY }}
+  ECS_DASHBOARD_TASK_FAMILY: ${{ vars.ECS_DASHBOARD_TASK_FAMILY }}
+
+jobs:
+  build-and-push:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: read
+    outputs:
+      image_tag: ${{ steps.image-meta.outputs.image_tag }}
+      backend_image: ${{ steps.image-meta.outputs.backend_image }}
+      dashboard_image: ${{ steps.image-meta.outputs.dashboard_image }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute image metadata
+        id: image-meta
+        run: |
+          IMAGE_TAG="${GITHUB_SHA::12}"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "backend_image=${ECR_REGISTRY}/${BACKEND_ECR_REPOSITORY}:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "dashboard_image=${ECR_REGISTRY}/${DASHBOARD_ECR_REPOSITORY}:$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build backend image
+        run: docker build -f backend/Dockerfile -t "${{ steps.image-meta.outputs.backend_image }}" .
+
+      - name: Build dashboard image
+        run: docker build -f dashboard/Dockerfile -t "${{ steps.image-meta.outputs.dashboard_image }}" .
+
+      - name: Push backend image
+        run: docker push "${{ steps.image-meta.outputs.backend_image }}"
+
+      - name: Push dashboard image
+        run: docker push "${{ steps.image-meta.outputs.dashboard_image }}"
+
+  deploy-backend:
+    name: Deploy backend to ECS
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    needs: build-and-push
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create backend task definition template
+        run: |
+          # Template placeholders must be replaced with real AWS resource identifiers before a live deploy.
+          cat > backend-task-definition.json <<'EOF'
+          {
+            "family": "REPLACE_WITH_BACKEND_TASK_FAMILY",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "1024",
+            "memory": "2048",
+            "executionRoleArn": "arn:aws:iam::123456789012:role/REPLACE_ECS_EXECUTION_ROLE",
+            "taskRoleArn": "arn:aws:iam::123456789012:role/REPLACE_ECS_TASK_ROLE",
+            "containerDefinitions": [
+              {
+                "name": "backend",
+                "image": "REPLACE_IMAGE",
+                "essential": true,
+                "portMappings": [
+                  {
+                    "containerPort": 8000,
+                    "protocol": "tcp"
+                  }
+                ],
+                "environmentFiles": [
+                  {
+                    "value": "arn:aws:s3:::REPLACE_ENV_FILE_BUCKET/.env.production",
+                    "type": "s3"
+                  }
+                ],
+                "secrets": [
+                  {
+                    "name": "FIREBASE_CREDENTIALS_PATH",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:fridgefriend/firebase-credentials"
+                  }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/fridgefriend/backend",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+
+      - name: Render backend task definition
+        id: render-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: backend-task-definition.json
+          container-name: backend
+          image: ${{ needs.build-and-push.outputs.backend_image }}
+
+      - name: Deploy backend service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-backend.outputs.task-definition }}
+          service: ${{ env.ECS_BACKEND_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+  deploy-dashboard:
+    name: Deploy dashboard to ECS
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    needs:
+      - build-and-push
+      - deploy-backend
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create dashboard task definition template
+        run: |
+          # Template placeholders must be replaced with real AWS resource identifiers before a live deploy.
+          cat > dashboard-task-definition.json <<'EOF'
+          {
+            "family": "REPLACE_WITH_DASHBOARD_TASK_FAMILY",
+            "networkMode": "awsvpc",
+            "requiresCompatibilities": ["FARGATE"],
+            "cpu": "512",
+            "memory": "1024",
+            "executionRoleArn": "arn:aws:iam::123456789012:role/REPLACE_ECS_EXECUTION_ROLE",
+            "taskRoleArn": "arn:aws:iam::123456789012:role/REPLACE_ECS_TASK_ROLE",
+            "containerDefinitions": [
+              {
+                "name": "dashboard",
+                "image": "REPLACE_IMAGE",
+                "essential": true,
+                "portMappings": [
+                  {
+                    "containerPort": 8501,
+                    "protocol": "tcp"
+                  }
+                ],
+                "environmentFiles": [
+                  {
+                    "value": "arn:aws:s3:::REPLACE_ENV_FILE_BUCKET/.env.production",
+                    "type": "s3"
+                  }
+                ],
+                "logConfiguration": {
+                  "logDriver": "awslogs",
+                  "options": {
+                    "awslogs-group": "/ecs/fridgefriend/dashboard",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                  }
+                }
+              }
+            ]
+          }
+          EOF
+
+      - name: Render dashboard task definition
+        id: render-dashboard
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: dashboard-task-definition.json
+          container-name: dashboard
+          image: ${{ needs.build-and-push.outputs.dashboard_image }}
+
+      - name: Deploy dashboard service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-dashboard.outputs.task-definition }}
+          service: ${{ env.ECS_DASHBOARD_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

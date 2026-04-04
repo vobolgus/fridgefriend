@@ -1,0 +1,15 @@
+project_name           = "fridgefriend"
+environment            = "production"
+aws_region             = "us-east-1"
+vpc_cidr               = "10.0.0.0/16"
+db_instance_class      = "db.t4g.medium"
+redis_node_type        = "cache.t4g.micro"
+acm_cert_arn           = "REPLACE_WITH_ACM_CERT_ARN"
+backend_container_image   = "fridgefriend-backend:latest"
+dashboard_container_image = "fridgefriend-dashboard:latest"
+backend_cpu            = 512
+backend_memory         = 1024
+worker_cpu             = 256
+worker_memory          = 512
+dashboard_cpu          = 256
+dashboard_memory       = 512

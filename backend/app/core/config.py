@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     FIREBASE_PROJECT_ID: str = ""
     SPOONACULAR_API_KEY: str = ""
     RECIPE_SOURCE: str = "mock"
+    OPENSEARCH_URL: str = "http://localhost:9200"
+    OPENSEARCH_INDEX: str = "recipes"
     LLM_API_URL: str = "https://litellm.labs.jb.gg"
     LLM_MODEL: str = "gpt-4.1-mini"
     PHOTO_PARSER_BACKEND: str = "mock"
