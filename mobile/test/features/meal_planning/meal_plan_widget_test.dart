@@ -14,6 +14,7 @@ class MockApiClient extends Mock implements ApiClient {}
 void main() {
   testWidgets('MealPlanScreen shows day picker and generates plan', (tester) async {
     final mockClient = MockApiClient();
+    when(() => mockClient.getLatestPlan()).thenAnswer((_) async => null);
     when(() => mockClient.generatePlan(days: any(named: 'days'))).thenAnswer(
       (_) async => MealPlan(
         planId: 'plan-1',
@@ -43,8 +44,9 @@ void main() {
         child: const MaterialApp(home: MealPlanScreen()),
       ),
     );
+    await tester.pumpAndSettle();
 
-    expect(find.text('Select days and generate plan'), findsOneWidget);
+    expect(find.text('No meal plan yet. Select days and generate one!'), findsOneWidget);
 
     await tester.tap(find.byType(DropdownButton<int>));
     await tester.pumpAndSettle();

@@ -10,6 +10,19 @@ from .schemas import FixtureRecipe
 from .substitutions import SUBSTITUTIONS
 
 
+def _normalize_ingredient(name: str) -> str:
+    name = name.lower().strip()
+    if name.endswith("ies"):
+        return name[:-3] + "y"
+    if name.endswith("ves"):
+        return name[:-3] + "f"
+    if name.endswith("ses") or name.endswith("ches") or name.endswith("shes"):
+        return name[:-2]
+    if name.endswith("s") and not name.endswith("ss"):
+        return name[:-1]
+    return name
+
+
 @dataclass(slots=True)
 class ScoreBreakdown:
     coverage_pct: float
@@ -44,7 +57,11 @@ class RecipeScorer:
         recipe_ingredient_set = set(recipe_ingredients)
         active_inventory = [item for item in inventory_items if self._is_active(item)]
         inventory_names = {item.canonical_name.lower() for item in active_inventory}
-        covered = recipe_ingredient_set & inventory_names
+        inventory_normalized = {_normalize_ingredient(n) for n in inventory_names}
+        covered = set()
+        for ri in recipe_ingredient_set:
+            if ri in inventory_names or _normalize_ingredient(ri) in inventory_normalized:
+                covered.add(ri)
         coverage_pct = len(covered) / len(recipe_ingredient_set) if recipe_ingredient_set else 0.0
         use_soon_score = self._urgency_bonus(active_inventory, covered)
         prep_score = max(0.0, 0.1 - recipe_model.prep_minutes / 1000)
@@ -58,7 +75,7 @@ class RecipeScorer:
             available_substitutions = [
                 substitution
                 for substitution in SUBSTITUTIONS.get(ingredient_name, [])
-                if substitution.lower() in inventory_names
+                if substitution.lower() in inventory_names or _normalize_ingredient(substitution) in inventory_normalized
             ]
             if available_substitutions:
                 substitutions.extend(available_substitutions)
@@ -81,9 +98,11 @@ class RecipeScorer:
         )
 
     def _urgency_bonus(self, inventory_items: list[InventoryItem], covered: set[str]) -> float:
+        covered_normalized = {_normalize_ingredient(c) for c in covered}
         urgency_bonus = 0.0
         for item in inventory_items:
-            if item.canonical_name.lower() not in covered:
+            item_norm = _normalize_ingredient(item.canonical_name.lower())
+            if item.canonical_name.lower() not in covered and item_norm not in covered_normalized:
                 continue
 
             urgency_bucket = get_urgency_bucket(item.estimated_expiry_date, self._today)

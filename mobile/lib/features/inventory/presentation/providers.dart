@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
 import 'package:fridgefriend_mobile/database/app_database.dart';
-import 'package:fridgefriend_mobile/database/daos/recipe_dao.dart';
+import 'package:fridgefriend_mobile/database/daos/meal_plan_dao.dart';
 import 'package:fridgefriend_mobile/database/sync_manager.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/data/inventory_repository_impl.dart';
@@ -60,12 +60,15 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
   final Ref? _ref;
 
   Future<void> loadItems() async {
+    if (!mounted) return;
     state = const AsyncValue.loading();
     try {
       final items = await _repository.getInventoryItems();
+      if (!mounted) return;
       state = AsyncValue.data(items);
       unawaited(refreshFromSync());
     } catch (error, stackTrace) {
+      if (!mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -73,10 +76,9 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
   Future<void> refreshFromSync() async {
     try {
       final items = await _repository.syncInventoryItems();
+      if (!mounted) return;
       state = AsyncValue.data(items);
-    } catch (_) {
-      // Preserve cached state when background sync fails.
-    }
+    } catch (_) {}
   }
 
   Future<void> addItem({
@@ -103,10 +105,12 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
         estimatedExpiryDate: estimatedExpiryDate,
       );
 
+      if (!mounted) return;
       final currentItems = state.valueOrNull ?? const <InventoryItem>[];
       state = AsyncValue.data([...currentItems, createdItem]);
       _invalidateRecommendations();
     } catch (error, stackTrace) {
+      if (!mounted) return;
       state = AsyncValue.error(error, stackTrace);
       rethrow;
     }
@@ -129,6 +133,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
         storageLocation: storageLocation,
         version: version,
       );
+      if (!mounted) return;
       final currentItems = state.valueOrNull ?? const <InventoryItem>[];
       state = AsyncValue.data(
         currentItems
@@ -137,6 +142,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
       );
       _invalidateRecommendations();
     } catch (error, stackTrace) {
+      if (!mounted) return;
       state = AsyncValue.error(error, stackTrace);
       rethrow;
     }
@@ -151,9 +157,11 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
   Future<void> undoItem(String itemId) async {
     try {
       await _repository.undoItem(itemId);
+      if (!mounted) return;
       await loadItems();
       _invalidateRecommendations();
     } catch (error, stackTrace) {
+      if (!mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -167,6 +175,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
     const terminalStatuses = {'used', 'discarded'};
     try {
       final updated = await _repository.updateItemStatus(itemId, status, version: itemVersion);
+      if (!mounted) return;
       if (terminalStatuses.contains(updated.status)) {
         state = AsyncValue.data(
           currentItems.where((item) => item.id != itemId).toList(growable: false),
@@ -180,9 +189,11 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
       }
       _invalidateRecommendations();
     } on StateError {
+      if (!mounted) return;
       await loadItems();
       rethrow;
     } catch (error, stackTrace) {
+      if (!mounted) return;
       state = AsyncValue.error(error, stackTrace);
     }
   }
@@ -218,22 +229,54 @@ final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
   }
 });
 
-final mealPlanProvider = FutureProvider.family<MealPlan, int>((ref, days) async {
-  final apiClient = ref.watch(apiClientProvider);
-  final mealPlanDao = ref.watch(appDatabaseProvider).mealPlanDao;
-
-  try {
-    final plan = await apiClient.generatePlan(days: days);
-    await mealPlanDao.saveMealPlan(plan);
-    return plan;
-  } catch (_) {
-    final cached = await mealPlanDao.getLatestMealPlan();
-    if (cached != null) {
-      return cached.toDomain();
-    }
-    rethrow;
-  }
+final mealPlanProvider = StateNotifierProvider<MealPlanNotifier, AsyncValue<MealPlan?>>((ref) {
+  return MealPlanNotifier(
+    ref.watch(apiClientProvider),
+    ref.watch(appDatabaseProvider).mealPlanDao,
+  );
 });
+
+class MealPlanNotifier extends StateNotifier<AsyncValue<MealPlan?>> {
+  MealPlanNotifier(this._apiClient, this._mealPlanDao) : super(const AsyncValue.data(null)) {
+    loadLatest();
+  }
+
+  final ApiClient _apiClient;
+  final MealPlanDao _mealPlanDao;
+
+  Future<void> loadLatest() async {
+    state = const AsyncValue.loading();
+    try {
+      final plan = await _apiClient.getLatestPlan();
+      if (plan != null) {
+        await _mealPlanDao.saveMealPlan(plan);
+      }
+      if (!mounted) return;
+      state = AsyncValue.data(plan);
+    } catch (e, st) {
+      final cached = await _mealPlanDao.getLatestMealPlan();
+      if (!mounted) return;
+      if (cached != null) {
+        state = AsyncValue.data(cached.toDomain());
+      } else {
+        state = AsyncValue.error(e, st);
+      }
+    }
+  }
+
+  Future<void> generatePlan({int days = 7}) async {
+    state = const AsyncValue.loading();
+    try {
+      final plan = await _apiClient.generatePlan(days: days);
+      await _mealPlanDao.saveMealPlan(plan);
+      if (!mounted) return;
+      state = AsyncValue.data(plan);
+    } catch (e, st) {
+      if (!mounted) return;
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
 
 final shoppingListProvider = FutureProvider<List<ShoppingItem>>((ref) async {
   final apiClient = ref.watch(apiClientProvider);

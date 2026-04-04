@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
+import 'package:fridgefriend_mobile/features/meal_planning/domain/meal_plan.dart';
 
 class MealPlanScreen extends ConsumerStatefulWidget {
   const MealPlanScreen({super.key});
@@ -12,10 +13,11 @@ class MealPlanScreen extends ConsumerStatefulWidget {
 
 class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   int _selectedDays = 7;
-  int? _generatedDays;
 
   @override
   Widget build(BuildContext context) {
+    final planState = ref.watch(mealPlanProvider);
+
     return Scaffold(
       body: Column(
         children: [
@@ -41,29 +43,31 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                 ),
                 const Spacer(),
                 ElevatedButton(
-                  onPressed: () {
-                    setState(() => _generatedDays = _selectedDays);
-                  },
+                  onPressed: planState is AsyncLoading
+                      ? null
+                      : () {
+                          ref.read(mealPlanProvider.notifier).generatePlan(days: _selectedDays);
+                        },
                   child: const Text('Generate Plan'),
                 ),
               ],
             ),
           ),
           Expanded(
-            child: _generatedDays == null
-                ? const Center(child: Text('Select days and generate plan'))
-                : _buildPlanList(ref.watch(mealPlanProvider(_generatedDays!))),
+            child: _buildPlanContent(planState),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPlanList(AsyncValue plan) {
-    return plan.when(
+  Widget _buildPlanContent(AsyncValue<MealPlan?> planState) {
+    return planState.when(
       data: (mealPlan) {
-        if (mealPlan.days.isEmpty) {
-          return const Center(child: Text('No meal plan available'));
+        if (mealPlan == null || mealPlan.days.isEmpty) {
+          return const Center(
+            child: Text('No meal plan yet. Select days and generate one!'),
+          );
         }
 
         return ListView.builder(

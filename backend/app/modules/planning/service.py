@@ -111,6 +111,28 @@ class PlanningService:
             shoppingList=derive_shopping_list(planned, inventory_items, reserved_quantities=reserved_by_others),
         )
 
+    async def get_latest_plan(self, user: User, household_id: UUID) -> PlanResult:
+        _ = user
+        meal_plan = await self._get_latest_meal_plan(household_id)
+        return PlanResult(
+            planId=str(meal_plan.id),
+            days=[
+                PlanDay(
+                    date=day.date,
+                    recipeId=str(day.recipe_id),
+                    recipeTitle=day.recipe.title if day.recipe else "Unknown Recipe",
+                    servings=day.servings,
+                    reservedItems=[
+                        self._get_recipe_ingredient_name(ingredient)
+                        for ingredient in (day.recipe.ingredients if day.recipe else [])
+                    ],
+                    recipeIngredients=[],
+                )
+                for day in meal_plan.days
+            ],
+            shoppingList=[],
+        )
+
     async def get_shopping_list(self, user: User, household_id: UUID) -> ShoppingListResponse:
         _ = user
         meal_plan = await self._get_latest_meal_plan(household_id)

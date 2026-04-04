@@ -23,7 +23,8 @@ services:
       FIREBASE_PROJECT_ID: "fridge-friend-c5a88"
       LLM_API_URL: https://litellm.labs.jb.gg
       LLM_MODEL: gpt-4.1-mini
-      SPOONACULAR_API_KEY: ""
+      SPOONACULAR_API_KEY: "${SPOONACULAR_API_KEY:-}"
+      RECIPE_SOURCE: "spoonacular"
       SENTRY_DSN: ""
       AMPLITUDE_API_KEY: ""
 

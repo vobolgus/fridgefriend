@@ -53,6 +53,19 @@ async def create_plan(
     return response
 
 
+@router.get("/v1/plans/latest", response_model=PlanResponse, response_model_by_alias=True)
+async def get_latest_plan(
+    planning_service: Annotated[PlanningService, Depends(get_planning_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    household_id: Annotated[UUID, Depends(get_active_household_id)],
+) -> PlanResponse:
+    try:
+        result = await planning_service.get_latest_plan(current_user, household_id)
+    except MealPlanNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No meal plan found")
+    return PlanResponse(plan=result)
+
+
 @router.get("/v1/shopping-list", response_model=ShoppingListResponse)
 async def get_shopping_list(
     planning_service: Annotated[PlanningService, Depends(get_planning_service)],

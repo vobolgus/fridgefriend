@@ -236,6 +236,24 @@ class ApiClient {
     throw const FormatException('Invalid meal plan response');
   }
 
+  Future<MealPlan?> getLatestPlan() async {
+    try {
+      final response = await _dio.get(
+        '${ApiConfig.apiVersionPath}/plans/latest',
+      );
+      final payload = response.data;
+      if (payload is Map<String, dynamic>) {
+        return MealPlan.fromJson(payload);
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
   Future<List<ShoppingItem>> getShoppingList() async {
     final response = await _dio.get('${ApiConfig.apiVersionPath}/shopping-list');
     final payload = response.data;
