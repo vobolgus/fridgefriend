@@ -43,7 +43,7 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@localhost:5432/fridgefriend_test
+          DATABASE_URL: "sqlite+aiosqlite:///:memory:"
         run: python -m pytest tests/ -v --tb=short
 
       - name: Build backend image
