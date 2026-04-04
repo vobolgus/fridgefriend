@@ -95,9 +95,11 @@ class AppShell extends ConsumerWidget {
 
     final eventsAsync = ref.watch(householdEventsProvider(householdId));
     eventsAsync.whenData((_) {
-      // A new SSE event arrived — refresh inventory and activity log.
       ref.invalidate(inventoryProvider);
       ref.invalidate(activityLogProvider(householdId));
+      ref.invalidate(recommendationsProvider);
+      ref.invalidate(mealPlanProvider);
+      ref.invalidate(shoppingListProvider);
     });
   }
 

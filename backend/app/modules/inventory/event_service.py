@@ -116,6 +116,8 @@ class InventoryEventService:
         if event.action == "removed":
             if not previous_state:
                 return None
+            snapshot_version = int(previous_state.get("version", 1))
+            restored_version = max(snapshot_version, int(event.new_state.get("version", 0))) + 1
             restored_item = InventoryItem(
                 id=item_id,
                 user_id=user_id,
@@ -130,7 +132,7 @@ class InventoryEventService:
                 source=InventorySource(str(previous_state["source"])),
                 canonical_name=str(previous_state["canonical_name"]),
                 canonical_ingredient_id=uuid.UUID(previous_state["canonical_ingredient_id"]) if previous_state.get("canonical_ingredient_id") else None,
-                version=int(previous_state.get("version", 1)),
+                version=restored_version,
             )
             db.add(restored_item)
             await db.commit()
@@ -160,7 +162,7 @@ class InventoryEventService:
         item.source = InventorySource(str(previous_state["source"]))
         item.canonical_name = str(previous_state["canonical_name"])
         item.canonical_ingredient_id = uuid.UUID(previous_state["canonical_ingredient_id"]) if previous_state.get("canonical_ingredient_id") else None
-        item.version = int(previous_state.get("version", item.version))
+        item.version = item.version + 1
         await db.commit()
         await db.refresh(item)
         _ = await self.log_event(

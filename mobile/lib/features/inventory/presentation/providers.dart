@@ -151,6 +151,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
     try {
       await _repository.undoItem(itemId);
       await loadItems();
+      _invalidateRecommendations();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
@@ -172,6 +173,9 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
             .toList(growable: false),
       );
       _invalidateRecommendations();
+    } on StateError {
+      await loadItems();
+      rethrow;
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }

@@ -147,6 +147,12 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
   @override
   Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+    final allItems = await _inventoryDao.getAllItems();
+    final previousStatus = allItems
+        .where((item) => item.id == id)
+        .map((item) => item.status)
+        .firstOrNull ?? 'active';
+
     await _inventoryDao.updateItemStatus(id, status);
     try {
       final updated = await _apiClient.updateItemStatus(id, status, version: version);
@@ -154,11 +160,9 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return updated;
     } on DioException catch (e) {
       if (e.response?.statusCode == 409) {
-        // Revert local status change on version conflict
-        await _inventoryDao.updateItemStatus(id, 'active');
+        await _inventoryDao.updateItemStatus(id, previousStatus);
         throw StateError('Item was modified by another user. Please refresh and try again.');
       }
-      // Genuine network failure — queue for offline replay with version
       await _syncManager.queueStatusUpdate(itemId: id, status: status, version: version);
       return _localItemFallback(id, status);
     } catch (_) {

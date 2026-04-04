@@ -103,6 +103,14 @@ class SettingsScreen extends ConsumerWidget {
               final pushService = ref.read(pushNotificationServiceProvider);
               final apiClient = ref.read(apiClientProvider);
               await pushService.unregisterToken(apiClient);
+
+              final db = ref.read(appDatabaseProvider);
+              await db.inventoryDao.clearAll();
+              await db.recipeDao.clear();
+              await db.mealPlanDao.clear();
+              final syncManager = ref.read(syncManagerProvider);
+              await syncManager.clearPendingMutations();
+
               await ref.read(authServiceProvider).signOut();
             },
           ),

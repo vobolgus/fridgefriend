@@ -77,31 +77,41 @@ class InventoryScreen extends ConsumerWidget {
                         ),
                       ),
                       PopupMenuButton<String>(
-                        onSelected: (value) {
+                        onSelected: (value) async {
                           final notifier = ref.read(inventoryProvider.notifier);
                           if (value == 'edit') {
                             context.push('/add-item', extra: item);
                             return;
                           }
 
-                          if (value == 'used') {
-                            notifier.markUsed(item.id);
-                          } else if (value == 'discarded') {
-                            notifier.markDiscarded(item.id);
-                          } else if (value == 'frozen') {
-                            notifier.markFrozen(item.id);
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Item marked as $value'),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                onPressed: () {
-                                  notifier.undoItem(item.id);
-                                },
+                          try {
+                            if (value == 'used') {
+                              await notifier.markUsed(item.id);
+                            } else if (value == 'discarded') {
+                              await notifier.markDiscarded(item.id);
+                            } else if (value == 'frozen') {
+                              await notifier.markFrozen(item.id);
+                            }
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Item marked as $value'),
+                                action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () {
+                                    notifier.undoItem(item.id);
+                                  },
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          } on StateError {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Conflict: item was modified by another user. Refreshing...'),
+                              ),
+                            );
+                          }
                         },
                         itemBuilder: (context) => [
                           const PopupMenuItem(value: 'edit', child: Text('Edit')),
