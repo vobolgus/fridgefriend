@@ -182,12 +182,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
           .setActiveHousehold(household.id);
 
       await _clearHouseholdCaches();
-
-      ref.invalidate(householdsProvider);
-      ref.invalidate(inventory_providers.inventoryProvider);
-      ref.invalidate(inventory_providers.recommendationsProvider);
-      ref.invalidate(inventory_providers.mealPlanProvider);
-      ref.invalidate(inventory_providers.shoppingListProvider);
+      _invalidateHouseholdScopedProviders();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -217,6 +212,14 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
     await syncManager.clearPendingMutations();
   }
 
+  void _invalidateHouseholdScopedProviders() {
+    ref.invalidate(householdsProvider);
+    ref.invalidate(inventory_providers.inventoryProvider);
+    ref.invalidate(inventory_providers.recommendationsProvider);
+    ref.invalidate(inventory_providers.mealPlanProvider);
+    ref.invalidate(inventory_providers.shoppingListProvider);
+  }
+
   void _showCreateDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
     showDialog(
@@ -240,7 +243,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               try {
                 await ref.read(householdRepositoryProvider).createHousehold(name);
                 await _clearHouseholdCaches();
-                ref.invalidate(householdsProvider);
+                _invalidateHouseholdScopedProviders();
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -279,7 +282,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               try {
                 await ref.read(householdRepositoryProvider).joinHousehold(code);
                 await _clearHouseholdCaches();
-                ref.invalidate(householdsProvider);
+                _invalidateHouseholdScopedProviders();
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(

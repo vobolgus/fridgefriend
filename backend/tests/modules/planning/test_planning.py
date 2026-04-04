@@ -337,6 +337,37 @@ def test_plan_raises_when_constraints_match_no_recipes(planner_recipes: list[dic
         )
 
 
+def test_plan_raises_when_recipe_catalog_empty() -> None:
+    planner = MealPlanner()
+    inventory = [_inventory_item("eggs", 8.0, "count", 2)]
+
+    with pytest.raises(NoMatchingRecipesError, match="No recipes available"):
+        _ = planner.generate_plan(inventory, days=3, recipes_db=[])
+
+
+@pytest.mark.asyncio
+async def test_api_post_plans_returns_422_when_no_recipes_exist(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    await _seed_inventory(
+        db_session,
+        planning_test_user,
+        [_inventory_item("eggs", 8.0, "count", 2)],
+    )
+
+    response = await client.post(
+        "/v1/plans",
+        headers=_headers(test_headers, "planning-empty-catalog"),
+        json={"days": 3, "servings": 2},
+    )
+
+    assert response.status_code == 422
+    assert "No recipes" in response.json()["detail"]
+
+
 def test_shopping_list_empty_when_all_items_on_hand() -> None:
     inventory = [
         _inventory_item("milk", 2.0, "cup", 5),

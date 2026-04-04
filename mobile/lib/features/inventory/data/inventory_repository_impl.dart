@@ -152,37 +152,49 @@ class InventoryRepositoryImpl implements InventoryRepository {
       final updated = await _apiClient.updateItemStatus(id, status, version: version);
       await _cacheItems([updated]);
       return updated;
-    } catch (_) {
-      await _syncManager.queueStatusUpdate(itemId: id, status: status);
-      // Return local state when offline
-      final items = await _inventoryDao.getAllItems();
-      final local = items.where((item) => item.id == id).firstOrNull;
-      if (local != null) {
-        return InventoryItem(
-          id: local.id,
-          displayName: local.displayName,
-          quantity: local.quantity,
-          unit: local.unit,
-          storageLocation: local.storageLocation,
-          estimatedExpiryDate: local.estimatedExpiryDate,
-          confidence: local.confidence,
-          status: local.status,
-          source: local.source,
-          canonicalName: local.canonicalName,
-          canonicalIngredientId: local.canonicalIngredientId,
-          version: local.version,
-        );
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        // Revert local status change on version conflict
+        await _inventoryDao.updateItemStatus(id, 'active');
+        throw StateError('Item was modified by another user. Please refresh and try again.');
       }
+      // Genuine network failure — queue for offline replay with version
+      await _syncManager.queueStatusUpdate(itemId: id, status: status, version: version);
+      return _localItemFallback(id, status);
+    } catch (_) {
+      await _syncManager.queueStatusUpdate(itemId: id, status: status, version: version);
+      return _localItemFallback(id, status);
+    }
+  }
+
+  Future<InventoryItem> _localItemFallback(String id, String status) async {
+    final items = await _inventoryDao.getAllItems();
+    final local = items.where((item) => item.id == id).firstOrNull;
+    if (local != null) {
       return InventoryItem(
-        id: id,
-        displayName: '',
-        quantity: 0,
-        unit: '',
-        storageLocation: '',
-        status: status,
-        source: 'manual',
+        id: local.id,
+        displayName: local.displayName,
+        quantity: local.quantity,
+        unit: local.unit,
+        storageLocation: local.storageLocation,
+        estimatedExpiryDate: local.estimatedExpiryDate,
+        confidence: local.confidence,
+        status: local.status,
+        source: local.source,
+        canonicalName: local.canonicalName,
+        canonicalIngredientId: local.canonicalIngredientId,
+        version: local.version,
       );
     }
+    return InventoryItem(
+      id: id,
+      displayName: '',
+      quantity: 0,
+      unit: '',
+      storageLocation: '',
+      status: status,
+      source: 'manual',
+    );
   }
 
   @override

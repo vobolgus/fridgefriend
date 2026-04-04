@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.idempotency import clear_cache
+from app.models.recipe import Recipe
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
@@ -189,7 +190,16 @@ async def test_idempotency_key_on_plans(
     client: httpx.AsyncClient,
     test_headers: dict[str, str],
     test_user: User,
+    db_session: AsyncSession,
 ) -> None:
+    db_session.add(Recipe(
+        title="Simple Dish",
+        prep_minutes=10,
+        dietary_tags=[],
+        ingredients=[{"canonical_name": "eggs", "quantity": 2.0, "unit": "count"}],
+    ))
+    await db_session.commit()
+
     headers = {**test_headers, "Idempotency-Key": "plan-key-1"}
     payload = {"days": 3}
 

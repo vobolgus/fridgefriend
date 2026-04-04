@@ -91,11 +91,13 @@ class MealPlanner:
     ) -> PlanResult:
         inventory = [item for item in user_inventory if item.status not in {InventoryStatus.USED, InventoryStatus.DISCARDED}]
         remaining_inventory = self._build_remaining_inventory(inventory)
-        recipes = self._normalize_recipes(recipes_db or PLANNING_RECIPES)
+        recipes = self._normalize_recipes(PLANNING_RECIPES if recipes_db is None else recipes_db)
         filtered_recipes = self._filter_recipes(recipes, dietary_tags or [], max_prep_minutes)
         if recipes and (dietary_tags or max_prep_minutes is not None) and not filtered_recipes:
             raise NoMatchingRecipesError("No recipes match the requested constraints")
         candidate_recipes = filtered_recipes or recipes
+        if not candidate_recipes:
+            raise NoMatchingRecipesError("No recipes available for meal plan generation")
         today = date.today()
         used_recipe_ids: set[str] = set()
         plan_days: list[PlanDay] = []

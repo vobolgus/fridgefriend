@@ -179,6 +179,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
 
   void _invalidateRecommendations() {
     _ref?.invalidate(recommendationsProvider);
+    _ref?.invalidate(shoppingListProvider);
   }
 }
 

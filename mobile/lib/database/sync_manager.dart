@@ -50,12 +50,13 @@ class SyncManager {
   Future<void> queueStatusUpdate({
     required String itemId,
     required String status,
+    int? version,
   }) {
     return _enqueue(
       entityType: 'inventory',
       entityId: itemId,
       action: 'status_update',
-      payload: {'id': itemId, 'status': status},
+      payload: {'id': itemId, 'status': status, if (version != null) 'version': version},
     );
   }
 
@@ -130,9 +131,13 @@ class SyncManager {
       }
 
       if (mutation.action == 'status_update') {
+        final statusVersion = mutation.payload['version'] is int
+            ? mutation.payload['version'] as int
+            : int.tryParse(mutation.payload['version']?.toString() ?? '');
         await _apiClient.updateItemStatus(
           mutation.entityId,
           (mutation.payload['status'] ?? '').toString(),
+          version: statusVersion,
         );
         await _deleteMutation(mutation.id);
         continue;
