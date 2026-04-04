@@ -6,7 +6,7 @@ from datetime import date
 from uuid import UUID
 
 from app.core.units import normalize_unit
-from app.models.inventory_item import InventoryItem, InventoryStatus
+from app.models.inventory_item import InventoryItem, InventorySource, InventoryStatus
 from app.models.user import User
 from app.modules.catalog.service import CatalogService
 from app.modules.expiry.service import ExpiryService
@@ -37,11 +37,15 @@ class InventoryService:
         canonical_name = canonical.name if canonical is not None else (data.canonical_name or data.display_name)
 
         if data.estimated_expiry_date is None:
-            estimated_expiry_date, confidence = self._expiry_service.calculate_expiry(
+            estimated_expiry_date, expiry_confidence = self._expiry_service.calculate_expiry(
                 canonical_name,
                 data.storage_location,
                 date.today(),
             )
+            if data.source in {InventorySource.BARCODE, InventorySource.PHOTO}:
+                confidence = data.confidence
+            else:
+                confidence = expiry_confidence
         else:
             estimated_expiry_date = data.estimated_expiry_date
             confidence = data.confidence

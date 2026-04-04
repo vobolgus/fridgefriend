@@ -73,6 +73,10 @@ class _InventorySnapshot:
     expiry_date: date
 
 
+class NoMatchingRecipesError(ValueError):
+    pass
+
+
 class MealPlanner:
     DEFAULT_BASE_SERVINGS: int = 2
 
@@ -89,6 +93,8 @@ class MealPlanner:
         remaining_inventory = self._build_remaining_inventory(inventory)
         recipes = self._normalize_recipes(recipes_db or PLANNING_RECIPES)
         filtered_recipes = self._filter_recipes(recipes, dietary_tags or [], max_prep_minutes)
+        if recipes and (dietary_tags or max_prep_minutes is not None) and not filtered_recipes:
+            raise NoMatchingRecipesError("No recipes match the requested constraints")
         candidate_recipes = filtered_recipes or recipes
         today = date.today()
         used_recipe_ids: set[str] = set()

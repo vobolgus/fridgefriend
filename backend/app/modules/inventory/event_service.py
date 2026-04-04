@@ -133,6 +133,15 @@ class InventoryEventService:
             db.add(restored_item)
             await db.commit()
             await db.refresh(restored_item)
+            _ = await self.log_event(
+                household_id,
+                user_id,
+                item_id,
+                "undone",
+                event.new_state or {},
+                snapshot_item(restored_item),
+                db,
+            )
             return restored_item
 
         if item is None or not previous_state:
@@ -151,4 +160,13 @@ class InventoryEventService:
         item.version = int(previous_state.get("version", item.version))
         await db.commit()
         await db.refresh(item)
+        _ = await self.log_event(
+            household_id,
+            user_id,
+            item_id,
+            "undone",
+            event.new_state or {},
+            snapshot_item(item),
+            db,
+        )
         return item

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart'
     as inventory_providers;
+import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart'
+    show appDatabaseProvider, syncManagerProvider;
 
 import '../domain/household.dart';
 import 'providers.dart';
@@ -178,6 +180,14 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
       await ref
           .read(householdRepositoryProvider)
           .setActiveHousehold(household.id);
+
+      final db = ref.read(appDatabaseProvider);
+      await db.inventoryDao.clearAll();
+      await db.recipeDao.clear();
+      await db.mealPlanDao.clear();
+
+      final syncManager = ref.read(syncManagerProvider);
+      await syncManager.clearPendingMutations();
 
       ref.invalidate(householdsProvider);
       ref.invalidate(inventory_providers.inventoryProvider);

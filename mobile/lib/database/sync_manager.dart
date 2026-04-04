@@ -164,6 +164,10 @@ class SyncManager {
     }
   }
 
+  Future<void> clearPendingMutations() {
+    return _database.customStatement('DELETE FROM offline_mutation_queue');
+  }
+
   Future<void> _enqueue({
     required String entityType,
     required String entityId,

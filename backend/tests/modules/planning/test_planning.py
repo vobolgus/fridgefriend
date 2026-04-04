@@ -20,7 +20,7 @@ from app.models.meal_plan import MealPlan
 from app.models.recipe import Recipe
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
-from app.modules.planning.planner import MealPlanner
+from app.modules.planning.planner import MealPlanner, NoMatchingRecipesError
 from app.modules.planning.schemas import PlanRequest, PlanResult, RecipeIngredient
 from app.modules.planning.shopping_list import derive_shopping_list
 
@@ -73,7 +73,7 @@ def _plan_with_recipe_ingredients(recipe_id: str, title: str, ingredients: list[
                     "recipeId": recipe_id,
                     "recipeTitle": title,
                     "servings": 2,
-                    "reservedItems": [str(ingredient["name"]) for ingredient in ingredients],
+                    "reservedItems": [str(ingredient.get("name", "")) for ingredient in ingredients],
                     "recipeIngredients": [RecipeIngredient.model_validate(ingredient) for ingredient in ingredients],
                 },
             ],
@@ -323,6 +323,20 @@ def test_plan_respects_prep_time_filter(planner_recipes: list[dict[str, object]]
     assert all(day.recipe_id != "slow-braised-beef" for day in result.days)
 
 
+def test_plan_raises_when_constraints_match_no_recipes(planner_recipes: list[dict[str, object]]) -> None:
+    planner = MealPlanner()
+    inventory = [_inventory_item("eggs", 8.0, "count", 2)]
+
+    with pytest.raises(NoMatchingRecipesError, match="No recipes match the requested constraints"):
+        _ = planner.generate_plan(
+            inventory,
+            days=3,
+            dietary_tags=["vegan"],
+            max_prep_minutes=5,
+            recipes_db=planner_recipes,
+        )
+
+
 def test_shopping_list_empty_when_all_items_on_hand() -> None:
     inventory = [
         _inventory_item("milk", 2.0, "cup", 5),
@@ -442,6 +456,31 @@ async def test_api_post_plans_invalid_days(
     )
 
     assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_api_post_plans_returns_422_when_constraints_match_no_recipes(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    await _seed_recipes(db_session, planner_recipes)
+    await _seed_inventory(
+        db_session,
+        planning_test_user,
+        [_inventory_item("eggs", 8.0, "count", 2)],
+    )
+
+    response = await client.post(
+        "/v1/plans",
+        headers=_headers(test_headers, "planning-no-matches"),
+        json={"days": 3, "servings": 2, "dietary_tags": ["vegan"], "max_prep_minutes": 5},
+    )
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "No recipes match the requested constraints"}
 
 
 @pytest.mark.asyncio

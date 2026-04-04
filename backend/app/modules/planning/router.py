@@ -13,6 +13,7 @@ from app.core.idempotency import get_cached, require_idempotency_key, store_cach
 from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
+from .planner import NoMatchingRecipesError
 from .schemas import PlanRequest, PlanResponse, ShoppingListResponse
 from .service import MealPlanNotFoundError, PlanningService
 
@@ -38,7 +39,13 @@ async def create_plan(
     if cached:
         return PlanResponse(**cached)
 
-    result = await planning_service.generate_plan(current_user, household_id, payload)
+    try:
+        result = await planning_service.generate_plan(current_user, household_id, payload)
+    except NoMatchingRecipesError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No recipes match the requested constraints",
+        ) from exc
     response = PlanResponse(plan=result)
 
     store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))

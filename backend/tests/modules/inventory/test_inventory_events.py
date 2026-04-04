@@ -17,6 +17,7 @@ from app.models.events import InventoryEvent
 from app.models.household import Household, HouseholdMember, HouseholdRole
 from app.models.inventory_item import InventoryItem, InventorySource, InventoryStatus
 from app.models.user import User
+from app.modules.households.event_bus import household_event_bus
 from app.modules.inventory.dependencies import get_current_user
 from app.modules.inventory.repository import InventoryRepository
 from app.modules.inventory.service import InventoryService
@@ -208,3 +209,44 @@ async def test_undo_last_event_restores_previous_state(
     restored = await service.undo_last_event(item.id, user, household.id)
 
     assert restored.status == InventoryStatus.ACTIVE
+
+
+@pytest.mark.asyncio
+async def test_undo_last_event_emits_undone_event_and_sse_payload(
+    event_test_user: tuple[User, Household],
+    db_session: AsyncSession,
+) -> None:
+    user, household = event_test_user
+    item = InventoryItem(
+        user_id=user.id,
+        household_id=household.id,
+        display_name="Yogurt",
+        quantity=1.0,
+        unit="cup",
+        storage_location="fridge",
+        estimated_expiry_date=date.today() + timedelta(days=3),
+        confidence=0.88,
+        status=InventoryStatus.ACTIVE,
+        source=InventorySource.MANUAL,
+        canonical_name="yogurt",
+    )
+    db_session.add(item)
+    await db_session.commit()
+    await db_session.refresh(item)
+
+    service = InventoryService(InventoryRepository(db_session))
+    await service.update_status(item.id, user, household.id, InventoryStatus.USED)
+
+    async with household_event_bus.subscribe(household.id) as queue:
+        restored = await service.undo_last_event(item.id, user, household.id)
+        event = await queue.get()
+
+    undone_event = await _get_latest_event(db_session, "undone")
+
+    assert restored.status == InventoryStatus.ACTIVE
+    assert undone_event.item_id == item.id
+    assert undone_event.previous_state["status"] == "used"
+    assert undone_event.new_state["status"] == "active"
+    assert event["action"] == "undone"
+    assert event["item_id"] == str(item.id)
+    assert event["new_state"]["status"] == "active"

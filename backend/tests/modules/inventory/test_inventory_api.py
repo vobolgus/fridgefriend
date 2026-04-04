@@ -98,6 +98,31 @@ async def test_create_item_uses_shelf_life_rules_for_default_expiry(
 
 
 @pytest.mark.asyncio
+async def test_create_item_preserves_photo_scan_confidence_without_expiry_date(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    response = await client.post(
+        "/v1/items",
+        headers=_headers(test_headers, "inventory-create-photo-confidence"),
+        json={
+            "display_name": "Mystery Greens",
+            "quantity": 1.0,
+            "unit": "bag",
+            "storage_location": "fridge",
+            "source": "photo",
+            "confidence": 0.87,
+        },
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["source"] == "photo"
+    assert payload["confidence"] == 0.87
+
+
+@pytest.mark.asyncio
 async def test_create_item_missing_display_name(
     client: httpx.AsyncClient,
     test_headers: dict[str, str],
