@@ -118,6 +118,7 @@ class ApiClient {
 
   Future<InventoryItem> updateItem({
     required String id,
+    String? displayName,
     double? quantity,
     String? unit,
     String? storageLocation,
@@ -125,6 +126,7 @@ class ApiClient {
     int? version,
   }) async {
     final data = <String, dynamic>{
+      if (displayName != null) 'display_name': displayName,
       if (quantity != null) 'quantity': quantity,
       if (unit != null) 'unit': unit,
       if (storageLocation != null) 'storage_location': storageLocation,
@@ -164,7 +166,7 @@ class ApiClient {
     await _dio.post(
       '${ApiConfig.apiVersionPath}/items/$id/undo',
       options: Options(
-        headers: {'Idempotency-Key': '${id}_undo_${DateTime.now().millisecondsSinceEpoch}'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('undo_item_$id')},
       ),
     );
   }
@@ -393,8 +395,7 @@ class ApiClient {
       data: formData,
       options: Options(
         headers: {
-          'Idempotency-Key':
-              'upload_${DateTime.now().millisecondsSinceEpoch}',
+          'Idempotency-Key': _uniqueIdempotencyKey('upload_photo'),
         },
       ),
     );

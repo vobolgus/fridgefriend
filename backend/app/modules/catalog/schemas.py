@@ -21,6 +21,7 @@ class BarcodeScanResponse(BarcodeResult):
     canonical_ingredient_id: str | None = None
     quantity: float
     storage_location: str
+    confidence: float = 0.0
     source: str = "barcode"
 
 

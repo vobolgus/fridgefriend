@@ -20,7 +20,9 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
   @override
   void initState() {
     super.initState();
-    _draftItems = List.from(widget.items);
+    _draftItems = widget.items
+        .where((item) => item.displayName.trim().isNotEmpty)
+        .toList();
   }
 
   Future<void> _saveAll() async {

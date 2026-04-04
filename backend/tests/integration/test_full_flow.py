@@ -246,6 +246,7 @@ async def test_barcode_scan_and_expiry(
     payload = response.json()
     assert payload["canonical_name"] == "milk"
     assert payload["display_name"] == "Whole Milk 1L"
+    assert payload["confidence"] == 1.0
     assert payload["source"] == "barcode"
 
 

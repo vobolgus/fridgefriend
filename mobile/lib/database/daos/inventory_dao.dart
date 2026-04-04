@@ -23,6 +23,7 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> updateItem({
     required String id,
+    String? displayName,
     double? quantity,
     String? unit,
     String? storageLocation,
@@ -32,6 +33,9 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
     await (update(inventoryItemsTable)..where((table) => table.id.equals(id)))
         .write(
           InventoryItemsTableCompanion(
+            displayName: displayName == null
+                ? const Value.absent()
+                : Value(displayName),
             quantity: quantity == null ? const Value.absent() : Value(quantity),
             unit: unit == null ? const Value.absent() : Value(unit),
             storageLocation: storageLocation == null

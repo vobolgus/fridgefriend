@@ -122,6 +122,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
     try {
       final updated = await _repository.updateItem(
         id: id,
+        displayName: displayName,
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,
@@ -136,6 +137,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
       _invalidateRecommendations();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
+      rethrow;
     }
   }
 
@@ -259,6 +261,7 @@ class _NoopRepository implements InventoryRepository {
   @override
   Future<InventoryItem> updateItem({
     required String id,
+    String? displayName,
     double? quantity,
     String? unit,
     String? storageLocation,

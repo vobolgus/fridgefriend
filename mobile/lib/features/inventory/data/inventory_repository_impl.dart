@@ -87,6 +87,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
   @override
   Future<InventoryItem> updateItem({
     required String id,
+    String? displayName,
     double? quantity,
     String? unit,
     String? storageLocation,
@@ -96,6 +97,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
     try {
       final updated = await _apiClient.updateItem(
         id: id,
+        displayName: displayName,
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,
@@ -117,7 +119,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
       final updatedLocal = InventoryItem(
         id: id,
-        displayName: existing.displayName,
+        displayName: displayName ?? existing.displayName,
         quantity: quantity ?? existing.quantity,
         unit: unit ?? existing.unit,
         storageLocation: storageLocation ?? existing.storageLocation,
@@ -130,6 +132,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
       await _inventoryDao.insertItem(_toCompanion(updatedLocal));
       await _syncManager.queueUpdate(
         itemId: id,
+        displayName: displayName,
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,

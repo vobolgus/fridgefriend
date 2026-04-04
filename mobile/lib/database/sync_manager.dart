@@ -61,6 +61,7 @@ class SyncManager {
 
   Future<void> queueUpdate({
     required String itemId,
+    String? displayName,
     double? quantity,
     String? unit,
     String? storageLocation,
@@ -73,6 +74,7 @@ class SyncManager {
       action: 'update',
       payload: {
         'id': itemId,
+        if (displayName != null) 'displayName': displayName,
         if (quantity != null) 'quantity': quantity,
         if (unit != null) 'unit': unit,
         if (storageLocation != null) 'storageLocation': storageLocation,
@@ -139,6 +141,7 @@ class SyncManager {
       if (mutation.action == 'update') {
         await _apiClient.updateItem(
           id: mutation.entityId,
+          displayName: mutation.payload['displayName']?.toString(),
           quantity: mutation.payload['quantity'] != null
               ? _toDouble(mutation.payload['quantity'])
               : null,

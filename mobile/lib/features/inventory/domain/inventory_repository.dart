@@ -19,6 +19,7 @@ abstract class InventoryRepository {
 
   Future<InventoryItem> updateItem({
     required String id,
+    String? displayName,
     double? quantity,
     String? unit,
     String? storageLocation,

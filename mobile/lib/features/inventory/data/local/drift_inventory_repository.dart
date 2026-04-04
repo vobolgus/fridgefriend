@@ -67,6 +67,7 @@ class DriftInventoryRepository implements InventoryRepository {
   @override
   Future<InventoryItem> updateItem({
     required String id,
+    String? displayName,
     double? quantity,
     String? unit,
     String? storageLocation,
@@ -75,6 +76,7 @@ class DriftInventoryRepository implements InventoryRepository {
   }) async {
     await _inventoryDao.updateItem(
       id: id,
+      displayName: displayName,
       quantity: quantity,
       unit: unit,
       storageLocation: storageLocation,

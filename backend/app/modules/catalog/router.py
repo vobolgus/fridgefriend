@@ -59,6 +59,7 @@ async def scan_barcode(
             brand="",
             quantity=payload.quantity,
             storage_location=payload.storage_location,
+            confidence=0.0,
             source="barcode",
         )
     else:
@@ -71,6 +72,7 @@ async def scan_barcode(
             "brand": result.brand,
             "quantity": payload.quantity,
             "storage_location": payload.storage_location,
+            "confidence": 1.0,
             "source": "barcode",
         }
         if "unit" in result.model_fields_set or payload.unit != "unit":

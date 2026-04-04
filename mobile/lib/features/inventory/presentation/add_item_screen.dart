@@ -109,14 +109,31 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                   }
 
                   if (_isEditing) {
-                    await ref.read(inventoryProvider.notifier).editItem(
-                          id: widget.initialItem!.id,
-                          displayName: _nameController.text.trim(),
-                          quantity: double.parse(_quantityController.text.trim()),
-                          unit: _unitController.text.trim(),
-                          storageLocation: _storageController.text.trim(),
-                          version: widget.initialItem?.version,
+                    try {
+                      await ref.read(inventoryProvider.notifier).editItem(
+                            id: widget.initialItem!.id,
+                            displayName: _nameController.text.trim(),
+                            quantity: double.parse(_quantityController.text.trim()),
+                            unit: _unitController.text.trim(),
+                            storageLocation: _storageController.text.trim(),
+                            version: widget.initialItem?.version,
+                          );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Item updated')),
                         );
+                        await Navigator.of(context).maybePop();
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(e.toString()),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
                   } else {
                     await ref.read(inventoryProvider.notifier).addItem(
                           displayName: _nameController.text.trim(),
@@ -131,15 +148,12 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                           estimatedExpiryDate:
                               widget.initialItem?.estimatedExpiryDate,
                         );
-                  }
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(_isEditing ? 'Item updated' : 'Item added'),
-                      ),
-                    );
-                    await Navigator.of(context).maybePop();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Item added')),
+                      );
+                      await Navigator.of(context).maybePop();
+                    }
                   }
                 },
                 child: Text(_isEditing ? 'Save changes' : 'Save item'),

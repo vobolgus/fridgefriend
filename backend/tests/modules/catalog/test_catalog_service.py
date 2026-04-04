@@ -120,6 +120,7 @@ async def test_barcode_api_endpoint_found(client: httpx.AsyncClient) -> None:
     assert payload["brand"] == "Generic"
     assert payload["quantity"] == 1.0
     assert payload["storage_location"] == "fridge"
+    assert payload["confidence"] == 1.0
     assert payload["source"] == "barcode"
     assert payload["canonical_ingredient_id"] is not None
 
@@ -159,6 +160,7 @@ async def test_barcode_api_endpoint_not_found_returns_editable_draft(client: htt
         "canonical_ingredient_id": None,
         "quantity": 1.0,
         "storage_location": "pantry",
+        "confidence": 0.0,
         "source": "barcode",
     }
 
