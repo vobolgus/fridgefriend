@@ -17,6 +17,8 @@ from app.models.meal_plan import MealPlan, MealPlanDay
 from app.models.notification import DeviceToken, NotificationPreference
 from app.models.recipe import Recipe
 from app.models.reserved_ingredient import ReservedIngredient
+from app.models.api_request_log import ApiRequestLog
+from app.models.ai_inference_log import AiInferenceLog
 from app.models.user import User
 
 
@@ -686,3 +688,95 @@ async def test_reserved_ingredient_creation(db_session: AsyncSession) -> None:
     assert saved_reserved_ingredient.inventory_item_id == item.id
     assert saved_reserved_ingredient.quantity_reserved == 200.0
     assert saved_reserved_ingredient.unit == "g"
+
+
+@pytest.mark.asyncio
+async def test_api_request_log_creation(db_session: AsyncSession) -> None:
+    log_entry = ApiRequestLog(
+        method="GET",
+        path="/v1/items",
+        status_code=200,
+        duration_ms=42.5,
+        request_id="test-request-id",
+    )
+
+    db_session.add(log_entry)
+    await db_session.commit()
+    await db_session.refresh(log_entry)
+
+    result = await db_session.execute(
+        select(ApiRequestLog).where(ApiRequestLog.id == log_entry.id)
+    )
+    saved = result.scalar_one()
+
+    assert saved.method == "GET"
+    assert saved.path == "/v1/items"
+    assert saved.status_code == 200
+    assert saved.duration_ms == 42.5
+    assert saved.request_id == "test-request-id"
+    assert saved.user_id is None
+    assert saved.error_detail is None
+    assert saved.created_at is not None
+
+
+@pytest.mark.asyncio
+async def test_ai_inference_log_creation(db_session: AsyncSession) -> None:
+    log_entry = AiInferenceLog(
+        provider="litellm",
+        operation="photo_parse",
+        model="gpt-4.1-mini",
+        duration_ms=1200.0,
+        status="success",
+        input_tokens=500,
+        output_tokens=150,
+        cost_usd=0.00044,
+        items_returned=3,
+        avg_confidence=0.82,
+    )
+
+    db_session.add(log_entry)
+    await db_session.commit()
+    await db_session.refresh(log_entry)
+
+    result = await db_session.execute(
+        select(AiInferenceLog).where(AiInferenceLog.id == log_entry.id)
+    )
+    saved = result.scalar_one()
+
+    assert saved.provider == "litellm"
+    assert saved.operation == "photo_parse"
+    assert saved.model == "gpt-4.1-mini"
+    assert saved.duration_ms == 1200.0
+    assert saved.status == "success"
+    assert saved.input_tokens == 500
+    assert saved.output_tokens == 150
+    assert abs(saved.cost_usd - 0.00044) < 1e-6
+    assert saved.items_returned == 3
+    assert abs(saved.avg_confidence - 0.82) < 1e-6
+    assert saved.created_at is not None
+
+
+@pytest.mark.asyncio
+async def test_ai_inference_log_spoonacular(db_session: AsyncSession) -> None:
+    log_entry = AiInferenceLog(
+        provider="spoonacular",
+        operation="recipe_search",
+        duration_ms=350.0,
+        status="success",
+        api_points_used=1,
+        items_returned=10,
+    )
+
+    db_session.add(log_entry)
+    await db_session.commit()
+    await db_session.refresh(log_entry)
+
+    result = await db_session.execute(
+        select(AiInferenceLog).where(AiInferenceLog.id == log_entry.id)
+    )
+    saved = result.scalar_one()
+
+    assert saved.provider == "spoonacular"
+    assert saved.api_points_used == 1
+    assert saved.cost_usd is None
+    assert saved.input_tokens is None

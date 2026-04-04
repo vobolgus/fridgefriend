@@ -11,6 +11,8 @@ from app.models.notification import DeviceToken, NotificationPreference
 from app.models.events import AnalyticsEvent, InventoryEvent, RecommendationSession
 from app.models.recipe_ingredient import RecipeIngredient
 from app.models.reserved_ingredient import ReservedIngredient
+from app.models.api_request_log import ApiRequestLog
+from app.models.ai_inference_log import AiInferenceLog
 
 __all__ = [
     "Base",
@@ -34,4 +36,6 @@ __all__ = [
     "RecommendationSession",
     "RecipeIngredient",
     "ReservedIngredient",
+    "ApiRequestLog",
+    "AiInferenceLog",
 ]

@@ -42,6 +42,10 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.VERSION, debug=settings.DEBUG, lifespan=lifespan)
+
+from .core.telemetry_middleware import TelemetryMiddleware
+app.add_middleware(TelemetryMiddleware)
+
 app.include_router(inventory_router)
 app.include_router(catalog_router)
 app.include_router(households_router)

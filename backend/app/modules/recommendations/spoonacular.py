@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping
 from typing import Protocol, cast
 
 import httpx
+
+from app.core.database import AsyncSessionLocal
+from app.models.ai_inference_log import AiInferenceLog
 
 
 type QueryParamValue = str | int | float | bool
@@ -35,20 +39,61 @@ class SpoonacularClient:
             "ranking": 2,
             "ignorePantry": False,
         }
-        if self._client is not None:
-            response = await self._client.get(f"{self._base_url}/recipes/findByIngredients", params=params)
-        else:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.get(f"{self._base_url}/recipes/findByIngredients", params=params)
-        raise_for_status = getattr(response, "raise_for_status", None)
-        if callable(raise_for_status):
-            _ = raise_for_status()
+        start = time.perf_counter()
+        status = "success"
+        error_detail = None
+        result: list[dict[str, object]] = []
 
-        json_loader = getattr(response, "json", None)
-        payload: object = json_loader() if callable(json_loader) else []
-        if not isinstance(payload, list):
-            return []
-        return [self._map_recipe(cast(JSONDict, item)) for item in payload if isinstance(item, dict)]
+        try:
+            if self._client is not None:
+                response = await self._client.get(f"{self._base_url}/recipes/findByIngredients", params=params)
+            else:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    response = await client.get(f"{self._base_url}/recipes/findByIngredients", params=params)
+            raise_for_status = getattr(response, "raise_for_status", None)
+            if callable(raise_for_status):
+                _ = raise_for_status()
+
+            json_loader = getattr(response, "json", None)
+            payload: object = json_loader() if callable(json_loader) else []
+            if not isinstance(payload, list):
+                result = []
+            else:
+                result = [self._map_recipe(cast(JSONDict, item)) for item in payload if isinstance(item, dict)]
+        except Exception as exc:
+            status = "error"
+            error_detail = str(exc)[:500]
+            result = []
+            raise
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            await self._log_inference(duration_ms, len(result), status, error_detail)
+
+        return result
+
+    async def _log_inference(
+        self,
+        duration_ms: float,
+        items_returned: int,
+        status: str,
+        error_detail: str | None,
+    ) -> None:
+        try:
+            async with AsyncSessionLocal() as session:
+                session.add(
+                    AiInferenceLog(
+                        provider="spoonacular",
+                        operation="recipe_search",
+                        duration_ms=duration_ms,
+                        status=status,
+                        api_points_used=1,
+                        items_returned=items_returned,
+                        error_detail=error_detail,
+                    )
+                )
+                await session.commit()
+        except Exception:
+            pass
 
     @staticmethod
     def _map_recipe(payload: Mapping[str, object]) -> dict[str, object]:

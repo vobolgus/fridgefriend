@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Mapping
 from typing import Protocol, cast
 
 import httpx
+
+from app.core.config import settings
+from app.core.database import AsyncSessionLocal
+from app.models.ai_inference_log import AiInferenceLog
 
 
 class PhotoParserInterface(Protocol):
@@ -90,22 +95,94 @@ class LLMPhotoParser:
             },
         }
 
-        if self._client is not None:
-            response = await self._client.post(self._api_url, json=payload)
-        else:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                response = await client.post(self._api_url, json=payload)
+        start = time.perf_counter()
+        status = "success"
+        error_detail = None
+        response_payload: object = {}
+        result: list[dict[str, object]] = []
 
-        raise_for_status = getattr(response, "raise_for_status", None)
-        if callable(raise_for_status):
-            _ = raise_for_status()
-        json_loader = getattr(response, "json", None)
-        response_payload: object = json_loader() if callable(json_loader) else {}
-        content = self._extract_content(response_payload)
-        draft_items = cast(object, content.get("draft_items", []))
-        if not isinstance(draft_items, list):
-            return []
-        return [cast(dict[str, object], item) for item in draft_items if isinstance(item, dict)]
+        try:
+            if self._client is not None:
+                response = await self._client.post(self._api_url, json=payload)
+            else:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    response = await client.post(self._api_url, json=payload)
+
+            raise_for_status = getattr(response, "raise_for_status", None)
+            if callable(raise_for_status):
+                _ = raise_for_status()
+            json_loader = getattr(response, "json", None)
+            response_payload = json_loader() if callable(json_loader) else {}
+            content = self._extract_content(response_payload)
+            draft_items = cast(object, content.get("draft_items", []))
+            if not isinstance(draft_items, list):
+                draft_items = []
+            result = [cast(dict[str, object], item) for item in draft_items if isinstance(item, dict)]
+        except Exception as exc:
+            status = "error"
+            error_detail = str(exc)[:500]
+            result = []
+            response_payload = {}
+            raise
+        finally:
+            duration_ms = (time.perf_counter() - start) * 1000
+            await self._log_inference(response_payload, result, duration_ms, status, error_detail)
+
+        return result
+
+    async def _log_inference(
+        self,
+        response_payload: object,
+        items: list[dict[str, object]],
+        duration_ms: float,
+        status: str,
+        error_detail: str | None,
+    ) -> None:
+        try:
+            usage: dict[str, object] = {}
+            if isinstance(response_payload, Mapping):
+                raw_usage = cast(JSONDict, response_payload).get("usage", {})
+                if isinstance(raw_usage, dict):
+                    usage = raw_usage
+
+            input_tokens = usage.get("prompt_tokens")
+            output_tokens = usage.get("completion_tokens")
+            input_tokens_int = int(input_tokens) if isinstance(input_tokens, int | float) else None
+            output_tokens_int = int(output_tokens) if isinstance(output_tokens, int | float) else None
+
+            cost_usd = None
+            if input_tokens_int is not None and output_tokens_int is not None:
+                cost_usd = (
+                    input_tokens_int * settings.LLM_INPUT_COST_PER_1M / 1_000_000
+                    + output_tokens_int * settings.LLM_OUTPUT_COST_PER_1M / 1_000_000
+                )
+
+            confidences: list[float] = []
+            for i in items:
+                conf = i.get("confidence")
+                if isinstance(conf, int | float):
+                    confidences.append(float(conf))
+            avg_conf = sum(confidences) / len(confidences) if confidences else None
+
+            async with AsyncSessionLocal() as session:
+                session.add(
+                    AiInferenceLog(
+                        provider="litellm",
+                        operation="photo_parse",
+                        model=self._model,
+                        duration_ms=duration_ms,
+                        status=status,
+                        input_tokens=input_tokens_int,
+                        output_tokens=output_tokens_int,
+                        cost_usd=cost_usd,
+                        items_returned=len(items),
+                        avg_confidence=avg_conf,
+                        error_detail=error_detail,
+                    )
+                )
+                await session.commit()
+        except Exception:
+            pass
 
     @staticmethod
     def _extract_content(payload: object) -> dict[str, object]:

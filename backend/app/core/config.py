@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     PHOTO_PARSER_BACKEND: str = "mock"
     SENTRY_DSN: str = ""
     AMPLITUDE_API_KEY: str = ""
+    LLM_INPUT_COST_PER_1M: float = 0.40
+    LLM_OUTPUT_COST_PER_1M: float = 1.60
+    SPOONACULAR_POINT_COST: float = 0.005
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env",
