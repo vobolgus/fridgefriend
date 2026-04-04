@@ -17,6 +17,14 @@ abstract class InventoryRepository {
     DateTime? estimatedExpiryDate,
   });
 
+  Future<InventoryItem> updateItem({
+    required String id,
+    double? quantity,
+    String? unit,
+    String? storageLocation,
+    DateTime? estimatedExpiryDate,
+  });
+
   Future<void> updateItemStatus(String id, String status);
 
   Future<void> undoItem(String id);

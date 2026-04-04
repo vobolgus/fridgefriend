@@ -54,6 +54,11 @@ class InventoryScreen extends ConsumerWidget {
                       PopupMenuButton<String>(
                         onSelected: (value) {
                           final notifier = ref.read(inventoryProvider.notifier);
+                          if (value == 'edit') {
+                            context.push('/add-item', extra: item);
+                            return;
+                          }
+
                           if (value == 'used') {
                             notifier.markUsed(item.id);
                           } else if (value == 'discarded') {
@@ -74,6 +79,7 @@ class InventoryScreen extends ConsumerWidget {
                           );
                         },
                         itemBuilder: (context) => [
+                          const PopupMenuItem(value: 'edit', child: Text('Edit')),
                           const PopupMenuItem(
                             value: 'used',
                             child: Text('Mark Used'),

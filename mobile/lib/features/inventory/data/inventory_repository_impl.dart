@@ -84,6 +84,25 @@ class InventoryRepositoryImpl implements InventoryRepository {
   }
 
   @override
+  Future<InventoryItem> updateItem({
+    required String id,
+    double? quantity,
+    String? unit,
+    String? storageLocation,
+    DateTime? estimatedExpiryDate,
+  }) async {
+    final updated = await _apiClient.updateItem(
+      id: id,
+      quantity: quantity,
+      unit: unit,
+      storageLocation: storageLocation,
+      estimatedExpiryDate: estimatedExpiryDate,
+    );
+    await _cacheItems([updated]);
+    return updated;
+  }
+
+  @override
   Future<void> updateItemStatus(String id, String status) async {
     await _inventoryDao.updateItemStatus(id, status);
     try {

@@ -106,9 +106,18 @@ class AppDatabase extends _$AppDatabase {
         score REAL NOT NULL DEFAULT 0,
         prep_minutes INTEGER NOT NULL DEFAULT 0,
         missing_items_json TEXT NOT NULL DEFAULT '[]',
+        substitutions_json TEXT NOT NULL DEFAULT '[]',
         synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     ''');
+
+    try {
+      await customStatement(
+        "ALTER TABLE recipes_cache ADD COLUMN substitutions_json TEXT NOT NULL DEFAULT '[]'",
+      );
+    } catch (_) {
+      // Column already exists.
+    }
 
     await customStatement('''
       CREATE TABLE IF NOT EXISTS meal_plans_cache (

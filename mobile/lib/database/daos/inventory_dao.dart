@@ -18,7 +18,29 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
   }
 
   Future<void> insertItem(InventoryItemsTableCompanion item) async {
-    await into(inventoryItemsTable).insert(item);
+    await into(inventoryItemsTable).insertOnConflictUpdate(item);
+  }
+
+  Future<void> updateItem({
+    required String id,
+    double? quantity,
+    String? unit,
+    String? storageLocation,
+    DateTime? estimatedExpiryDate,
+  }) async {
+    await (update(inventoryItemsTable)..where((table) => table.id.equals(id)))
+        .write(
+          InventoryItemsTableCompanion(
+            quantity: quantity == null ? const Value.absent() : Value(quantity),
+            unit: unit == null ? const Value.absent() : Value(unit),
+            storageLocation: storageLocation == null
+                ? const Value.absent()
+                : Value(storageLocation),
+            estimatedExpiryDate: estimatedExpiryDate == null
+                ? const Value.absent()
+                : Value(estimatedExpiryDate),
+          ),
+        );
   }
 
   Future<void> updateItemStatus(String id, String status) async {

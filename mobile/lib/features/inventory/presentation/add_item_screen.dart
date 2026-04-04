@@ -20,6 +20,18 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   late final TextEditingController _storageController;
   final _formKey = GlobalKey<FormState>();
 
+  bool get _isEditing {
+    final initialItem = widget.initialItem;
+    if (initialItem == null) {
+      return false;
+    }
+
+    return initialItem.id.isNotEmpty &&
+        !initialItem.id.startsWith('offline_') &&
+        !initialItem.id.startsWith('draft_') &&
+        !initialItem.id.startsWith('draft-');
+  }
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +60,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Item')),
+      appBar: AppBar(title: Text(_isEditing ? 'Edit Item' : 'Add Item')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -96,28 +108,40 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                     return;
                   }
 
-                  await ref.read(inventoryProvider.notifier).addItem(
-                        displayName: _nameController.text.trim(),
-                        quantity: double.parse(_quantityController.text.trim()),
-                        unit: _unitController.text.trim(),
-                        storageLocation: _storageController.text.trim(),
-                        source: widget.initialItem?.source,
-                        canonicalName: widget.initialItem?.canonicalName,
-                        canonicalIngredientId:
-                            widget.initialItem?.canonicalIngredientId,
-                        confidence: widget.initialItem?.confidence,
-                        estimatedExpiryDate:
-                            widget.initialItem?.estimatedExpiryDate,
-                      );
+                  if (_isEditing) {
+                    await ref.read(inventoryProvider.notifier).editItem(
+                          id: widget.initialItem!.id,
+                          displayName: _nameController.text.trim(),
+                          quantity: double.parse(_quantityController.text.trim()),
+                          unit: _unitController.text.trim(),
+                          storageLocation: _storageController.text.trim(),
+                        );
+                  } else {
+                    await ref.read(inventoryProvider.notifier).addItem(
+                          displayName: _nameController.text.trim(),
+                          quantity: double.parse(_quantityController.text.trim()),
+                          unit: _unitController.text.trim(),
+                          storageLocation: _storageController.text.trim(),
+                          source: widget.initialItem?.source,
+                          canonicalName: widget.initialItem?.canonicalName,
+                          canonicalIngredientId:
+                              widget.initialItem?.canonicalIngredientId,
+                          confidence: widget.initialItem?.confidence,
+                          estimatedExpiryDate:
+                              widget.initialItem?.estimatedExpiryDate,
+                        );
+                  }
 
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Item added')),
+                      SnackBar(
+                        content: Text(_isEditing ? 'Item updated' : 'Item added'),
+                      ),
                     );
                     await Navigator.of(context).maybePop();
                   }
                 },
-                child: const Text('Save item'),
+                child: Text(_isEditing ? 'Save changes' : 'Save item'),
               ),
             ],
           ),

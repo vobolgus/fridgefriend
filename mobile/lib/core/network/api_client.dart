@@ -112,6 +112,39 @@ class ApiClient {
     throw const FormatException('Invalid inventory item response');
   }
 
+  Future<InventoryItem> updateItem({
+    required String id,
+    double? quantity,
+    String? unit,
+    String? storageLocation,
+    DateTime? estimatedExpiryDate,
+  }) async {
+    final data = <String, dynamic>{
+      if (quantity != null) 'quantity': quantity,
+      if (unit != null) 'unit': unit,
+      if (storageLocation != null) 'storage_location': storageLocation,
+      if (estimatedExpiryDate != null)
+        'estimated_expiry_date': estimatedExpiryDate.toIso8601String(),
+    };
+
+    final response = await _dio.patch(
+      '${ApiConfig.apiVersionPath}/items/$id',
+      data: data,
+      options: Options(
+        headers: {
+          'Idempotency-Key':
+              '${id}_update_${DateTime.now().millisecondsSinceEpoch}',
+        },
+      ),
+    );
+
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      return InventoryItem.fromJson(payload);
+    }
+    throw const FormatException('Invalid inventory item response');
+  }
+
   Future<void> updateItemStatus(String id, String status) async {
     await _dio.post(
       '${ApiConfig.apiVersionPath}/items/$id/status',

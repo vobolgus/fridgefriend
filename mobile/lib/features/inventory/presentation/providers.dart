@@ -45,15 +45,19 @@ final inventoryRepositoryProvider = Provider<InventoryRepository>(
 );
 
 class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
-  InventoryNotifier(this._repository) : super(const AsyncValue.loading()) {
+  InventoryNotifier(this._repository, {Ref? ref})
+      : _ref = ref,
+        super(const AsyncValue.loading()) {
     loadItems();
   }
 
   InventoryNotifier.withInitialData(List<InventoryItem> items)
       : _repository = _NoopRepository(),
+        _ref = null,
         super(AsyncValue.data(items));
 
   final InventoryRepository _repository;
+  final Ref? _ref;
 
   Future<void> loadItems() async {
     state = const AsyncValue.loading();
@@ -101,6 +105,33 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
 
       final currentItems = state.valueOrNull ?? const <InventoryItem>[];
       state = AsyncValue.data([...currentItems, createdItem]);
+      _invalidateRecommendations();
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
+  Future<void> editItem({
+    required String id,
+    required String displayName,
+    required double quantity,
+    required String unit,
+    required String storageLocation,
+  }) async {
+    try {
+      final updated = await _repository.updateItem(
+        id: id,
+        quantity: quantity,
+        unit: unit,
+        storageLocation: storageLocation,
+      );
+      final currentItems = state.valueOrNull ?? const <InventoryItem>[];
+      state = AsyncValue.data(
+        currentItems
+            .map((item) => item.id == id ? updated : item)
+            .toList(growable: false),
+      );
+      _invalidateRecommendations();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
@@ -132,15 +163,23 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
             )
             .toList(growable: false),
       );
+      _invalidateRecommendations();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
     }
+  }
+
+  void _invalidateRecommendations() {
+    _ref?.invalidate(recommendationsProvider);
   }
 }
 
 final inventoryProvider =
     StateNotifierProvider<InventoryNotifier, AsyncValue<List<InventoryItem>>>(
-      (ref) => InventoryNotifier(ref.watch(inventoryRepositoryProvider)),
+      (ref) => InventoryNotifier(
+        ref.watch(inventoryRepositoryProvider),
+        ref: ref,
+      ),
     );
 
 final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
@@ -220,6 +259,17 @@ class _NoopRepository implements InventoryRepository {
     String? canonicalName,
     String? canonicalIngredientId,
     double? confidence,
+    DateTime? estimatedExpiryDate,
+  }) {
+    throw UnimplementedError('_NoopRepository is for testing only');
+  }
+
+  @override
+  Future<InventoryItem> updateItem({
+    required String id,
+    double? quantity,
+    String? unit,
+    String? storageLocation,
     DateTime? estimatedExpiryDate,
   }) {
     throw UnimplementedError('_NoopRepository is for testing only');

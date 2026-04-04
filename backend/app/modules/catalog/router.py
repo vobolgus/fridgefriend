@@ -43,6 +43,7 @@ async def scan_barcode(
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
     idempotency_key: Annotated[str, Depends(require_idempotency_key)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> BarcodeScanResponse:
     cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
     if cached:
@@ -76,6 +77,8 @@ async def scan_barcode(
             response_payload["unit"] = result.unit if "unit" in result.model_fields_set else payload.unit
 
         response = BarcodeScanResponse.model_validate(response_payload)
+
+    await db.commit()
 
     store_cached(
         str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json", exclude_unset=True),

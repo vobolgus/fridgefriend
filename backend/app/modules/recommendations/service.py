@@ -80,8 +80,12 @@ class RecommendationService:
                 request_params=request.model_dump(mode="json"),
                 recipes_shown=[recommendation.id for recommendation in top_recommendations],
             )
-            self._session.add(session_record)
-            await self._session.flush()
+            try:
+                self._session.add(session_record)
+                await self._session.flush()
+                await self._session.commit()
+            except Exception:
+                await self._session.rollback()
 
         return top_recommendations
 

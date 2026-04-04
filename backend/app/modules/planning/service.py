@@ -121,7 +121,13 @@ class PlanningService:
                         for ingredient in (day.recipe.ingredients if day.recipe else [])
                     ],
                     recipeIngredients=[
-                        RecipeIngredient.model_validate(ingredient)
+                        RecipeIngredient.model_validate(
+                            {
+                                **ingredient,
+                                "quantity": float(ingredient.get("quantity", 0.0))
+                                * (day.servings / MealPlanner.DEFAULT_BASE_SERVINGS),
+                            }
+                        )
                         for ingredient in (day.recipe.ingredients if day.recipe else [])
                     ],
                 )
