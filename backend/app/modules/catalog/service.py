@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.units import normalize_unit
 from app.models.canonical_ingredient import CanonicalIngredient, ProductBarcode
 
 from .interfaces import BarcodeAPIInterface
@@ -25,6 +26,14 @@ class CatalogService:
 
     def normalize(self, name: str) -> str:
         return normalize_ingredient_name(name)
+
+    @staticmethod
+    def normalize_unit(unit: str) -> str:
+        return normalize_unit(unit)
+
+    @staticmethod
+    def normalize_quantity(quantity: float) -> float:
+        return max(0.0, round(quantity, 3))
 
     async def resolve_canonical(self, name: str) -> CanonicalIngredient | None:
         if self._db_session is None:

@@ -233,14 +233,37 @@ class ApiClient {
     return {};
   }
 
-  Future<void> updateNotificationPreferences({required bool expiryReminderEnabled}) async {
-    await _dio.patch(
+  Future<Map<String, dynamic>> updateNotificationPreferences({
+    bool? expiryReminderEnabled,
+    int? reminderDaysBefore,
+    String? quietHoursStart,
+    String? quietHoursEnd,
+  }) async {
+    final data = <String, dynamic>{
+      if (expiryReminderEnabled != null)
+        'expiry_reminder_enabled': expiryReminderEnabled,
+      if (reminderDaysBefore != null)
+        'reminder_days_before': reminderDaysBefore,
+      if (quietHoursStart != null)
+        'quiet_hours_start': quietHoursStart,
+      if (quietHoursEnd != null)
+        'quiet_hours_end': quietHoursEnd,
+    };
+    final response = await _dio.patch(
       '${ApiConfig.apiVersionPath}/notifications',
-      data: {'expiry_reminder_enabled': expiryReminderEnabled},
+      data: data,
       options: Options(
-        headers: {'Idempotency-Key': 'notif_pref_expiry_$expiryReminderEnabled'},
+        headers: {
+          'Idempotency-Key':
+              'notif_pref_${data.entries.map((e) => '${e.key}_${e.value}').join('_')}',
+        },
       ),
     );
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      return payload;
+    }
+    return {};
   }
 
   Future<Map<String, dynamic>> registerDeviceToken({

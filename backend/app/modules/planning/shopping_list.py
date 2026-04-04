@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from app.core.units import convert_to_base
 from app.models.inventory_item import InventoryItem, InventoryStatus
 
 from .schemas import PlanResult, ShoppingItem
@@ -10,44 +11,61 @@ def derive_shopping_list(
     inventory: list[InventoryItem],
     reserved_quantities: dict[str, float] | None = None,
 ) -> list[ShoppingItem]:
-    available_inventory: dict[str, float] = {}
-    total_inventory: dict[str, float] = {}
+    available_base: dict[str, tuple[float, str]] = {}
+    total_base: dict[str, tuple[float, str]] = {}
     for item in inventory:
         if item.status != InventoryStatus.ACTIVE:
             continue
         key = item.canonical_name.strip().lower()
-        available_inventory[key] = available_inventory.get(key, 0.0) + item.quantity
-        total_inventory[key] = total_inventory.get(key, 0.0) + item.quantity
+        item_base_qty, item_base_unit = convert_to_base(item.quantity, item.unit)
+        prev_avail, _ = available_base.get(key, (0.0, item_base_unit))
+        available_base[key] = (prev_avail + item_base_qty, item_base_unit)
+        prev_total, _ = total_base.get(key, (0.0, item_base_unit))
+        total_base[key] = (prev_total + item_base_qty, item_base_unit)
 
     for ingredient_name, reserved_quantity in (reserved_quantities or {}).items():
         key = ingredient_name.strip().lower()
-        if key not in available_inventory:
+        if key not in available_base:
             continue
-        available_inventory[key] = max(0.0, available_inventory[key] - reserved_quantity)
+        avail_qty, avail_unit = available_base[key]
+        reserved_base, _ = convert_to_base(reserved_quantity, avail_unit)
+        available_base[key] = (max(0.0, avail_qty - reserved_base), avail_unit)
 
-    required_by_ingredient: dict[str, dict[str, float | str]] = {}
+    required_by_ingredient: dict[str, dict[str, object]] = {}
     for day in plan.days:
         for ingredient in day.recipe_ingredients:
             key = ingredient.ingredient_name.strip().lower()
+            req_base_qty, req_base_unit = convert_to_base(ingredient.quantity, ingredient.unit)
             if key not in required_by_ingredient:
-                required_by_ingredient[key] = {"quantity": 0.0, "unit": ingredient.unit}
-            required_by_ingredient[key]["quantity"] = float(required_by_ingredient[key]["quantity"]) + ingredient.quantity
+                required_by_ingredient[key] = {
+                    "base_quantity": 0.0,
+                    "base_unit": req_base_unit,
+                    "display_unit": ingredient.unit,
+                }
+            required_by_ingredient[key]["base_quantity"] = (
+                float(required_by_ingredient[key]["base_quantity"]) + req_base_qty
+            )
 
     items: list[ShoppingItem] = []
     for ingredient_name, requirement in sorted(required_by_ingredient.items()):
-        required_quantity = float(requirement["quantity"])
-        available_quantity = available_inventory.get(ingredient_name, 0.0)
-        if available_quantity >= required_quantity:
+        required_base_qty = float(requirement["base_quantity"])
+        avail_qty, _ = available_base.get(ingredient_name, (0.0, ""))
+        if avail_qty >= required_base_qty:
             continue
+
+        gap_base = required_base_qty - avail_qty
+        display_unit = str(requirement["display_unit"])
+        one_unit_in_base, _ = convert_to_base(1.0, display_unit)
+        gap_display = gap_base / one_unit_in_base if one_unit_in_base > 0 else gap_base
 
         items.append(
             ShoppingItem(
                 ingredient_name=ingredient_name,
-                quantity=required_quantity - available_quantity,
-                unit=str(requirement["unit"]),
+                quantity=round(gap_display, 3),
+                unit=display_unit,
                 reason=(
                     "not in inventory"
-                    if total_inventory.get(ingredient_name, 0.0) == 0
+                    if total_base.get(ingredient_name, (0.0, ""))[0] == 0
                     else "insufficient quantity"
                 ),
             ),

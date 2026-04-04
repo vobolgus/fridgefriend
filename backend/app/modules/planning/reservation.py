@@ -6,6 +6,7 @@ from typing import cast
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.units import convert_to_base
 from app.models.inventory_item import InventoryItem, InventoryStatus
 from app.models.meal_plan import MealPlan
 from app.models.reserved_ingredient import ReservedIngredient
@@ -45,7 +46,9 @@ class ReservationService:
                 if not candidates:
                     continue
 
-                allocations = self._allocate_quantity(candidates, ingredient.quantity, reserved_by_item)
+                allocations = self._allocate_quantity(
+                    candidates, ingredient.quantity, ingredient.unit, reserved_by_item,
+                )
                 allocated_quantity = sum(quantity for _, quantity in allocations)
                 has_existing_reservations = any(
                     externally_reserved_by_item.get(item.id, 0.0) > 0 for item in candidates
@@ -107,20 +110,29 @@ class ReservationService:
     def _allocate_quantity(
         candidates: list[InventoryItem],
         required_quantity: float,
+        required_unit: str,
         reserved_by_item: dict[uuid.UUID, float],
     ) -> list[tuple[InventoryItem, float]]:
-        remaining_required = required_quantity
+        required_base, required_base_unit = convert_to_base(required_quantity, required_unit)
+        remaining_required = required_base
         allocations: list[tuple[InventoryItem, float]] = []
         for item in candidates:
-            already_reserved = reserved_by_item.get(item.id, 0.0)
-            free_quantity = max(0.0, item.quantity - already_reserved)
-            if free_quantity <= 0:
+            item_base, item_base_unit = convert_to_base(item.quantity, item.unit)
+            if item_base_unit != required_base_unit:
                 continue
-            allocation = min(free_quantity, remaining_required)
-            if allocation <= 0:
+            already_reserved_base, _ = convert_to_base(
+                reserved_by_item.get(item.id, 0.0), item.unit,
+            )
+            free_base = max(0.0, item_base - already_reserved_base)
+            if free_base <= 0:
                 continue
-            allocations.append((item, allocation))
-            remaining_required -= allocation
+            allocation_base = min(free_base, remaining_required)
+            if allocation_base <= 0:
+                continue
+            one_unit_in_base, _ = convert_to_base(1.0, item.unit)
+            allocation_in_item_unit = allocation_base / one_unit_in_base if one_unit_in_base > 0 else allocation_base
+            allocations.append((item, allocation_in_item_unit))
+            remaining_required -= allocation_base
             if remaining_required <= 1e-9:
                 break
         return allocations

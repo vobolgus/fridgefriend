@@ -10,20 +10,70 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsEnabledAsync = ref.watch(notificationsEnabledProvider);
+    final prefsAsync = ref.watch(notificationPreferencesProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          notificationsEnabledAsync.when(
-            data: (enabled) => SwitchListTile(
-              title: const Text('Push Notifications'),
-              subtitle: const Text('Reminders for expiring items'),
-              value: enabled,
-              onChanged: (val) {
-                ref.read(notificationsEnabledProvider.notifier).toggle(val);
-              },
+          prefsAsync.when(
+            data: (prefs) => Column(
+              children: [
+                SwitchListTile(
+                  title: const Text('Push Notifications'),
+                  subtitle: const Text('Reminders for expiring items'),
+                  value: prefs.enabled,
+                  onChanged: (val) {
+                    ref.read(notificationPreferencesProvider.notifier).toggleEnabled(val);
+                  },
+                ),
+                ListTile(
+                  title: const Text('Remind days before expiry'),
+                  trailing: DropdownButton<int>(
+                    value: prefs.reminderDaysBefore,
+                    items: List.generate(8, (i) => i).map((days) {
+                      return DropdownMenuItem(
+                        value: days,
+                        child: Text(days == 0 ? 'Same day' : '$days day${days > 1 ? 's' : ''}'),
+                      );
+                    }).toList(growable: false),
+                    onChanged: prefs.enabled
+                        ? (val) {
+                            if (val != null) {
+                              ref.read(notificationPreferencesProvider.notifier).setReminderDaysBefore(val);
+                            }
+                          }
+                        : null,
+                  ),
+                ),
+                ListTile(
+                  title: const Text('Quiet hours'),
+                  subtitle: Text(
+                    prefs.quietHoursStart != null && prefs.quietHoursEnd != null
+                        ? '${prefs.quietHoursStart!.format(context)} - ${prefs.quietHoursEnd!.format(context)}'
+                        : 'Not set',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  enabled: prefs.enabled,
+                  onTap: prefs.enabled
+                      ? () async {
+                          final start = await showTimePicker(
+                            context: context,
+                            initialTime: prefs.quietHoursStart ?? const TimeOfDay(hour: 22, minute: 0),
+                            helpText: 'Quiet hours start',
+                          );
+                          if (start == null || !context.mounted) return;
+                          final end = await showTimePicker(
+                            context: context,
+                            initialTime: prefs.quietHoursEnd ?? const TimeOfDay(hour: 8, minute: 0),
+                            helpText: 'Quiet hours end',
+                          );
+                          if (end == null) return;
+                          ref.read(notificationPreferencesProvider.notifier).setQuietHours(start, end);
+                        }
+                      : null,
+                ),
+              ],
             ),
             loading: () => const ListTile(
               title: Text('Push Notifications'),

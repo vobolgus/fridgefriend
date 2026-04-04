@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 from uuid import UUID
 
+from app.core.units import normalize_unit
 from app.models.inventory_item import InventoryItem, InventoryStatus
 from app.models.user import User
 from app.modules.catalog.service import CatalogService
@@ -45,11 +46,16 @@ class InventoryService:
             estimated_expiry_date = data.estimated_expiry_date
             confidence = data.confidence
 
+        normalized_unit = normalize_unit(data.unit)
+        normalized_quantity = max(0.0, round(data.quantity, 3))
+
         payload = data.model_copy(
             update={
                 "estimated_expiry_date": estimated_expiry_date,
                 "confidence": confidence,
                 "canonical_name": canonical_name,
+                "unit": normalized_unit,
+                "quantity": normalized_quantity,
                 "canonical_ingredient_id": (
                     canonical.id if canonical is not None else data.canonical_ingredient_id
                 ),
