@@ -51,7 +51,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
       );
       await _cacheItems([created]);
       return created;
-    } catch (_) {
+    } on DioException catch (e) {
+      if (!_isConnectivityError(e)) rethrow;
       final localItem = InventoryItem(
         id: 'offline_${DateTime.now().microsecondsSinceEpoch}',
         displayName: displayName,
@@ -113,6 +114,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
       if (e.response?.statusCode == 409) {
         throw StateError('Item was modified by another user. Please refresh and try again.');
       }
+      if (!_isConnectivityError(e)) rethrow;
 
       final items = await _inventoryDao.getAllItems();
       final existing = items.where((item) => item.id == id).firstOrNull;
@@ -166,9 +168,10 @@ class InventoryRepositoryImpl implements InventoryRepository {
         await _inventoryDao.updateItemStatus(id, previousStatus);
         throw StateError('Item was modified by another user. Please refresh and try again.');
       }
-      await _syncManager.queueStatusUpdate(itemId: id, status: status, version: version);
-      return _localItemFallback(id, status);
-    } catch (_) {
+      if (!_isConnectivityError(e)) {
+        await _inventoryDao.updateItemStatus(id, previousStatus);
+        rethrow;
+      }
       await _syncManager.queueStatusUpdate(itemId: id, status: status, version: version);
       return _localItemFallback(id, status);
     }
@@ -240,6 +243,16 @@ class InventoryRepositoryImpl implements InventoryRepository {
   Future<void> _replaceCache(List<InventoryItem> items) async {
     await _inventoryDao.clearAll();
     await _cacheItems(items);
+  }
+
+  static bool _isConnectivityError(DioException e) {
+    if (e.response == null) return true;
+    final status = e.response?.statusCode ?? 0;
+    if (status >= 500) return true;
+    return e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionError;
   }
 
   InventoryItemsTableCompanion _toCompanion(InventoryItem item) {

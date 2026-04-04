@@ -131,24 +131,35 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                       }
                     }
                   } else {
-                    await ref.read(inventoryProvider.notifier).addItem(
-                          displayName: _nameController.text.trim(),
-                          quantity: double.parse(_quantityController.text.trim()),
-                          unit: _unitController.text.trim(),
-                          storageLocation: _storageController.text.trim(),
-                          source: widget.initialItem?.source,
-                          canonicalName: widget.initialItem?.canonicalName,
-                          canonicalIngredientId:
-                              widget.initialItem?.canonicalIngredientId,
-                          confidence: widget.initialItem?.confidence,
-                          estimatedExpiryDate:
-                              widget.initialItem?.estimatedExpiryDate,
+                    try {
+                      await ref.read(inventoryProvider.notifier).addItem(
+                            displayName: _nameController.text.trim(),
+                            quantity: double.parse(_quantityController.text.trim()),
+                            unit: _unitController.text.trim(),
+                            storageLocation: _storageController.text.trim(),
+                            source: widget.initialItem?.source,
+                            canonicalName: widget.initialItem?.canonicalName,
+                            canonicalIngredientId:
+                                widget.initialItem?.canonicalIngredientId,
+                            confidence: widget.initialItem?.confidence,
+                            estimatedExpiryDate:
+                                widget.initialItem?.estimatedExpiryDate,
+                          );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Item added')),
                         );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Item added')),
-                      );
-                      await Navigator.of(context).maybePop();
+                        await Navigator.of(context).maybePop();
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(e.toString()),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   }
                 },

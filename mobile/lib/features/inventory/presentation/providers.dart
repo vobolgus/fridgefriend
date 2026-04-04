@@ -108,6 +108,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
       _invalidateRecommendations();
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
+      rethrow;
     }
   }
 

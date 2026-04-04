@@ -41,22 +41,33 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
       );
       return;
     }
+    var savedCount = 0;
     for (final item in _draftItems) {
       final storage = item.storageLocation.isNotEmpty
           ? item.storageLocation
           : 'fridge';
-      await ref.read(inventoryProvider.notifier).addItem(
-            displayName: item.displayName,
-            quantity: item.quantity,
-            unit: item.unit,
-            storageLocation: storage,
-            source: 'photo',
-            canonicalName: item.canonicalName,
-            canonicalIngredientId: item.canonicalIngredientId,
-            confidence: item.confidence,
+      try {
+        await ref.read(inventoryProvider.notifier).addItem(
+              displayName: item.displayName,
+              quantity: item.quantity,
+              unit: item.unit,
+              storageLocation: storage,
+              source: 'photo',
+              canonicalName: item.canonicalName,
+              canonicalIngredientId: item.canonicalIngredientId,
+              confidence: item.confidence,
+            );
+        savedCount++;
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to save "${item.displayName}"')),
           );
+        }
+        return;
+      }
     }
-    if (mounted) {
+    if (mounted && savedCount == _draftItems.length) {
       context.go('/');
     }
   }
