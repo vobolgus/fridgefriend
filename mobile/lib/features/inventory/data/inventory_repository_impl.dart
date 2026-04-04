@@ -127,6 +127,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
         confidence: existing.confidence,
         status: existing.status,
         source: existing.source,
+        canonicalName: existing.canonicalName,
+        canonicalIngredientId: existing.canonicalIngredientId,
         version: version ?? existing.version,
       );
       await _inventoryDao.insertItem(_toCompanion(updatedLocal));

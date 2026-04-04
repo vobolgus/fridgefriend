@@ -77,6 +77,7 @@ class InventoryRepository:
             return None
 
         item.status = status
+        item.version += 1
         await self._session.commit()
         await self._session.refresh(item)
         return item
