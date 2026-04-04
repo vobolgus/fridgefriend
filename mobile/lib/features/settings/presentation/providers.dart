@@ -49,25 +49,24 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
 
   Future<void> toggleEnabled(bool enabled) async {
     final current = state.valueOrNull;
-    state = const AsyncValue.loading();
+    if (current == null) return;
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.updateNotificationPreferences(expiryReminderEnabled: enabled);
       state = AsyncValue.data(NotificationPreferences(
         enabled: enabled,
-        reminderDaysBefore: current?.reminderDaysBefore ?? 1,
-        quietHoursStart: current?.quietHoursStart,
-        quietHoursEnd: current?.quietHoursEnd,
+        reminderDaysBefore: current.reminderDaysBefore,
+        quietHoursStart: current.quietHoursStart,
+        quietHoursEnd: current.quietHoursEnd,
       ));
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (_) {
+      state = AsyncValue.data(current);
     }
   }
 
   Future<void> setReminderDaysBefore(int days) async {
     final current = state.valueOrNull;
     if (current == null) return;
-    state = const AsyncValue.loading();
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.updateNotificationPreferences(reminderDaysBefore: days);
@@ -77,15 +76,14 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
         quietHoursStart: current.quietHoursStart,
         quietHoursEnd: current.quietHoursEnd,
       ));
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (_) {
+      state = AsyncValue.data(current);
     }
   }
 
   Future<void> setQuietHours(TimeOfDay? start, TimeOfDay? end) async {
     final current = state.valueOrNull;
     if (current == null) return;
-    state = const AsyncValue.loading();
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.updateNotificationPreferences(
@@ -98,8 +96,8 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
         quietHoursStart: start,
         quietHoursEnd: end,
       ));
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (_) {
+      state = AsyncValue.data(current);
     }
   }
 }
@@ -118,13 +116,15 @@ class NotificationsNotifier extends AsyncNotifier<bool> {
   }
 
   Future<void> toggle(bool enabled) async {
-    state = const AsyncValue.loading();
+    final current = state.valueOrNull;
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.updateNotificationPreferences(expiryReminderEnabled: enabled);
       state = AsyncValue.data(enabled);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
+    } catch (_) {
+      if (current != null) {
+        state = AsyncValue.data(current);
+      }
     }
   }
 }

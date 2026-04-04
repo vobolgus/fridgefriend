@@ -14,7 +14,7 @@ from app.models.meal_plan import MealPlan, MealPlanDay
 from app.models.recipe import Recipe
 from app.models.user import User
 
-from .planner import MealPlanner
+from .planner import MealPlanner, NoMatchingRecipesError
 from .reservation import ReservationService
 from .schemas import PlanDay, PlanRequest, PlanResult, RecipeIngredient, ShoppingListResponse
 from .shopping_list import derive_shopping_list
@@ -59,19 +59,26 @@ class PlanningService:
             recipes_db=planner_input or None,
         )
 
-        meal_plan = MealPlan(
-            user_id=user.id,
-            household_id=household_id,
-            start_date=planned.days[0].date,
-            end_date=planned.days[-1].date,
-            days=[
+        try:
+            plan_days = [
                 MealPlanDay(
                     date=day.date,
                     recipe_id=UUID(day.recipe_id),
                     servings=request.servings,
                 )
                 for day in planned.days
-            ],
+            ]
+        except ValueError as exc:
+            raise NoMatchingRecipesError(
+                "Planner returned invalid recipe id",
+            ) from exc
+
+        meal_plan = MealPlan(
+            user_id=user.id,
+            household_id=household_id,
+            start_date=planned.days[0].date,
+            end_date=planned.days[-1].date,
+            days=plan_days,
         )
         try:
             self._session.add(meal_plan)
