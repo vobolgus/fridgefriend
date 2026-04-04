@@ -174,7 +174,7 @@ SELECT
     COALESCE(items.cnt, 0) AS items_added,
     COALESCE(recs.cnt, 0) AS recommendation_sessions,
     COALESCE(plans.cnt, 0) AS plans_generated
-FROM generate_series(:start_date::date, :end_date::date, '1 day'::interval) AS d(day)
+FROM generate_series(CAST(:start_date AS date), CAST(:end_date AS date), '1 day'::interval) AS d(day)
 LEFT JOIN (
     SELECT DATE_TRUNC('day', created_at)::date AS day, COUNT(*) AS cnt
     FROM inventory_events
