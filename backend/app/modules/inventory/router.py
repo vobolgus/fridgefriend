@@ -174,9 +174,22 @@ async def undo_item_event(
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
+    request: Request,
+    idempotency_key: Annotated[str | None, Header()] = None,
 ) -> ItemResponse:
-    _ = household_id
+    if idempotency_key:
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+        if cached:
+            return ItemResponse(**cached)
+
     try:
-        return ItemResponse.model_validate(await inventory_service.undo_last_event(item_id, current_user))
+        response = ItemResponse.model_validate(
+            await inventory_service.undo_last_event(item_id, current_user, household_id),
+        )
     except InventoryItemNotFoundError:
         _raise_not_found()
+
+    if idempotency_key:
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+
+    return response

@@ -418,8 +418,9 @@ async def test_api_post_plans(
 
     assert response.status_code == 200
     payload = response.json()
-    assert len(payload["days"]) == 3
-    assert all(day["recipeId"] for day in payload["days"])
+    plan = payload["plan"]
+    assert len(plan["days"]) == 3
+    assert all(day["recipeId"] for day in plan["days"])
 
 
 @pytest.mark.asyncio
@@ -554,7 +555,8 @@ async def test_planning_scoped_by_household(
 
     assert response.status_code == 200
     payload = response.json()
-    titles = [day["recipeTitle"] for day in payload["days"]]
+    plan = payload["plan"]
+    titles = [day["recipeTitle"] for day in plan["days"]]
     assert "Slow Braised Beef" not in titles
 
 

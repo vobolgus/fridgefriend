@@ -77,10 +77,16 @@ class InventoryEventService:
         )
         return event
 
-    async def undo_last(self, item_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> InventoryItem | None:
+    async def undo_last(
+        self, item_id: uuid.UUID, user_id: uuid.UUID, household_id: uuid.UUID, db: AsyncSession,
+    ) -> InventoryItem | None:
         result = await db.execute(
             select(InventoryEvent)
-            .where(InventoryEvent.item_id == item_id, InventoryEvent.user_id == user_id)
+            .where(
+                InventoryEvent.item_id == item_id,
+                InventoryEvent.user_id == user_id,
+                InventoryEvent.household_id == household_id,
+            )
             .order_by(InventoryEvent.created_at.desc()),
         )
         event = result.scalars().first()
@@ -88,7 +94,13 @@ class InventoryEventService:
             return None
 
         previous_state = event.previous_state or {}
-        item = await db.get(InventoryItem, item_id)
+        item_result = await db.execute(
+            select(InventoryItem).where(
+                InventoryItem.id == item_id,
+                InventoryItem.household_id == household_id,
+            )
+        )
+        item = item_result.scalar_one_or_none()
 
         if event.action == "removed":
             if not previous_state:

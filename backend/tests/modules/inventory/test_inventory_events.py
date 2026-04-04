@@ -169,6 +169,6 @@ async def test_undo_last_event_restores_previous_state(
     service = InventoryService(InventoryRepository(db_session))
     await service.update_status(item.id, user, household.id, InventoryStatus.USED)
 
-    restored = await service.undo_last_event(item.id, user)
+    restored = await service.undo_last_event(item.id, user, household.id)
 
     assert restored.status == InventoryStatus.ACTIVE

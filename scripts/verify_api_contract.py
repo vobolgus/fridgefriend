@@ -72,7 +72,9 @@ async def verify(base_url: str, token: str) -> None:
         )
         _ = plans_response.raise_for_status()
         plans_payload = cast(dict[str, object], plans_response.json())
-        _assert_keys(plans_payload, {"planId", "days", "shoppingList"}, name="POST /v1/plans")
+        _assert_keys(plans_payload, {"plan"}, name="POST /v1/plans")
+        plan_inner = cast(dict[str, object], plans_payload["plan"])
+        _assert_keys(plan_inner, {"planId", "days", "shoppingList"}, name="POST /v1/plans → plan")
 
         shopping_response = await client.get("/v1/shopping-list", headers=headers)
         _ = shopping_response.raise_for_status()

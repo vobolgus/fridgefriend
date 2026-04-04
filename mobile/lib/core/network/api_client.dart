@@ -109,7 +109,12 @@ class ApiClient {
   }
 
   Future<void> undoItem(String id) async {
-    await _dio.post('${ApiConfig.apiVersionPath}/items/$id/undo');
+    await _dio.post(
+      '${ApiConfig.apiVersionPath}/items/$id/undo',
+      options: Options(
+        headers: {'Idempotency-Key': '${id}_undo_${DateTime.now().millisecondsSinceEpoch}'},
+      ),
+    );
   }
 
   Future<List<Map<String, dynamic>>> getActivityLog(String householdId) async {
@@ -215,6 +220,9 @@ class ApiClient {
     await _dio.patch(
       '${ApiConfig.apiVersionPath}/notifications',
       data: {'expiry_reminder_enabled': expiryReminderEnabled},
+      options: Options(
+        headers: {'Idempotency-Key': 'notif_pref_expiry_$expiryReminderEnabled'},
+      ),
     );
   }
 
@@ -222,6 +230,9 @@ class ApiClient {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/households',
       data: {'name': name},
+      options: Options(
+        headers: {'Idempotency-Key': 'create_household_$name'},
+      ),
     );
     return Household.fromJson(response.data as Map<String, dynamic>);
   }
@@ -230,12 +241,20 @@ class ApiClient {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/households/join',
       data: {'invite_code': inviteCode},
+      options: Options(
+        headers: {'Idempotency-Key': 'join_household_$inviteCode'},
+      ),
     );
     return Household.fromJson(response.data as Map<String, dynamic>);
   }
 
   Future<void> leaveHousehold(String id) async {
-    await _dio.post('${ApiConfig.apiVersionPath}/households/$id/leave');
+    await _dio.post(
+      '${ApiConfig.apiVersionPath}/households/$id/leave',
+      options: Options(
+        headers: {'Idempotency-Key': 'leave_household_$id'},
+      ),
+    );
   }
 
   Future<InventoryItem> scanBarcode(String barcode) async {

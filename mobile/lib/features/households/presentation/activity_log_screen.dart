@@ -28,7 +28,7 @@ class ActivityLogScreen extends ConsumerWidget {
               final event = events[index];
               final action = event['action'] as String? ?? 'Unknown';
               final userId = event['user_id'] as String? ?? 'Unknown User';
-              final timestampStr = event['timestamp'] as String?;
+              final timestampStr = event['created_at'] as String?;
               final timestamp = timestampStr != null ? DateTime.tryParse(timestampStr) : null;
               
               final newState = event['new_state'] as Map<String, dynamic>?;

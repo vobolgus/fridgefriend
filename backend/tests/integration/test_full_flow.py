@@ -184,7 +184,7 @@ async def test_full_user_journey(
     )
 
     assert plan_response.status_code == 200
-    plan_payload = plan_response.json()
+    plan_payload = plan_response.json()["plan"]
     assert len(plan_payload["days"]) == 3
     assert all(day["recipeId"] for day in plan_payload["days"])
 
@@ -328,9 +328,9 @@ async def test_meal_plan_uses_expiring_first(
     response = await client.post("/v1/plans", headers=test_headers, json={"days": 3, "servings": 2})
 
     assert response.status_code == 200
-    payload = response.json()
-    assert payload["days"][0]["recipeTitle"] == "Chicken First"
-    assert "chicken" in payload["days"][0]["reservedItems"]
+    plan = response.json()["plan"]
+    assert plan["days"][0]["recipeTitle"] == "Chicken First"
+    assert "chicken" in plan["days"][0]["reservedItems"]
 
 
 @pytest.mark.asyncio

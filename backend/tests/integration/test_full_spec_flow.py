@@ -223,7 +223,8 @@ async def test_meal_plan_reserves_ingredients_transactionally(
     response = await client.post("/v1/plans", headers=test_headers, json={"days": 3, "servings": 2})
     assert response.status_code == 200
     payload = cast(dict[str, object], response.json())
-    days = cast(list[dict[str, object]], payload["days"])
+    plan = cast(dict[str, object], payload["plan"])
+    days = cast(list[dict[str, object]], plan["days"])
     assert days
     assert any(cast(list[object], day["reservedItems"]) for day in days)
 

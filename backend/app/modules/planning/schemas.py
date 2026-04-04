@@ -51,5 +51,11 @@ class PlanResult(BaseModel):
     shopping_list: list[ShoppingItem] = Field(default_factory=list, alias="shoppingList")
 
 
+class PlanResponse(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+    plan: PlanResult
+
+
 class ShoppingListResponse(BaseModel):
     items: list[ShoppingItem] = Field(default_factory=list)

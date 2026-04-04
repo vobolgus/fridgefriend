@@ -13,7 +13,7 @@ from app.core.idempotency import get_cached, store_cached
 from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
-from .schemas import PlanRequest, PlanResult, ShoppingListResponse
+from .schemas import PlanRequest, PlanResponse, PlanResult, ShoppingListResponse
 from .service import MealPlanNotFoundError, PlanningService
 
 router = APIRouter(tags=["planning"])
@@ -25,7 +25,7 @@ async def get_planning_service(
     return PlanningService(db)
 
 
-@router.post("/v1/plans", response_model=PlanResult, response_model_by_alias=True)
+@router.post("/v1/plans", response_model=PlanResponse, response_model_by_alias=True)
 async def create_plan(
     payload: PlanRequest,
     planning_service: Annotated[PlanningService, Depends(get_planning_service)],
@@ -33,13 +33,14 @@ async def create_plan(
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
-) -> PlanResult:
+) -> PlanResponse:
     if idempotency_key:
         cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
         if cached:
-            return PlanResult(**cached)
+            return PlanResponse(**cached)
 
-    response = await planning_service.generate_plan(current_user, household_id, payload)
+    result = await planning_service.generate_plan(current_user, household_id, payload)
+    response = PlanResponse(plan=result)
 
     if idempotency_key:
         store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))

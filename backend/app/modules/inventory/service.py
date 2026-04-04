@@ -140,8 +140,8 @@ class InventoryService:
             self._repository.session,
         )
 
-    async def undo_last_event(self, item_id: UUID, user: User) -> InventoryItem:
-        item = await self._event_service.undo_last(item_id, user.id, self._repository.session)
+    async def undo_last_event(self, item_id: UUID, user: User, household_id: UUID) -> InventoryItem:
+        item = await self._event_service.undo_last(item_id, user.id, household_id, self._repository.session)
         if item is None:
             raise InventoryItemNotFoundError
         return item
