@@ -21,6 +21,10 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 @pytest_asyncio.fixture
 async def scoped_users(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[tuple[User, User]]:
     user_1 = User(email="inventory-scope-user-1@example.com")
@@ -130,7 +134,7 @@ async def test_create_item_assigns_to_active_household(
 
     response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "household-scope-create-item"),
         json={
             "display_name": "Yogurt",
             "quantity": 1.0,
@@ -209,7 +213,7 @@ async def test_household_member_can_view_update_and_delete_shared_item(
     app.dependency_overrides[get_active_household_id] = override_active_household_id
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "household-scope-shared-create"),
         json={
             "display_name": "Shared Milk",
             "quantity": 1.0,
@@ -233,13 +237,16 @@ async def test_household_member_can_view_update_and_delete_shared_item(
 
     update_response = await client.patch(
         f"/v1/items/{item_id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "household-scope-shared-update"),
         json={"quantity": 2.0},
     )
     assert update_response.status_code == 200
     assert update_response.json()["quantity"] == 2.0
 
-    delete_response = await client.delete(f"/v1/items/{item_id}", headers=test_headers)
+    delete_response = await client.delete(
+        f"/v1/items/{item_id}",
+        headers=_headers(test_headers, "household-scope-shared-delete"),
+    )
     assert delete_response.status_code == 204
 
     missing_response = await client.get(f"/v1/items/{item_id}", headers=test_headers)

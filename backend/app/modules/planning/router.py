@@ -5,15 +5,15 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.idempotency import get_cached, store_cached
+from app.core.idempotency import get_cached, require_idempotency_key, store_cached
 from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
-from .schemas import PlanRequest, PlanResponse, PlanResult, ShoppingListResponse
+from .schemas import PlanRequest, PlanResponse, ShoppingListResponse
 from .service import MealPlanNotFoundError, PlanningService
 
 router = APIRouter(tags=["planning"])
@@ -32,18 +32,16 @@ async def create_plan(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> PlanResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return PlanResponse(**cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return PlanResponse(**cached)
 
     result = await planning_service.generate_plan(current_user, household_id, payload)
     response = PlanResponse(plan=result)
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -67,17 +65,15 @@ async def delete_plan(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> None:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached is not None:
-            return None
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached is not None:
+        return None
 
     try:
         await planning_service.delete_plan(plan_id, current_user, household_id)
     except MealPlanNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found") from exc
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, {})
+    store_cached(str(current_user.id), request.url.path, idempotency_key, {})

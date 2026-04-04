@@ -59,6 +59,11 @@ void main() {
         quantity: 12.0,
         unit: 'pcs',
         storageLocation: 'Fridge',
+        source: null,
+        canonicalName: null,
+        canonicalIngredientId: null,
+        confidence: null,
+        estimatedExpiryDate: null,
       ),
     ).thenAnswer(
       (_) async => InventoryItem(
@@ -94,9 +99,73 @@ void main() {
         quantity: 12.0,
         unit: 'pcs',
         storageLocation: 'Fridge',
+        source: null,
+        canonicalName: null,
+        canonicalIngredientId: null,
+        confidence: null,
+        estimatedExpiryDate: null,
       ),
     ).called(1);
     expect(find.text('Save item'), findsOneWidget);
+  });
+
+  testWidgets('AddItemScreen forwards scan metadata from initial item', (
+    tester,
+  ) async {
+    final mockClient = MockApiClient();
+    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => const []);
+
+    final draftItem = InventoryItem(
+      id: 'draft-2',
+      displayName: 'Greek Yogurt',
+      quantity: 1,
+      unit: 'container',
+      storageLocation: 'fridge',
+      estimatedExpiryDate: DateTime.parse('2026-04-12T00:00:00Z'),
+      confidence: 0.82,
+      status: 'active',
+      source: 'barcode',
+      canonicalName: 'Yogurt',
+      canonicalIngredientId: 'ingredient-42',
+    );
+
+    when(
+      () => mockClient.createInventoryItem(
+        displayName: 'Greek Yogurt',
+        quantity: 1.0,
+        unit: 'container',
+        storageLocation: 'fridge',
+        source: 'barcode',
+        canonicalName: 'Yogurt',
+        canonicalIngredientId: 'ingredient-42',
+        confidence: 0.82,
+        estimatedExpiryDate: DateTime.parse('2026-04-12T00:00:00Z'),
+      ),
+    ).thenAnswer((_) async => draftItem);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [apiClientProvider.overrideWithValue(mockClient)],
+        child: MaterialApp(home: AddItemScreen(initialItem: draftItem)),
+      ),
+    );
+
+    await tester.tap(find.text('Save item'));
+    await tester.pump();
+
+    verify(
+      () => mockClient.createInventoryItem(
+        displayName: 'Greek Yogurt',
+        quantity: 1.0,
+        unit: 'container',
+        storageLocation: 'fridge',
+        source: 'barcode',
+        canonicalName: 'Yogurt',
+        canonicalIngredientId: 'ingredient-42',
+        confidence: 0.82,
+        estimatedExpiryDate: DateTime.parse('2026-04-12T00:00:00Z'),
+      ),
+    ).called(1);
   });
 
   testWidgets('AddItemScreen pre-fills values from scanned item', (

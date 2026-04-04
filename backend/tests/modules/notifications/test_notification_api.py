@@ -18,6 +18,10 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 @pytest_asyncio.fixture
 async def notifications_test_user(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[User]:
     user = User(email="notifications-api@example.com")
@@ -40,7 +44,7 @@ async def notifications_test_user(app: FastAPI, db_session: AsyncSession) -> Asy
 
 
 @pytest.fixture(autouse=True)
-def _reset_idempotency_cache() -> None:
+def reset_idempotency_cache() -> None:
     clear_cache()
 
 
@@ -68,7 +72,7 @@ async def test_update_notification_preferences(
 ) -> None:
     response = await client.patch(
         "/v1/notifications",
-        headers=test_headers,
+        headers=_headers(test_headers, "notifications-update"),
         json={
             "expiry_reminder_enabled": False,
             "reminder_days_before": 3,
@@ -98,7 +102,7 @@ async def test_register_device_token(
 ) -> None:
     response = await client.post(
         "/v1/notifications/devices",
-        headers=test_headers,
+        headers=_headers(test_headers, "notifications-register-device"),
         json={"token": "device-token-abc", "platform": "ios"},
     )
 
@@ -124,7 +128,10 @@ async def test_unregister_device_token(
     await db_session.commit()
     await db_session.refresh(token)
 
-    response = await client.delete(f"/v1/notifications/devices/{token.id}", headers=test_headers)
+    response = await client.delete(
+        f"/v1/notifications/devices/{token.id}",
+        headers=_headers(test_headers, "notifications-unregister-device"),
+    )
 
     assert response.status_code == 204
     result = await db_session.execute(select(DeviceToken).where(DeviceToken.id == token.id))
@@ -158,3 +165,20 @@ async def test_update_notification_preferences_is_idempotent(
     )
     preferences = result.scalars().all()
     assert len(preferences) == 1
+
+
+@pytest.mark.asyncio
+async def test_update_notification_preferences_requires_idempotency_key(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    notifications_test_user: User,
+) -> None:
+    _ = notifications_test_user
+    response = await client.patch(
+        "/v1/notifications",
+        headers=test_headers,
+        json={"expiry_reminder_enabled": False},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Idempotency-Key header is required"}

@@ -17,6 +17,10 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 def _recipe(
     title: str,
     prep_minutes: int,
@@ -47,9 +51,19 @@ async def _create_item(
     estimated_expiry_date: date,
     canonical_name: str | None = None,
 ) -> dict[str, object]:
+    request_headers = (
+        headers
+        if "Idempotency-Key" in headers
+        else {
+            **headers,
+            "Idempotency-Key": (
+                f"item-{display_name.lower()}-{quantity}-{unit}-{storage_location}-{estimated_expiry_date.isoformat()}"
+            ),
+        }
+    )
     response = await client.post(
         "/v1/items",
-        headers=headers,
+        headers=request_headers,
         json={
             "display_name": display_name,
             "quantity": quantity,
@@ -168,7 +182,7 @@ async def test_full_user_journey(
 
     recommendations_response = await client.post(
         "/v1/recommendations",
-        headers=test_headers,
+        headers=_headers(test_headers, "integration-recommendations-main"),
         json={"servings": 2},
     )
 
@@ -179,7 +193,7 @@ async def test_full_user_journey(
 
     plan_response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "integration-plan-main"),
         json={"days": 3, "servings": 2},
     )
 
@@ -199,7 +213,7 @@ async def test_full_user_journey(
 
     status_response = await client.post(
         f"/v1/items/{milk['itemId']}/status",
-        headers=test_headers,
+        headers=_headers(test_headers, "integration-status-main"),
         json={"status": "used"},
     )
 
@@ -220,7 +234,7 @@ async def test_barcode_scan_and_expiry(
 ) -> None:
     response = await client.post(
         "/v1/scan/barcode",
-        headers={"Authorization": "Bearer test-token"},
+        headers={"Authorization": "Bearer test-token", "Idempotency-Key": "integration-barcode"},
         json={
             "barcode": "8710847909610",
             "quantity": 1.0,
@@ -262,7 +276,11 @@ async def test_recommendations_with_urgency(
         canonical_name="eggs",
     )
 
-    response = await client.post("/v1/recommendations", headers=test_headers, json={})
+    response = await client.post(
+        "/v1/recommendations",
+        headers=_headers(test_headers, "integration-recommendations-urgency"),
+        json={},
+    )
 
     assert response.status_code == 200
     recipes = response.json()["recipes"]
@@ -325,7 +343,11 @@ async def test_meal_plan_uses_expiring_first(
         canonical_name="pasta",
     )
 
-    response = await client.post("/v1/plans", headers=test_headers, json={"days": 3, "servings": 2})
+    response = await client.post(
+        "/v1/plans",
+        headers=_headers(test_headers, "integration-plan-expiring"),
+        json={"days": 3, "servings": 2},
+    )
 
     assert response.status_code == 200
     plan = response.json()["plan"]
@@ -381,7 +403,7 @@ async def test_shopping_list_after_plan(
 
     create_plan_response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "integration-plan-shopping"),
         json={"days": 3, "servings": 2},
     )
 
@@ -414,7 +436,7 @@ async def test_item_lifecycle(
 
     update_response = await client.patch(
         f"/v1/items/{item['itemId']}",
-        headers=test_headers,
+        headers=_headers(test_headers, "integration-item-update"),
         json={"quantity": 2.0},
     )
 
@@ -423,7 +445,7 @@ async def test_item_lifecycle(
 
     freeze_response = await client.post(
         f"/v1/items/{item['itemId']}/status",
-        headers=test_headers,
+        headers=_headers(test_headers, "integration-item-freeze"),
         json={"status": "frozen"},
     )
 

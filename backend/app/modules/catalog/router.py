@@ -1,12 +1,12 @@
-from typing import Annotated
+from typing import Annotated, cast
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Header, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.idempotency import get_cached, store_cached
+from app.core.idempotency import get_cached, require_idempotency_key, store_cached
 from app.core.storage import LocalStorage, S3Storage, StorageInterface
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
@@ -42,12 +42,11 @@ async def scan_barcode(
     service: Annotated[CatalogService, Depends(get_catalog_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> BarcodeScanResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return BarcodeScanResponse.model_validate(cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return BarcodeScanResponse.model_validate(cached)
 
     resolved = await service.lookup_barcode_with_canonical(payload.barcode)
     if resolved is None:
@@ -75,8 +74,7 @@ async def scan_barcode(
             source="barcode",
         )
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -87,12 +85,11 @@ async def scan_photo(
     parser: Annotated[PhotoParserInterface, Depends(get_photo_parser)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> PhotoScanResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return PhotoScanResponse.model_validate(cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return PhotoScanResponse.model_validate(cached)
 
     try:
         raw_items = await parser.parse_image(payload.image_url)
@@ -123,8 +120,7 @@ async def scan_photo(
         )
 
     response = PhotoScanResponse(draft_items=draft_items)
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
     return response
 
 
@@ -160,6 +156,8 @@ async def upload_photo(
     file: Annotated[UploadFile, File()],
     current_user: Annotated[User, Depends(get_current_user)],
     storage: Annotated[StorageInterface, Depends(get_storage)],
+    request: Request,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> dict[str, str]:
     """Upload a photo and return a URL for use with /v1/scan/photo.
 
@@ -167,10 +165,17 @@ async def upload_photo(
     returned ``image_url`` to ``POST /v1/scan/photo`` for AI parsing.
     This avoids sending raw local file paths to the scan endpoint.
     """
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        cached_response = cast(dict[str, str], cached)
+        return {"image_url": cached_response["image_url"], "key": cached_response["key"]}
+
     content_type = file.content_type or "image/jpeg"
     ext = content_type.split("/")[-1] if "/" in content_type else "jpg"
     key = f"photos/{current_user.id}/{uuid4()}.{ext}"
     data = await file.read()
-    await storage.upload(key, data, content_type)
+    _ = await storage.upload(key, data, content_type)
     signed_url = await storage.generate_signed_url(key)
-    return {"image_url": signed_url, "key": key}
+    response = {"image_url": signed_url, "key": key}
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response)
+    return response

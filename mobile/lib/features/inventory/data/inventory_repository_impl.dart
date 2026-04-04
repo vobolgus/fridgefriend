@@ -27,6 +27,11 @@ class InventoryRepositoryImpl implements InventoryRepository {
     required double quantity,
     required String unit,
     required String storageLocation,
+    String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
+    double? confidence,
+    DateTime? estimatedExpiryDate,
   }) async {
     try {
       final created = await _apiClient.createInventoryItem(
@@ -34,6 +39,11 @@ class InventoryRepositoryImpl implements InventoryRepository {
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,
+        source: source,
+        canonicalName: canonicalName,
+        canonicalIngredientId: canonicalIngredientId,
+        confidence: confidence,
+        estimatedExpiryDate: estimatedExpiryDate,
       );
       await _cacheItems([created]);
       return created;
@@ -44,10 +54,13 @@ class InventoryRepositoryImpl implements InventoryRepository {
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,
-        estimatedExpiryDate: DateTime.now().add(const Duration(days: 7)),
-        confidence: 0.5,
+        estimatedExpiryDate:
+            estimatedExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
+        confidence: confidence ?? 0.5,
         status: 'active',
-        source: 'manual',
+        source: source ?? 'manual',
+        canonicalName: canonicalName,
+        canonicalIngredientId: canonicalIngredientId,
       );
       await _inventoryDao.insertItem(_toCompanion(localItem));
       await _syncManager.queueCreate(localItem);

@@ -18,6 +18,10 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 @pytest_asyncio.fixture
 async def test_user(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[User]:
     user = User(email="inventory-api@example.com")
@@ -47,7 +51,7 @@ async def test_create_item_success(
 ) -> None:
     response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-create-success"),
         json={
             "display_name": "Milk",
             "quantity": 1.5,
@@ -77,7 +81,7 @@ async def test_create_item_uses_shelf_life_rules_for_default_expiry(
 ) -> None:
     response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-create-expiry-rule"),
         json={
             "display_name": "Milk",
             "canonical_name": "milk",
@@ -101,7 +105,7 @@ async def test_create_item_missing_display_name(
 ) -> None:
     response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-create-missing-name"),
         json={
             "quantity": 1.0,
             "unit": "liters",
@@ -120,7 +124,7 @@ async def test_create_item_invalid_quantity(
 ) -> None:
     response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-create-invalid-quantity"),
         json={
             "display_name": "Milk",
             "quantity": -1,
@@ -152,7 +156,7 @@ async def test_list_items_returns_only_active(
 ) -> None:
     active_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-list-active-create"),
         json={
             "display_name": "Milk",
             "quantity": 1.0,
@@ -162,7 +166,7 @@ async def test_list_items_returns_only_active(
     )
     used_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-list-used-create"),
         json={
             "display_name": "Spinach",
             "quantity": 1.0,
@@ -174,7 +178,7 @@ async def test_list_items_returns_only_active(
     used_item_id = used_response.json()["itemId"]
     await client.post(
         f"/v1/items/{used_item_id}/status",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-list-used-status"),
         json={"status": "used"},
     )
 
@@ -195,7 +199,7 @@ async def test_get_item_by_id(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-get-create"),
         json={
             "display_name": "Eggs",
             "quantity": 12,
@@ -234,7 +238,7 @@ async def test_update_item_quantity(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-update-create"),
         json={
             "display_name": "Juice",
             "quantity": 1.0,
@@ -246,7 +250,7 @@ async def test_update_item_quantity(
 
     response = await client.patch(
         f"/v1/items/{item_id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-update-quantity"),
         json={"quantity": 2.0},
     )
 
@@ -262,7 +266,7 @@ async def test_update_item_partial(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-update-partial-create"),
         json={
             "display_name": "Butter",
             "quantity": 1.0,
@@ -276,7 +280,7 @@ async def test_update_item_partial(
 
     response = await client.patch(
         f"/v1/items/{item_id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-update-partial-patch"),
         json={"storage_location": "freezer"},
     )
 
@@ -296,7 +300,7 @@ async def test_mark_item_used(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-status-used-create"),
         json={
             "display_name": "Tomatoes",
             "quantity": 3.0,
@@ -308,7 +312,7 @@ async def test_mark_item_used(
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-status-used"),
         json={"status": InventoryStatus.USED.value},
     )
 
@@ -324,7 +328,7 @@ async def test_mark_item_discarded(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-status-discarded-create"),
         json={
             "display_name": "Lettuce",
             "quantity": 1.0,
@@ -336,7 +340,7 @@ async def test_mark_item_discarded(
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-status-discarded"),
         json={"status": InventoryStatus.DISCARDED.value},
     )
 
@@ -352,7 +356,7 @@ async def test_mark_item_frozen(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-status-frozen-create"),
         json={
             "display_name": "Bread",
             "quantity": 1.0,
@@ -364,7 +368,7 @@ async def test_mark_item_frozen(
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-status-frozen"),
         json={"status": InventoryStatus.FROZEN.value},
     )
 
@@ -380,7 +384,7 @@ async def test_delete_item(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-delete-create"),
         json={
             "display_name": "Cheese",
             "quantity": 1.0,
@@ -390,7 +394,10 @@ async def test_delete_item(
     )
     item_id = create_response.json()["itemId"]
 
-    delete_response = await client.delete(f"/v1/items/{item_id}", headers=test_headers)
+    delete_response = await client.delete(
+        f"/v1/items/{item_id}",
+        headers=_headers(test_headers, "inventory-delete"),
+    )
     get_response = await client.get(f"/v1/items/{item_id}", headers=test_headers)
 
     assert delete_response.status_code == 204
@@ -406,7 +413,7 @@ async def test_undo_endpoint_restores_previous_state(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-undo-create"),
         json={
             "display_name": "Yogurt",
             "quantity": 1.0,
@@ -418,15 +425,40 @@ async def test_undo_endpoint_restores_previous_state(
 
     update_response = await client.patch(
         f"/v1/items/{item_id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-undo-update"),
         json={"quantity": 2.0, "storage_location": "freezer"},
     )
     assert update_response.status_code == 200
 
-    undo_response = await client.post(f"/v1/items/{item_id}/undo", headers=test_headers)
+    undo_response = await client.post(
+        f"/v1/items/{item_id}/undo",
+        headers=_headers(test_headers, "inventory-undo-action"),
+    )
 
     assert undo_response.status_code == 200
     payload = undo_response.json()
     assert payload["itemId"] == item_id
     assert payload["quantity"] == 1.0
     assert payload["storageLocation"] == "fridge"
+
+
+@pytest.mark.asyncio
+async def test_create_item_requires_idempotency_key(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    _ = test_user
+    response = await client.post(
+        "/v1/items",
+        headers=test_headers,
+        json={
+            "display_name": "Milk",
+            "quantity": 1.0,
+            "unit": "liters",
+            "storage_location": "fridge",
+        },
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Idempotency-Key header is required"}

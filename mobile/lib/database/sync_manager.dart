@@ -83,6 +83,18 @@ class SyncManager {
           quantity: _toDouble(mutation.payload['quantity']),
           unit: (mutation.payload['unit'] ?? '').toString(),
           storageLocation: (mutation.payload['storageLocation'] ?? '').toString(),
+          source: mutation.payload['source']?.toString(),
+          canonicalName: mutation.payload['canonicalName']?.toString(),
+          canonicalIngredientId:
+              mutation.payload['canonicalIngredientId']?.toString(),
+          confidence: mutation.payload['confidence'] == null
+              ? null
+              : _toDouble(mutation.payload['confidence']),
+          estimatedExpiryDate: mutation.payload['estimatedExpiryDate'] == null
+              ? null
+              : DateTime.tryParse(
+                  mutation.payload['estimatedExpiryDate'].toString(),
+                ),
         );
 
         await _inventoryDao.deleteItem(mutation.entityId);

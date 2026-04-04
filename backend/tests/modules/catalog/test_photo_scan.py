@@ -17,6 +17,10 @@ from app.models.user import User
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 
+def _headers(key: str) -> dict[str, str]:
+    return {"Authorization": "Bearer test-token", "Idempotency-Key": key}
+
+
 class _StaticPhotoParser:
     def __init__(self, items: list[dict[str, object]]) -> None:
         self._items: list[dict[str, object]] = items
@@ -111,7 +115,7 @@ async def test_photo_scan_returns_draft_items(photo_client: httpx.AsyncClient, a
 
     response = await photo_client.post(
         "/v1/scan/photo",
-        headers={"Authorization": "Bearer test-token"},
+        headers=_headers("photo-scan-draft-1"),
         json={"image_url": "https://example.com/fridge.jpg"},
     )
 
@@ -141,7 +145,7 @@ async def test_photo_scan_low_confidence_returns_editable_draft(
 
     response = await photo_client.post(
         "/v1/scan/photo",
-        headers={"Authorization": "Bearer test-token"},
+        headers=_headers("photo-scan-low-confidence-1"),
         json={"image_url": "https://example.com/low.jpg"},
     )
 
@@ -161,7 +165,7 @@ async def test_photo_scan_failure_returns_empty_editable_draft(
 
     response = await photo_client.post(
         "/v1/scan/photo",
-        headers={"Authorization": "Bearer test-token"},
+        headers=_headers("photo-scan-failure-1"),
         json={"image_url": "https://example.com/fail.jpg"},
     )
 

@@ -19,6 +19,7 @@ class HouseholdUpdate(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(str_strip_whitespace=True)
 
     name: str | None = Field(default=None, min_length=1, max_length=255)
+    is_active: bool | None = None
 
 
 class JoinRequest(BaseModel):
@@ -38,6 +39,7 @@ class HouseholdResponse(BaseModel):
     id: uuid.UUID
     name: str
     invite_code: str
+    is_active: bool = False
     members: list[HouseholdMemberResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Annotated, NoReturn
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from app.core.idempotency import get_cached, store_cached
+from app.core.idempotency import get_cached, require_idempotency_key, store_cached
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
@@ -40,18 +40,16 @@ async def update_notification_preferences(
     notification_service: Annotated[NotificationService, Depends(get_notification_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> NotificationPreferenceResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return NotificationPreferenceResponse.model_validate(cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return NotificationPreferenceResponse.model_validate(cached)
 
     preference = await notification_service.update_preferences(current_user, payload)
     response = NotificationPreferenceResponse.model_validate(preference)
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -62,18 +60,16 @@ async def register_device_token(
     notification_service: Annotated[NotificationService, Depends(get_notification_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> DeviceTokenResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return DeviceTokenResponse.model_validate(cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return DeviceTokenResponse.model_validate(cached)
 
     token = await notification_service.register_device_token(current_user, payload)
     response = DeviceTokenResponse.model_validate(token)
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -84,19 +80,17 @@ async def unregister_device_token(
     notification_service: Annotated[NotificationService, Depends(get_notification_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> Response:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached is not None:
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached is not None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     try:
         await notification_service.unregister_device_token(current_user, token_id)
     except DeviceTokenNotFoundError:
         _raise_device_token_not_found()
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, {})
+    store_cached(str(current_user.id), request.url.path, idempotency_key, {})
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)

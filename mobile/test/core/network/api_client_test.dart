@@ -9,6 +9,56 @@ import 'package:fridgefriend_mobile/core/network/api_client.dart';
 
 void main() {
   group('ApiClient', () {
+    test('createInventoryItem sends scan metadata fields when provided', () async {
+      late RequestOptions capturedOptions;
+      final adapter = _RecordingAdapter((options) {
+        capturedOptions = options;
+        return {
+          'item_id': 'item-123',
+          'display_name': 'Yogurt',
+          'quantity': 1,
+          'unit': 'cup',
+          'storage_location': 'fridge',
+          'estimated_expiry_date': '2026-04-10T00:00:00Z',
+          'confidence': 0.87,
+          'source': 'barcode',
+          'canonical_name': 'Greek Yogurt',
+          'canonical_ingredient_id': 'ingredient-1',
+        };
+      });
+
+      final client = ApiClient(baseUrl: 'https://example.test');
+      client.rawClient.httpClientAdapter = adapter;
+
+      final item = await client.createInventoryItem(
+        displayName: 'Yogurt',
+        quantity: 1,
+        unit: 'cup',
+        storageLocation: 'fridge',
+        source: 'barcode',
+        canonicalName: 'Greek Yogurt',
+        canonicalIngredientId: 'ingredient-1',
+        confidence: 0.87,
+        estimatedExpiryDate: DateTime.parse('2026-04-10T00:00:00Z'),
+      );
+
+      expect(capturedOptions.path, '/v1/items');
+      expect(capturedOptions.data, {
+        'display_name': 'Yogurt',
+        'quantity': 1.0,
+        'unit': 'cup',
+        'storage_location': 'fridge',
+        'source': 'barcode',
+        'canonical_name': 'Greek Yogurt',
+        'canonical_ingredient_id': 'ingredient-1',
+        'confidence': 0.87,
+        'estimated_expiry_date': '2026-04-10T00:00:00.000Z',
+      });
+      expect(item.source, 'barcode');
+      expect(item.canonicalName, 'Greek Yogurt');
+      expect(item.canonicalIngredientId, 'ingredient-1');
+    });
+
     test('uses token provider and posts barcode payload', () async {
       late RequestOptions capturedOptions;
       final adapter = _RecordingAdapter((options) {
@@ -33,6 +83,7 @@ void main() {
       final item = await client.scanBarcode('0123456789');
 
       expect(capturedOptions.headers['Authorization'], 'Bearer firebase-token');
+      expect(capturedOptions.headers['Idempotency-Key'], 'barcode_0123456789');
       expect(capturedOptions.path, '/v1/scan/barcode');
       expect(capturedOptions.data, {
         'barcode': '0123456789',
@@ -72,11 +123,37 @@ void main() {
       final items = await client.scanPhoto('mock://photo.jpg');
 
       expect(capturedOptions.headers['Authorization'], 'Bearer test-token');
+      expect(
+        capturedOptions.headers['Idempotency-Key'],
+        'photo_scan_${'mock://photo.jpg'.hashCode}',
+      );
       expect(capturedOptions.path, '/v1/scan/photo');
       expect(capturedOptions.data, {'image_url': 'mock://photo.jpg'});
       expect(items, hasLength(1));
       expect(items.first.displayName, 'Spinach');
       expect(items.first.storageLocation, 'fridge');
+    });
+
+    test('uploadPhoto sends idempotency key header', () async {
+      late RequestOptions capturedOptions;
+      final adapter = _RecordingAdapter((options) {
+        capturedOptions = options;
+        return {'image_url': 'https://cdn.example.test/image.jpg'};
+      });
+
+      final client = ApiClient(baseUrl: 'https://example.test');
+      client.rawClient.httpClientAdapter = adapter;
+
+      final imageUrl = await client.uploadPhoto(
+        '/Users/svyatoslav.suglobov/AILab_project/mobile/pubspec.yaml',
+      );
+
+      expect(capturedOptions.path, '/v1/scan/photo/upload');
+      expect(
+        (capturedOptions.headers['Idempotency-Key'] as String).startsWith('upload_'),
+        isTrue,
+      );
+      expect(imageUrl, 'https://cdn.example.test/image.jpg');
     });
   });
 }

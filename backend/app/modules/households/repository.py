@@ -11,7 +11,7 @@ from app.models.household import Household, HouseholdMember, HouseholdRole
 
 class HouseholdRepository:
     def __init__(self, session: AsyncSession) -> None:
-        self._session = session
+        self._session: AsyncSession = session
 
     @property
     def session(self) -> AsyncSession:
@@ -79,6 +79,7 @@ class HouseholdRepository:
                 household_id=household.id,
                 user_id=owner_user_id,
                 role=HouseholdRole.OWNER,
+                is_active=True,
             ),
         )
         await self._session.commit()
@@ -94,7 +95,7 @@ class HouseholdRepository:
         user_id: uuid.UUID,
         role: HouseholdRole = HouseholdRole.MEMBER,
     ) -> Household:
-        self._session.add(HouseholdMember(household_id=household_id, user_id=user_id, role=role))
+        self._session.add(HouseholdMember(household_id=household_id, user_id=user_id, role=role, is_active=True))
         await self._session.commit()
         household = await self.get_by_id(household_id)
         if household is None:
@@ -123,3 +124,19 @@ class HouseholdRepository:
         await self._session.commit()
         await self._session.refresh(membership)
         return membership
+
+    async def set_active_membership(self, user_id: uuid.UUID, household_id: uuid.UUID) -> HouseholdMember | None:
+        memberships = await self.list_memberships_for_user(user_id)
+        target_membership: HouseholdMember | None = None
+        for membership in memberships:
+            is_target = membership.household_id == household_id
+            membership.is_active = is_target
+            if is_target:
+                target_membership = membership
+
+        if target_membership is None:
+            return None
+
+        await self._session.commit()
+        await self._session.refresh(target_membership)
+        return target_membership

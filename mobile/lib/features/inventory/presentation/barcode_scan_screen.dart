@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
 class BarcodeScanScreen extends ConsumerStatefulWidget {
@@ -47,7 +48,20 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
     });
 
     try {
-      final item = await ref.read(apiClientProvider).scanBarcode(barcode);
+      final scannedItem = await ref.read(apiClientProvider).scanBarcode(barcode);
+      final item = InventoryItem(
+        id: scannedItem.id,
+        displayName: scannedItem.displayName,
+        quantity: scannedItem.quantity,
+        unit: scannedItem.unit,
+        storageLocation: scannedItem.storageLocation,
+        estimatedExpiryDate: scannedItem.estimatedExpiryDate,
+        confidence: scannedItem.confidence,
+        status: scannedItem.status,
+        source: 'barcode',
+        canonicalName: scannedItem.canonicalName,
+        canonicalIngredientId: scannedItem.canonicalIngredientId,
+      );
 
       if (!mounted) {
         return;

@@ -22,6 +22,10 @@ from app.modules.inventory.repository import InventoryRepository
 from app.modules.inventory.service import InventoryService
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 @pytest_asyncio.fixture
 async def event_test_user(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[tuple[User, Household]]:
     user = User(email="inventory-events@example.com")
@@ -70,7 +74,7 @@ async def test_create_item_emits_added_event(
 ) -> None:
     response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-events-create-added"),
         json={
             "display_name": "Milk",
             "quantity": 1.0,
@@ -94,7 +98,7 @@ async def test_update_status_emits_event_with_previous_state(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-events-create-status"),
         json={
             "display_name": "Spinach",
             "quantity": 1.0,
@@ -106,7 +110,7 @@ async def test_update_status_emits_event_with_previous_state(
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-events-status-update"),
         json={"status": "used"},
     )
 
@@ -125,7 +129,7 @@ async def test_delete_item_emits_removed_event(
 ) -> None:
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "inventory-events-create-delete"),
         json={
             "display_name": "Cheese",
             "quantity": 1.0,
@@ -135,12 +139,44 @@ async def test_delete_item_emits_removed_event(
     )
     item_id = create_response.json()["itemId"]
 
-    response = await client.delete(f"/v1/items/{item_id}", headers=test_headers)
+    response = await client.delete(
+        f"/v1/items/{item_id}",
+        headers=_headers(test_headers, "inventory-events-delete"),
+    )
 
     assert response.status_code == 204
     event = await _get_latest_event(db_session, "removed")
     assert event.action == "removed"
     assert event.previous_state["display_name"] == "Cheese"
+
+
+@pytest.mark.asyncio
+async def test_delete_item_nulls_event_item_id_after_delete(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    event_test_user: tuple[User, Household],
+    db_session: AsyncSession,
+) -> None:
+    create_response = await client.post(
+        "/v1/items",
+        headers=_headers(test_headers, "inventory-events-null-create"),
+        json={
+            "display_name": "Butter",
+            "quantity": 1.0,
+            "unit": "pack",
+            "storage_location": "fridge",
+        },
+    )
+    item_id = create_response.json()["itemId"]
+
+    delete_response = await client.delete(
+        f"/v1/items/{item_id}",
+        headers=_headers(test_headers, "inventory-events-null-delete"),
+    )
+
+    assert delete_response.status_code == 204
+    event = await _get_latest_event(db_session, "removed")
+    assert event.item_id is None
 
 
 @pytest.mark.asyncio

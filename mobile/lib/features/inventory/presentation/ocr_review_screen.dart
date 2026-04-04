@@ -30,6 +30,11 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
             quantity: item.quantity,
             unit: item.unit,
             storageLocation: item.storageLocation,
+            source: 'photo',
+            canonicalName: item.canonicalName,
+            canonicalIngredientId: item.canonicalIngredientId,
+            confidence: item.confidence,
+            estimatedExpiryDate: item.estimatedExpiryDate,
           );
     }
     if (mounted) {

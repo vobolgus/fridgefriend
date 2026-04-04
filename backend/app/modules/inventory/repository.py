@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.events import InventoryEvent
 from app.models.inventory_item import InventoryItem, InventoryStatus
 from .exceptions import StaleDataError
 from .schemas import ItemCreate, ItemUpdate
@@ -85,6 +86,11 @@ class InventoryRepository:
         if item is None:
             return None
 
+        _ = await self._session.execute(
+            update(InventoryEvent)
+            .where(InventoryEvent.item_id == item.id)
+            .values(item_id=None)
+        )
         await self._session.delete(item)
         await self._session.commit()
         return item

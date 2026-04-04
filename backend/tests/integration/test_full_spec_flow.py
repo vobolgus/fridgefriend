@@ -25,6 +25,10 @@ from app.modules.inventory.dependencies import get_current_user
 from app.modules.notifications.tasks import send_expiry_reminders
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 def _recipe(title: str, prep_minutes: int, ingredients: list[dict[str, object]]) -> Recipe:
     return Recipe(title=title, prep_minutes=prep_minutes, dietary_tags=[], ingredients=ingredients)
 
@@ -73,9 +77,19 @@ async def _create_item(
     estimated_expiry_date: date,
     canonical_name: str | None = None,
 ) -> dict[str, object]:
+    request_headers = (
+        headers
+        if "Idempotency-Key" in headers
+        else {
+            **headers,
+            "Idempotency-Key": (
+                f"item-{display_name.lower()}-{quantity}-{unit}-{storage_location}-{estimated_expiry_date.isoformat()}"
+            ),
+        }
+    )
     response = await client.post(
         "/v1/items",
-        headers=headers,
+        headers=request_headers,
         json={
             "display_name": display_name,
             "quantity": quantity,
@@ -144,12 +158,12 @@ async def test_add_items_via_manual_barcode_photo(
     )
     barcode = await client.post(
         "/v1/scan/barcode",
-        headers=test_headers,
+        headers=_headers(test_headers, "spec-barcode"),
         json={"barcode": "8710847909610", "quantity": 1.0, "storage_location": "fridge"},
     )
     photo = await client.post(
         "/v1/scan/photo",
-        headers=test_headers,
+        headers=_headers(test_headers, "spec-photo"),
         json={"image_url": "https://example.test/fridge.png"},
     )
 
@@ -190,7 +204,11 @@ async def test_recommendations_account_for_expiry_and_coverage(
         canonical_name="eggs",
     )
 
-    response = await client.post("/v1/recommendations", headers=test_headers, json={"servings": 2})
+    response = await client.post(
+        "/v1/recommendations",
+        headers=_headers(test_headers, "spec-recommendations"),
+        json={"servings": 2},
+    )
     assert response.status_code == 200
     payload = cast(dict[str, object], response.json())
     recipes = cast(list[dict[str, object]], payload["recipes"])
@@ -220,7 +238,11 @@ async def test_meal_plan_reserves_ingredients_transactionally(
         canonical_name="milk",
     )
 
-    response = await client.post("/v1/plans", headers=test_headers, json={"days": 3, "servings": 2})
+    response = await client.post(
+        "/v1/plans",
+        headers=_headers(test_headers, "spec-plan-reserve"),
+        json={"days": 3, "servings": 2},
+    )
     assert response.status_code == 200
     payload = cast(dict[str, object], response.json())
     plan = cast(dict[str, object], payload["plan"])
@@ -251,7 +273,11 @@ async def test_shopping_list_shows_only_gaps(
         estimated_expiry_date=date.today() + timedelta(days=365),
         canonical_name="pasta",
     )
-    _ = await client.post("/v1/plans", headers=test_headers, json={"days": 3, "servings": 2})
+    _ = await client.post(
+        "/v1/plans",
+        headers=_headers(test_headers, "spec-plan-shopping"),
+        json={"days": 3, "servings": 2},
+    )
 
     response = await client.get("/v1/shopping-list", headers=test_headers)
     assert response.status_code == 200
@@ -282,7 +308,7 @@ async def test_household_invite_and_shared_inventory(
 
     response = await client.post(
         "/v1/households/join",
-        headers=test_headers,
+        headers=_headers(test_headers, "spec-household-join"),
         json={"invite_code": household.invite_code},
     )
     assert response.status_code == 200
@@ -308,12 +334,12 @@ async def test_notification_preferences_and_reminder_task(
     _ = spec_test_user
     _ = await client.patch(
         "/v1/notifications",
-        headers=test_headers,
+        headers=_headers(test_headers, "spec-notifications-update"),
         json={"expiry_reminder_enabled": True, "reminder_days_before": 1},
     )
     _ = await client.post(
         "/v1/notifications/devices",
-        headers=test_headers,
+        headers=_headers(test_headers, "spec-notifications-device"),
         json={"token": "device-token-spec", "platform": "ios"},
     )
     _ = await _create_item(
@@ -378,7 +404,11 @@ async def test_inventory_event_undo(
         estimated_expiry_date=date.today() + timedelta(days=3),
         canonical_name="tomato",
     )
-    _ = await client.post(f"/v1/items/{item['itemId']}/status", headers=test_headers, json={"status": "used"})
+    _ = await client.post(
+        f"/v1/items/{item['itemId']}/status",
+        headers=_headers(test_headers, "spec-item-status"),
+        json={"status": "used"},
+    )
 
     item_id_raw = item["itemId"]
     assert isinstance(item_id_raw, str)
@@ -407,7 +437,7 @@ async def test_optimistic_concurrency_conflict(
 
     response = await client.put(
         f"/v1/items/{item['itemId']}",
-        headers=test_headers,
+        headers=_headers(test_headers, "spec-item-replace"),
         json={"quantity": 2.0, "version": 0},
     )
     assert response.status_code == 409

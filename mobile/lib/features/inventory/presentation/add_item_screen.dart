@@ -101,6 +101,13 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                         quantity: double.parse(_quantityController.text.trim()),
                         unit: _unitController.text.trim(),
                         storageLocation: _storageController.text.trim(),
+                        source: widget.initialItem?.source,
+                        canonicalName: widget.initialItem?.canonicalName,
+                        canonicalIngredientId:
+                            widget.initialItem?.canonicalIngredientId,
+                        confidence: widget.initialItem?.confidence,
+                        estimatedExpiryDate:
+                            widget.initialItem?.estimatedExpiryDate,
                       );
 
                   if (context.mounted) {

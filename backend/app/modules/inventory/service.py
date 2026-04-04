@@ -127,9 +127,6 @@ class InventoryService:
         if existing is None:
             raise InventoryItemNotFoundError
         previous_state = snapshot_item(existing)
-        deleted = await self._repository.delete(item_id, household_id)
-        if deleted is None:
-            raise InventoryItemNotFoundError
         _ = await self._event_service.log_event(
             household_id,
             user.id,
@@ -139,6 +136,9 @@ class InventoryService:
             {},
             self._repository.session,
         )
+        deleted = await self._repository.delete(item_id, household_id)
+        if deleted is None:
+            raise InventoryItemNotFoundError
 
     async def undo_last_event(self, item_id: UUID, user: User, household_id: UUID) -> InventoryItem:
         item = await self._event_service.undo_last(item_id, user.id, household_id, self._repository.session)

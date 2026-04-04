@@ -14,6 +14,10 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 @pytest_asyncio.fixture
 async def test_user(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[User]:
     user = User(email="inventory-concurrency@example.com")
@@ -44,7 +48,7 @@ async def test_update_with_correct_version_succeeds(
     _ = test_user
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "optimistic-create-correct"),
         json={
             "display_name": "Milk",
             "quantity": 1.0,
@@ -59,7 +63,7 @@ async def test_update_with_correct_version_succeeds(
 
     response = await client.put(
         f"/v1/items/{item_id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "optimistic-update-correct"),
         json={"quantity": 2.0, "version": 1},
     )
 
@@ -75,7 +79,7 @@ async def test_update_with_stale_version_returns_409(
     _ = test_user
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "optimistic-create-stale"),
         json={
             "display_name": "Yogurt",
             "quantity": 1.0,
@@ -90,7 +94,7 @@ async def test_update_with_stale_version_returns_409(
 
     response = await client.put(
         f"/v1/items/{item_id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "optimistic-update-stale"),
         json={"quantity": 2.0, "version": 0},
     )
 
@@ -107,7 +111,7 @@ async def test_version_increments_on_update(
     _ = test_user
     create_response = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers=_headers(test_headers, "optimistic-create-version"),
         json={
             "display_name": "Butter",
             "quantity": 1.0,
@@ -122,7 +126,7 @@ async def test_version_increments_on_update(
 
     response = await client.put(
         f"/v1/items/{item_id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "optimistic-update-version"),
         json={"quantity": 2.0, "version": 1},
     )
 

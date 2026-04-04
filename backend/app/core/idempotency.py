@@ -5,7 +5,10 @@ from __future__ import annotations
 import importlib
 import json
 import time
+from typing import Annotated
 from typing import Any
+
+from fastapi import Header, HTTPException, status
 
 from app.core.config import settings
 
@@ -138,3 +141,12 @@ def store_cached(user_id: str, path: str, raw_key: str, response_data: dict[str,
 def clear_cache() -> None:
     _memory_cache.clear()
     _redis_cache.clear()
+
+
+def require_idempotency_key(idempotency_key: Annotated[str | None, Header()] = None) -> str:
+    if idempotency_key is None or not idempotency_key.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Idempotency-Key header is required",
+        )
+    return idempotency_key

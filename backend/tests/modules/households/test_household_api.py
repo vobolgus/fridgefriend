@@ -17,6 +17,10 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 @pytest_asyncio.fixture
 async def household_test_user(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[User]:
     user = User(email="households-api@example.com")
@@ -61,7 +65,11 @@ async def test_create_household(
     test_headers: dict[str, str],
     household_test_user: User,
 ) -> None:
-    response = await client.post("/v1/households", headers=test_headers, json={"name": "Family Kitchen"})
+    response = await client.post(
+        "/v1/households",
+        headers=_headers(test_headers, "households-create"),
+        json={"name": "Family Kitchen"},
+    )
 
     assert response.status_code == 201
     payload = response.json()
@@ -100,7 +108,7 @@ async def test_update_household_name(
 
     response = await client.patch(
         f"/v1/households/{household.id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "households-update-name"),
         json={"name": "Updated Name"},
     )
 
@@ -151,7 +159,7 @@ async def test_join_household_by_invite_code(
 
     response = await client.post(
         "/v1/households/join",
-        headers=test_headers,
+        headers=_headers(test_headers, "households-join"),
         json={"invite_code": household.invite_code},
     )
 
@@ -194,7 +202,10 @@ async def test_leave_household(
     )
     await db_session.commit()
 
-    response = await client.post(f"/v1/households/{household.id}/leave", headers=test_headers)
+    response = await client.post(
+        f"/v1/households/{household.id}/leave",
+        headers=_headers(test_headers, "households-leave"),
+    )
 
     assert response.status_code == 204
 
@@ -227,7 +238,75 @@ async def test_remove_member_as_owner(
 
     response = await client.delete(
         f"/v1/households/{household.id}/members/{member.id}",
-        headers=test_headers,
+        headers=_headers(test_headers, "households-remove-member"),
     )
 
     assert response.status_code == 204
+
+
+@pytest.mark.asyncio
+async def test_create_household_marks_new_household_active(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    household_test_user: User,
+) -> None:
+    _ = household_test_user
+    create_response = await client.post(
+        "/v1/households",
+        headers=_headers(test_headers, "households-active-create"),
+        json={"name": "Weekend House"},
+    )
+
+    assert create_response.status_code == 201
+    assert create_response.json()["is_active"] is True
+
+    list_response = await client.get("/v1/households", headers=test_headers)
+    assert list_response.status_code == 200
+    active_households = [household for household in list_response.json() if household["is_active"]]
+    assert len(active_households) == 1
+    assert active_households[0]["name"] == "Weekend House"
+
+
+@pytest.mark.asyncio
+async def test_patch_household_can_switch_active_household(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    household_test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    first = await _create_household_with_member(
+        db_session,
+        household_test_user,
+        name="Primary",
+        invite_code="primary-household",
+    )
+    second = await _create_household_with_member(
+        db_session,
+        household_test_user,
+        name="Secondary",
+        invite_code="secondary-household",
+    )
+
+    first_membership = await db_session.execute(
+        select(HouseholdMember).where(
+            HouseholdMember.household_id == first.id,
+            HouseholdMember.user_id == household_test_user.id,
+        )
+    )
+    first_membership_obj = first_membership.scalar_one()
+    first_membership_obj.is_active = True
+    await db_session.commit()
+
+    response = await client.patch(
+        f"/v1/households/{second.id}",
+        headers=_headers(test_headers, "households-switch-active"),
+        json={"is_active": True},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["is_active"] is True
+
+    list_response = await client.get("/v1/households", headers=test_headers)
+    active_households = [household for household in list_response.json() if household["is_active"]]
+    assert len(active_households) == 1
+    assert active_households[0]["id"] == str(second.id)

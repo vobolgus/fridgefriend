@@ -21,8 +21,12 @@ from app.models.recipe import Recipe
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 from app.modules.planning.planner import MealPlanner
-from app.modules.planning.schemas import PlanDay, PlanRequest, PlanResult, RecipeIngredient
+from app.modules.planning.schemas import PlanRequest, PlanResult, RecipeIngredient
 from app.modules.planning.shopping_list import derive_shopping_list
+
+
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
 
 
 def _recipe(
@@ -60,19 +64,21 @@ def _int_value(value: object) -> int:
 
 
 def _plan_with_recipe_ingredients(recipe_id: str, title: str, ingredients: list[dict[str, object]]) -> PlanResult:
-    return PlanResult(
-        plan_id=str(uuid.uuid4()),
-        days=[
-            PlanDay(
-                date=date.today(),
-                recipe_id=recipe_id,
-                recipe_title=title,
-                servings=2,
-                reserved_items=[str(ingredient["name"]) for ingredient in ingredients],
-                recipe_ingredients=[RecipeIngredient.model_validate(ingredient) for ingredient in ingredients],
-            ),
-        ],
-        shopping_list=[],
+    return PlanResult.model_validate(
+        {
+            "planId": str(uuid.uuid4()),
+            "days": [
+                {
+                    "date": date.today(),
+                    "recipeId": recipe_id,
+                    "recipeTitle": title,
+                    "servings": 2,
+                    "reservedItems": [str(ingredient["name"]) for ingredient in ingredients],
+                    "recipeIngredients": [RecipeIngredient.model_validate(ingredient) for ingredient in ingredients],
+                },
+            ],
+            "shoppingList": [],
+        }
     )
 
 
@@ -412,7 +418,7 @@ async def test_api_post_plans(
 
     response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "planning-create-api"),
         json={"days": 3, "servings": 2, "dietary_tags": ["vegetarian"]},
     )
 
@@ -431,7 +437,7 @@ async def test_api_post_plans_invalid_days(
 ) -> None:
     response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "planning-invalid-days"),
         json={"days": 10, "servings": 2},
     )
 
@@ -458,7 +464,7 @@ async def test_api_get_shopping_list(
 
     create_response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "planning-shopping-list-create"),
         json={"days": 3, "servings": 2},
     )
 
@@ -491,7 +497,7 @@ async def test_plan_saved_to_db(
 
     response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "planning-save-plan"),
         json={"days": 3, "servings": 2},
     )
 
@@ -549,7 +555,7 @@ async def test_planning_scoped_by_household(
 
     response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "planning-household-scope"),
         json={"days": 3, "servings": 2, "max_prep_minutes": 15},
     )
 
@@ -600,7 +606,7 @@ async def test_shopping_list_uses_latest_household_plan(
 
     create_response = await client.post(
         "/v1/plans",
-        headers=test_headers,
+        headers=_headers(test_headers, "planning-shared-household"),
         json={"days": 3, "servings": 2, "dietary_tags": ["vegetarian"]},
     )
     assert create_response.status_code == 200

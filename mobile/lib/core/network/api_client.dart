@@ -74,15 +74,29 @@ class ApiClient {
     required double quantity,
     required String unit,
     required String storageLocation,
+    String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
+    double? confidence,
+    DateTime? estimatedExpiryDate,
   }) async {
+    final data = <String, dynamic>{
+      'display_name': displayName,
+      'quantity': quantity,
+      'unit': unit,
+      'storage_location': storageLocation,
+      if (source != null) 'source': source,
+      if (canonicalName != null) 'canonical_name': canonicalName,
+      if (canonicalIngredientId != null)
+        'canonical_ingredient_id': canonicalIngredientId,
+      if (confidence != null) 'confidence': confidence,
+      if (estimatedExpiryDate != null)
+        'estimated_expiry_date': estimatedExpiryDate.toIso8601String(),
+    };
+
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/items',
-      data: {
-        'display_name': displayName,
-        'quantity': quantity,
-        'unit': unit,
-        'storage_location': storageLocation,
-      },
+      data: data,
       options: Options(
         headers: {
           'Idempotency-Key': '${displayName}_${quantity}_${unit}_$storageLocation',
@@ -265,6 +279,9 @@ class ApiClient {
         'quantity': 1,
         'storage_location': 'fridge',
       },
+      options: Options(
+        headers: {'Idempotency-Key': 'barcode_$barcode'},
+      ),
     );
 
     final payload = response.data;
@@ -282,6 +299,12 @@ class ApiClient {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/scan/photo/upload',
       data: formData,
+      options: Options(
+        headers: {
+          'Idempotency-Key':
+              'upload_${DateTime.now().millisecondsSinceEpoch}',
+        },
+      ),
     );
 
     final payload = response.data;
@@ -297,6 +320,9 @@ class ApiClient {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/scan/photo',
       data: {'image_url': imageUrl},
+      options: Options(
+        headers: {'Idempotency-Key': 'photo_scan_${imageUrl.hashCode}'},
+      ),
     );
 
     final payload = response.data;
@@ -323,6 +349,9 @@ class ApiClient {
       'storageLocation': json['storageLocation'] ?? json['storage_location'],
       'estimatedExpiryDate':
           json['estimatedExpiryDate'] ?? json['estimated_expiry_date'],
+      'canonicalName': json['canonicalName'] ?? json['canonical_name'],
+      'canonicalIngredientId':
+          json['canonicalIngredientId'] ?? json['canonical_ingredient_id'],
     };
   }
 }

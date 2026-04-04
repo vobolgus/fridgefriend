@@ -22,6 +22,10 @@ from app.modules.recommendations.scorer import RecipeScorer
 from app.modules.recommendations.service import RecommendationService
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 def get_recipe(title: str) -> dict[str, object]:
     return next(recipe for recipe in FIXTURE_RECIPES if recipe["title"] == title)
 
@@ -59,7 +63,14 @@ async def ensure_household(db_session: AsyncSession, user: User, *, name: str, i
     household = Household(name=name, invite_code=invite_code)
     db_session.add(household)
     await db_session.flush()
-    db_session.add(HouseholdMember(household_id=household.id, user_id=user.id, role=HouseholdRole.OWNER))
+    db_session.add(
+        HouseholdMember(
+            household_id=household.id,
+            user_id=user.id,
+            role=HouseholdRole.OWNER,
+            is_active=True,
+        )
+    )
     await db_session.commit()
     await db_session.refresh(household)
     return household
@@ -324,7 +335,11 @@ async def test_api_endpoint_recommendations(
     await add_inventory_item(db_session, test_user, "eggs", household_id=household.id)
     await add_inventory_item(db_session, test_user, "butter", household_id=household.id)
 
-    response = await client.post("/v1/recommendations", headers=test_headers, json={})
+    response = await client.post(
+        "/v1/recommendations",
+        headers=_headers(test_headers, "recommendations-api"),
+        json={},
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -338,7 +353,11 @@ async def test_api_endpoint_recommendations_empty_inventory(
     test_headers: dict[str, str],
     test_user: User,
 ) -> None:
-    response = await client.post("/v1/recommendations", headers=test_headers, json={})
+    response = await client.post(
+        "/v1/recommendations",
+        headers=_headers(test_headers, "recommendations-empty"),
+        json={},
+    )
 
     assert response.status_code == 200
     payload = response.json()
@@ -364,20 +383,33 @@ async def test_recommendations_scoped_by_household(
     db_session.add(other_user)
     await db_session.commit()
     await db_session.refresh(other_user)
+    shared_member = User(email="recommendations-shared-member@example.com")
+    db_session.add(shared_member)
+    await db_session.commit()
+    await db_session.refresh(shared_member)
     other_household = await ensure_household(
         db_session,
         other_user,
         name="Recommendation Scope Other Household",
         invite_code="recommend-scope-other-hh",
     )
+    db_session.add(HouseholdMember(household_id=user_household.id, user_id=shared_member.id, role=HouseholdRole.MEMBER))
+    await db_session.commit()
 
     await add_inventory_item(db_session, test_user, "eggs", household_id=user_household.id)
-    await add_inventory_item(db_session, test_user, "butter", household_id=user_household.id)
+    await add_inventory_item(db_session, shared_member, "butter", household_id=user_household.id)
     await add_inventory_item(db_session, other_user, "beef", household_id=other_household.id)
+    await add_inventory_item(
+        db_session,
+        test_user,
+        "milk",
+        household_id=user_household.id,
+        status=InventoryStatus.USED,
+    )
 
     response = await client.post(
         "/v1/recommendations",
-        headers=test_headers,
+        headers=_headers(test_headers, "recommendations-household-scope"),
         json={"max_prep_minutes": 15},
     )
 
@@ -385,3 +417,4 @@ async def test_recommendations_scoped_by_household(
     payload = response.json()
     titles = [recipe["title"] for recipe in payload["recipes"]]
     assert "Scrambled Eggs" in titles
+    assert "Slow Braised Beef" not in titles

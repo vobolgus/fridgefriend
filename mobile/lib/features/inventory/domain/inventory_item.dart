@@ -9,6 +9,8 @@ class InventoryItem {
     required this.confidence,
     required this.status,
     required this.source,
+    this.canonicalName,
+    this.canonicalIngredientId,
   });
 
   final String id;
@@ -20,6 +22,8 @@ class InventoryItem {
   final double confidence;
   final String status;
   final String source;
+  final String? canonicalName;
+  final String? canonicalIngredientId;
 
   String get urgencyBucket {
     final daysLeft = estimatedExpiryDate.difference(DateTime.now()).inDays;
@@ -39,6 +43,8 @@ class InventoryItem {
     double? confidence,
     String? status,
     String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
   }) {
     return InventoryItem(
       id: id ?? this.id,
@@ -50,6 +56,9 @@ class InventoryItem {
       confidence: confidence ?? this.confidence,
       status: status ?? this.status,
       source: source ?? this.source,
+      canonicalName: canonicalName ?? this.canonicalName,
+      canonicalIngredientId:
+          canonicalIngredientId ?? this.canonicalIngredientId,
     );
   }
 
@@ -70,6 +79,11 @@ class InventoryItem {
       confidence: _asDouble(json['confidence']),
       status: (json['status'] ?? 'active').toString(),
       source: (json['source'] ?? 'manual').toString(),
+      canonicalName:
+          (json['canonicalName'] ?? json['canonical_name'])?.toString(),
+      canonicalIngredientId:
+          (json['canonicalIngredientId'] ?? json['canonical_ingredient_id'])
+              ?.toString(),
     );
   }
 
@@ -84,6 +98,8 @@ class InventoryItem {
       'confidence': confidence,
       'status': status,
       'source': source,
+      'canonicalName': canonicalName,
+      'canonicalIngredientId': canonicalIngredientId,
     };
   }
 

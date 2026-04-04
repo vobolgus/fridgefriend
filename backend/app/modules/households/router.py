@@ -6,10 +6,10 @@ from collections.abc import AsyncIterator
 from typing import Annotated, NoReturn
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
-from app.core.idempotency import get_cached, store_cached
+from app.core.idempotency import get_cached, require_idempotency_key, store_cached
 from app.models.events import InventoryEvent
 from app.models.household import Household
 from app.models.user import User
@@ -30,12 +30,14 @@ from .service import (
 router = APIRouter(prefix="/v1/households", tags=["households"])
 
 
-def _serialize_household(household: Household) -> HouseholdResponse:
+def _serialize_household(household: Household, current_user_id: UUID) -> HouseholdResponse:
     members = sorted(household.members, key=lambda member: member.created_at)
+    current_membership = next((member for member in members if member.user_id == current_user_id), None)
     return HouseholdResponse(
         id=household.id,
         name=household.name,
         invite_code=household.invite_code,
+        is_active=current_membership.is_active if current_membership is not None else False,
         members=[
             HouseholdMemberResponse(
                 id=member.id,
@@ -67,7 +69,7 @@ def _serialize_activity_event(event: InventoryEvent) -> dict[str, object]:
         "id": str(event.id),
         "household_id": str(event.household_id),
         "user_id": str(event.user_id),
-        "item_id": str(event.item_id),
+        "item_id": str(event.item_id) if event.item_id is not None else None,
         "action": event.action,
         "previous_state": event.previous_state,
         "new_state": event.new_state,
@@ -81,7 +83,7 @@ async def list_households(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> list[HouseholdResponse]:
     households = await household_service.list_households(current_user)
-    return [_serialize_household(household) for household in households]
+    return [_serialize_household(household, current_user.id) for household in households]
 
 
 @router.post("", response_model=HouseholdResponse, status_code=status.HTTP_201_CREATED)
@@ -90,19 +92,17 @@ async def create_household(
     household_service: Annotated[HouseholdService, Depends(get_household_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> HouseholdResponse:
     cache_scope = str(current_user.id)
-    if idempotency_key:
-        cached = get_cached(cache_scope, request.url.path, idempotency_key)
-        if cached:
-            return HouseholdResponse(**cached)
+    cached = get_cached(cache_scope, request.url.path, idempotency_key)
+    if cached:
+        return HouseholdResponse(**cached)
 
     household = await household_service.create_household(current_user, payload)
-    response = _serialize_household(household)
+    response = _serialize_household(household, current_user.id)
 
-    if idempotency_key:
-        store_cached(cache_scope, request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(cache_scope, request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -117,7 +117,7 @@ async def get_household_detail(
         household = await household_service.get_household(current_user, household_id)
     except HouseholdNotFoundError:
         _raise_not_found()
-    return _serialize_household(household)
+    return _serialize_household(household, current_user.id)
 
 
 @router.patch("/{household_id}", response_model=HouseholdResponse)
@@ -127,22 +127,20 @@ async def update_household(
     household_service: Annotated[HouseholdService, Depends(get_household_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> HouseholdResponse:
     cache_scope = str(current_user.id)
-    if idempotency_key:
-        cached = get_cached(cache_scope, request.url.path, idempotency_key)
-        if cached:
-            return HouseholdResponse(**cached)
+    cached = get_cached(cache_scope, request.url.path, idempotency_key)
+    if cached:
+        return HouseholdResponse(**cached)
 
     try:
         household = await household_service.update_household(current_user, household_id, payload)
     except HouseholdNotFoundError:
         _raise_not_found()
 
-    response = _serialize_household(household)
-    if idempotency_key:
-        store_cached(cache_scope, request.url.path, idempotency_key, response.model_dump(mode="json"))
+    response = _serialize_household(household, current_user.id)
+    store_cached(cache_scope, request.url.path, idempotency_key, response.model_dump(mode="json"))
     return response
 
 
@@ -152,22 +150,20 @@ async def join_household(
     household_service: Annotated[HouseholdService, Depends(get_household_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> HouseholdResponse:
     cache_scope = str(current_user.id)
-    if idempotency_key:
-        cached = get_cached(cache_scope, request.url.path, idempotency_key)
-        if cached:
-            return HouseholdResponse(**cached)
+    cached = get_cached(cache_scope, request.url.path, idempotency_key)
+    if cached:
+        return HouseholdResponse(**cached)
 
     try:
         household = await household_service.join_household(current_user, payload.invite_code)
     except HouseholdInviteCodeError:
         _raise_invalid_invite_code()
 
-    response = _serialize_household(household)
-    if idempotency_key:
-        store_cached(cache_scope, request.url.path, idempotency_key, response.model_dump(mode="json"))
+    response = _serialize_household(household, current_user.id)
+    store_cached(cache_scope, request.url.path, idempotency_key, response.model_dump(mode="json"))
     return response
 
 
@@ -177,21 +173,19 @@ async def leave_household(
     household_service: Annotated[HouseholdService, Depends(get_household_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> Response:
     cache_scope = str(current_user.id)
-    if idempotency_key:
-        cached = get_cached(cache_scope, request.url.path, idempotency_key)
-        if cached is not None:
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
+    cached = get_cached(cache_scope, request.url.path, idempotency_key)
+    if cached is not None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     try:
         await household_service.leave_household(current_user, household_id)
     except HouseholdNotFoundError:
         _raise_not_found()
 
-    if idempotency_key:
-        store_cached(cache_scope, request.url.path, idempotency_key, {})
+    store_cached(cache_scope, request.url.path, idempotency_key, {})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -202,13 +196,12 @@ async def remove_household_member(
     household_service: Annotated[HouseholdService, Depends(get_household_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> Response:
     cache_scope = str(current_user.id)
-    if idempotency_key:
-        cached = get_cached(cache_scope, request.url.path, idempotency_key)
-        if cached is not None:
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
+    cached = get_cached(cache_scope, request.url.path, idempotency_key)
+    if cached is not None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     try:
         await household_service.remove_member(current_user, household_id, user_id)
@@ -217,8 +210,7 @@ async def remove_household_member(
     except HouseholdAccessError:
         _raise_forbidden()
 
-    if idempotency_key:
-        store_cached(cache_scope, request.url.path, idempotency_key, {})
+    store_cached(cache_scope, request.url.path, idempotency_key, {})
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

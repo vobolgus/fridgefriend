@@ -5,12 +5,12 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.idempotency import get_cached, store_cached
+from app.core.idempotency import get_cached, require_idempotency_key, store_cached
 from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
@@ -40,17 +40,15 @@ async def get_recommendations(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> RecommendationResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return RecommendationResponse(**cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return RecommendationResponse(**cached)
 
     recipes = await recommendation_service.get_recommendations(current_user.id, payload, household_id=household_id)
     response = RecommendationResponse(recipes=recipes)
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response

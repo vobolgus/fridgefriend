@@ -1,3 +1,5 @@
+# pyright: reportAny=false, reportExplicitAny=false
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -45,7 +47,7 @@ class InventoryEventService:
         self,
         household_id: uuid.UUID,
         user_id: uuid.UUID,
-        item_id: uuid.UUID,
+        item_id: uuid.UUID | None,
         action: str,
         previous_state: dict[str, Any],
         new_state: dict[str, Any],
@@ -68,7 +70,7 @@ class InventoryEventService:
                 "id": str(event.id),
                 "household_id": str(event.household_id),
                 "user_id": str(event.user_id),
-                "item_id": str(event.item_id),
+                "item_id": str(event.item_id) if event.item_id is not None else None,
                 "action": event.action,
                 "previous_state": event.previous_state,
                 "new_state": event.new_state,
@@ -83,13 +85,21 @@ class InventoryEventService:
         result = await db.execute(
             select(InventoryEvent)
             .where(
-                InventoryEvent.item_id == item_id,
                 InventoryEvent.user_id == user_id,
                 InventoryEvent.household_id == household_id,
             )
             .order_by(InventoryEvent.created_at.desc()),
         )
-        event = result.scalars().first()
+        event = next(
+            (
+                candidate
+                for candidate in result.scalars()
+                if candidate.item_id == item_id
+                or candidate.previous_state.get("id") == str(item_id)
+                or candidate.new_state.get("id") == str(item_id)
+            ),
+            None,
+        )
         if event is None:
             return None
 

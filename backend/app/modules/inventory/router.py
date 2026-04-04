@@ -5,9 +5,9 @@ from __future__ import annotations
 from typing import Annotated, NoReturn
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from app.core.idempotency import get_cached, store_cached
+from app.core.idempotency import get_cached, require_idempotency_key, store_cached
 from app.models.user import User
 
 from .dependencies import get_active_household_id, get_current_user, get_inventory_service
@@ -33,18 +33,16 @@ async def create_item(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> ItemResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return ItemResponse(**cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return ItemResponse(**cached)
 
     item = await inventory_service.create_item(current_user, household_id, payload)
     response = ItemResponse.model_validate(item)
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -80,12 +78,11 @@ async def update_item(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> ItemResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return ItemResponse(**cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return ItemResponse(**cached)
 
     try:
         response = ItemResponse.model_validate(
@@ -96,8 +93,7 @@ async def update_item(
     except StaleDataError:
         _raise_version_conflict()
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -110,7 +106,7 @@ async def replace_item(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> ItemResponse:
     return await update_item(item_id, payload, inventory_service, current_user, household_id, request, idempotency_key)
 
@@ -122,20 +118,18 @@ async def delete_item(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> Response:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached is not None:
-            return Response(status_code=status.HTTP_204_NO_CONTENT)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached is not None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     try:
         await inventory_service.delete_item(item_id, current_user, household_id)
     except InventoryItemNotFoundError:
         _raise_not_found()
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, {})
+    store_cached(str(current_user.id), request.url.path, idempotency_key, {})
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -148,12 +142,11 @@ async def update_item_status(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> ItemResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return ItemResponse(**cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return ItemResponse(**cached)
 
     try:
         response = ItemResponse.model_validate(
@@ -162,8 +155,7 @@ async def update_item_status(
     except InventoryItemNotFoundError:
         _raise_not_found()
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -175,12 +167,11 @@ async def undo_item_event(
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
     request: Request,
-    idempotency_key: Annotated[str | None, Header()] = None,
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> ItemResponse:
-    if idempotency_key:
-        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
-        if cached:
-            return ItemResponse(**cached)
+    cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+    if cached:
+        return ItemResponse(**cached)
 
     try:
         response = ItemResponse.model_validate(
@@ -189,7 +180,6 @@ async def undo_item_event(
     except InventoryItemNotFoundError:
         _raise_not_found()
 
-    if idempotency_key:
-        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response

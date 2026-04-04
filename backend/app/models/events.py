@@ -17,7 +17,12 @@ class InventoryEvent(UUIDPrimaryKeyMixin, TimestampMixin, Base):
 
     household_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("households.id"), index=True)
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
-    item_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("inventory_items.id"), index=True)
+    item_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid,
+        ForeignKey("inventory_items.id", ondelete="SET NULL"),
+        index=True,
+        nullable=True,
+    )
     action: Mapped[str] = mapped_column(String(50))
     previous_state: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     new_state: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)

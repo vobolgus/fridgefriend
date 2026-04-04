@@ -91,6 +91,11 @@ void main() {
         quantity: any(named: 'quantity'),
         unit: any(named: 'unit'),
         storageLocation: any(named: 'storageLocation'),
+        source: any(named: 'source'),
+        canonicalName: any(named: 'canonicalName'),
+        canonicalIngredientId: any(named: 'canonicalIngredientId'),
+        confidence: any(named: 'confidence'),
+        estimatedExpiryDate: any(named: 'estimatedExpiryDate'),
       ),
     ).thenAnswer(
       (_) async => InventoryItem(

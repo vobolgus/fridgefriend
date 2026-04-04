@@ -5,7 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.inventory_item import InventoryItem
+from app.models.inventory_item import InventoryItem, InventoryStatus
 
 from .interfaces import RecipeSourceInterface
 from .mock_recipe_source import MockRecipeSource
@@ -56,15 +56,17 @@ class RecommendationService:
                 dietary_preferences=request.dietary_tags,
             )
             recommendations.append(
-                RecipeRecommendation(
-                    id=recipe.id,
-                    title=recipe.title,
-                    use_soon_score=breakdown.use_soon_score,
-                    coverage_pct=breakdown.coverage_pct,
-                    missing_items=breakdown.missing_items,
-                    substitutions=breakdown.substitutions,
-                    prep_minutes=recipe.prep_minutes,
-                    score=breakdown.score,
+                RecipeRecommendation.model_validate(
+                    {
+                        "id": recipe.id,
+                        "title": recipe.title,
+                        "useSoonScore": breakdown.use_soon_score,
+                        "coveragePct": breakdown.coverage_pct,
+                        "missingItems": breakdown.missing_items,
+                        "substitutions": breakdown.substitutions,
+                        "prepMinutes": recipe.prep_minutes,
+                        "score": breakdown.score,
+                    }
                 ),
             )
 
@@ -72,9 +74,11 @@ class RecommendationService:
         return recommendations[:10]
 
     async def list_inventory_items(self, user_id: UUID, household_id: UUID | None = None) -> list[InventoryItem]:
-        statement = select(InventoryItem).where(InventoryItem.user_id == user_id)
         if household_id is not None:
-            statement = statement.where(InventoryItem.household_id == household_id)
+            statement = select(InventoryItem).where(InventoryItem.household_id == household_id)
+        else:
+            statement = select(InventoryItem).where(InventoryItem.user_id == user_id)
+        statement = statement.where(InventoryItem.status == InventoryStatus.ACTIVE)
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 

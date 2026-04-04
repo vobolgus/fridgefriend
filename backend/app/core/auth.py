@@ -101,6 +101,7 @@ async def _ensure_default_household(user: User, db: AsyncSession) -> None:
         household_id=household.id,
         user_id=user.id,
         role=HouseholdRole.OWNER,
+        is_active=True,
     )
     db.add(member)
     await db.commit()

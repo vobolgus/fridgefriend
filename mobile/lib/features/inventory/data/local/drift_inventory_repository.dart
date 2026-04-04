@@ -25,6 +25,11 @@ class DriftInventoryRepository implements InventoryRepository {
     required double quantity,
     required String unit,
     required String storageLocation,
+    String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
+    double? confidence,
+    DateTime? estimatedExpiryDate,
   }) async {
     final item = InventoryItem(
       id: 'local_${DateTime.now().microsecondsSinceEpoch}',
@@ -32,10 +37,13 @@ class DriftInventoryRepository implements InventoryRepository {
       quantity: quantity,
       unit: unit,
       storageLocation: storageLocation,
-      estimatedExpiryDate: DateTime.now().add(const Duration(days: 7)),
-      confidence: 0.5,
+      estimatedExpiryDate:
+          estimatedExpiryDate ?? DateTime.now().add(const Duration(days: 7)),
+      confidence: confidence ?? 0.5,
       status: 'active',
-      source: 'manual',
+      source: source ?? 'manual',
+      canonicalName: canonicalName,
+      canonicalIngredientId: canonicalIngredientId,
     );
 
     await _inventoryDao.insertItem(

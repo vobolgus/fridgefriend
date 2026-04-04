@@ -79,6 +79,11 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
     required double quantity,
     required String unit,
     required String storageLocation,
+    String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
+    double? confidence,
+    DateTime? estimatedExpiryDate,
   }) async {
     try {
       final createdItem = await _repository.createInventoryItem(
@@ -86,6 +91,11 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,
+        source: source,
+        canonicalName: canonicalName,
+        canonicalIngredientId: canonicalIngredientId,
+        confidence: confidence,
+        estimatedExpiryDate: estimatedExpiryDate,
       );
 
       final currentItems = state.valueOrNull ?? const <InventoryItem>[];
@@ -158,6 +168,11 @@ class _NoopRepository implements InventoryRepository {
     required double quantity,
     required String unit,
     required String storageLocation,
+    String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
+    double? confidence,
+    DateTime? estimatedExpiryDate,
   }) {
     throw UnimplementedError('_NoopRepository is for testing only');
   }

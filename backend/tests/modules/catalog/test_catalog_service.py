@@ -7,6 +7,10 @@ import httpx
 import pytest
 
 
+def _headers(key: str) -> dict[str, str]:
+    return {"Authorization": "Bearer test-token", "Idempotency-Key": key}
+
+
 class BarcodeResultLike(Protocol):
     barcode: str
     display_name: str
@@ -100,7 +104,7 @@ def test_lookup_known_barcode_returns_expected_payload(service: CatalogServiceLi
 async def test_barcode_api_endpoint_found(client: httpx.AsyncClient) -> None:
     response = await client.post(
         "/v1/scan/barcode",
-        headers={"Authorization": "Bearer test-token"},
+        headers=_headers("barcode-found-1"),
         json={
             "barcode": "8710847909610",
             "quantity": 1,
@@ -109,7 +113,7 @@ async def test_barcode_api_endpoint_found(client: httpx.AsyncClient) -> None:
     )
 
     assert response.status_code == 200
-    payload = response.json()
+    payload = cast(dict[str, object], response.json())
     assert payload["barcode"] == "8710847909610"
     assert payload["display_name"] == "Whole Milk 1L"
     assert payload["canonical_name"] == "milk"
@@ -138,7 +142,7 @@ async def test_barcode_api_endpoint_requires_auth(client: httpx.AsyncClient) -> 
 async def test_barcode_api_endpoint_not_found_returns_editable_draft(client: httpx.AsyncClient) -> None:
     response = await client.post(
         "/v1/scan/barcode",
-        headers={"Authorization": "Bearer test-token"},
+        headers=_headers("barcode-not-found-1"),
         json={
             "barcode": "9999999999999",
             "quantity": 1,
@@ -163,7 +167,7 @@ async def test_barcode_api_endpoint_not_found_returns_editable_draft(client: htt
 async def test_barcode_api_endpoint_missing_field(client: httpx.AsyncClient) -> None:
     response = await client.post(
         "/v1/scan/barcode",
-        headers={"Authorization": "Bearer test-token"},
+        headers=_headers("barcode-missing-field-1"),
         json={"quantity": 1, "storage_location": "fridge"},
     )
 

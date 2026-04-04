@@ -17,7 +17,7 @@ from app.modules.inventory.dependencies import get_current_user
 
 
 @pytest.fixture(autouse=True)
-def _reset_idempotency_cache() -> None:
+def reset_idempotency_cache() -> None:
     clear_cache()
 
 
@@ -94,11 +94,12 @@ async def test_different_idempotency_keys_create_different_items(
 
 
 @pytest.mark.asyncio
-async def test_no_idempotency_key_creates_duplicates(
+async def test_missing_idempotency_key_returns_400(
     client: httpx.AsyncClient,
     test_headers: dict[str, str],
     test_user: User,
 ) -> None:
+    _ = test_user
     payload = {
         "display_name": "Butter",
         "quantity": 1.0,
@@ -106,12 +107,10 @@ async def test_no_idempotency_key_creates_duplicates(
         "storage_location": "fridge",
     }
 
-    r1 = await client.post("/v1/items", headers=test_headers, json=payload)
-    r2 = await client.post("/v1/items", headers=test_headers, json=payload)
+    response = await client.post("/v1/items", headers=test_headers, json=payload)
 
-    assert r1.status_code == 201
-    assert r2.status_code == 201
-    assert r1.json()["itemId"] != r2.json()["itemId"]
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Idempotency-Key header is required"}
 
 
 @pytest.mark.asyncio
@@ -122,7 +121,7 @@ async def test_idempotency_key_on_update_item(
 ) -> None:
     create_resp = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers={**test_headers, "Idempotency-Key": "update-create-1"},
         json={
             "display_name": "Juice",
             "quantity": 1.0,
@@ -149,7 +148,7 @@ async def test_idempotency_key_on_status_update(
 ) -> None:
     create_resp = await client.post(
         "/v1/items",
-        headers=test_headers,
+        headers={**test_headers, "Idempotency-Key": "status-create-1"},
         json={
             "display_name": "Bread",
             "quantity": 1.0,

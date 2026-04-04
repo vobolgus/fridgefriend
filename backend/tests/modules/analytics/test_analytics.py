@@ -17,6 +17,10 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
 
+def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
+    return {**test_headers, "Idempotency-Key": key}
+
+
 @pytest_asyncio.fixture
 async def analytics_test_user(app: FastAPI, db_session: AsyncSession) -> AsyncIterator[User]:
     user = User(email="analytics-api@example.com")
@@ -47,7 +51,7 @@ async def test_collect_event(
 ) -> None:
     response = await client.post(
         "/v1/analytics/events",
-        headers=test_headers,
+        headers=_headers(test_headers, "analytics-collect-1"),
         json={"event_type": "recipe_viewed", "payload": {"recipe_id": "recipe-1"}},
     )
 
@@ -63,8 +67,26 @@ async def test_analytics_event_is_immutable(
     test_headers: dict[str, str],
     analytics_test_user: User,
 ) -> None:
+    _ = (test_headers, analytics_test_user)
     patch_response = await client.patch("/v1/analytics/events", headers=test_headers, json={})
     delete_response = await client.delete("/v1/analytics/events", headers=test_headers)
 
     assert patch_response.status_code == 405
     assert delete_response.status_code == 405
+
+
+@pytest.mark.asyncio
+async def test_collect_event_requires_idempotency_key(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    analytics_test_user: User,
+) -> None:
+    _ = analytics_test_user
+    response = await client.post(
+        "/v1/analytics/events",
+        headers=test_headers,
+        json={"event_type": "recipe_viewed", "payload": {"recipe_id": "recipe-1"}},
+    )
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Idempotency-Key header is required"}

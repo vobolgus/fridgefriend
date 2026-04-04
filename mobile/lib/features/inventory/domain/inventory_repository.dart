@@ -10,6 +10,11 @@ abstract class InventoryRepository {
     required double quantity,
     required String unit,
     required String storageLocation,
+    String? source,
+    String? canonicalName,
+    String? canonicalIngredientId,
+    double? confidence,
+    DateTime? estimatedExpiryDate,
   });
 
   Future<void> updateItemStatus(String id, String status);

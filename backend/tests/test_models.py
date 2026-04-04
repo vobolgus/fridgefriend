@@ -76,6 +76,7 @@ async def test_household_member_creation(db_session: AsyncSession) -> None:
     assert saved_membership.household_id == household.id
     assert saved_membership.user_id == user.id
     assert saved_membership.role is HouseholdRole.OWNER
+    assert saved_membership.is_active is False
 
 
 @pytest.mark.asyncio

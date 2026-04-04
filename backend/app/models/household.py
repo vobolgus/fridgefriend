@@ -6,7 +6,7 @@ from enum import StrEnum
 import uuid
 from typing import Any
 
-from sqlalchemy import Enum, ForeignKey, String, Uuid
+from sqlalchemy import Boolean, Enum, ForeignKey, String, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin, VersionMixin
@@ -48,6 +48,7 @@ class HouseholdMember(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Enum(HouseholdRole, values_callable=enum_values),
         default=HouseholdRole.MEMBER,
     )
+    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
 
     household: Mapped[Household] = relationship(back_populates="members")
     user: Mapped[Any] = relationship("User", back_populates="household_memberships")
