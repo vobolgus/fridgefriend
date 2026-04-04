@@ -6,7 +6,7 @@ import '../data/mock_auth_service.dart';
 
 const bool useMockAuth = bool.fromEnvironment(
   'USE_MOCK_AUTH',
-  defaultValue: true,
+  defaultValue: false,
 );
 
 final authServiceProvider = Provider<AuthService>((ref) {

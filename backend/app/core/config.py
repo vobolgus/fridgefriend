@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     IDEMPOTENCY_BACKEND: str = "memory"
     IDEMPOTENCY_TTL_SECONDS: int = 86400
-    AUTH_MOCK: bool = True
+    AUTH_MOCK: bool = False
     S3_ENDPOINT_URL: str = "http://localhost:4566"
     S3_BUCKET: str = "fridgefriend-uploads"
     AWS_REGION: str = "us-east-1"

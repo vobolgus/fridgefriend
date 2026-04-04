@@ -12,6 +12,8 @@ from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.user import User
 from app.modules.catalog.service import CatalogService
+from app.modules.expiry.rules import DatabaseShelfLifeRules, load_db_shelf_life_rules
+from app.modules.expiry.service import ExpiryService
 from app.modules.households.dependencies import get_active_household
 
 from .repository import InventoryRepository
@@ -24,7 +26,14 @@ async def get_inventory_service(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> InventoryService:
     repository = InventoryRepository(db)
-    return InventoryService(repository, catalog_service=CatalogService(db_session=db))
+    db_rules = await load_db_shelf_life_rules(db)
+    shelf_life_rules = DatabaseShelfLifeRules(db_rules=db_rules)
+    expiry_service = ExpiryService(shelf_life_rules=shelf_life_rules)
+    return InventoryService(
+        repository,
+        catalog_service=CatalogService(db_session=db),
+        expiry_service=expiry_service,
+    )
 
 
 async def get_active_household_id(

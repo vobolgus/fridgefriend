@@ -34,7 +34,7 @@ async def test_mock_auth_rejects_invalid_token(
     monkeypatch.setattr(settings, "AUTH_MOCK", True)
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_current_user("Bearer invalid-token", db=db_session)
+        _ = await get_current_user("Bearer invalid-token", db=db_session)
 
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "Unauthorized"
@@ -86,7 +86,7 @@ async def test_existing_user_returns_existing_household(
     monkeypatch.setattr(settings, "AUTH_MOCK", True)
 
     user = await get_current_user("Bearer test-token", db=db_session)
-    await get_current_user("Bearer test-token", db=db_session)
+    _ = await get_current_user("Bearer test-token", db=db_session)
 
     memberships = await db_session.execute(
         select(HouseholdMember).where(HouseholdMember.user_id == user.id)
@@ -100,4 +100,4 @@ def test_auth_mock_toggle_defaults_to_true(monkeypatch: MonkeyPatch) -> None:
 
     app_settings = Settings()
 
-    assert app_settings.AUTH_MOCK is True
+    assert app_settings.AUTH_MOCK is False

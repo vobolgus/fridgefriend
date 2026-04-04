@@ -6,7 +6,7 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:fridgefriend_mobile/app.dart';
 
 const String _sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
-const bool _useMockAuth = bool.fromEnvironment('USE_MOCK_AUTH', defaultValue: true);
+const bool _useMockAuth = bool.fromEnvironment('USE_MOCK_AUTH', defaultValue: false);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

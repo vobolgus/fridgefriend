@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Generator
 
 import httpx
 import pytest
@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from app.core.database import AsyncSessionLocal
+from app.core.config import settings
 from app.main import app as fastapi_app
 from app.models import Base
 
@@ -29,6 +30,16 @@ async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
 @pytest.fixture
 def test_headers() -> dict[str, str]:
     return {"Authorization": "Bearer test-token"}
+
+
+@pytest.fixture(autouse=True)
+def enable_mock_auth_by_default() -> Generator[None, None, None]:
+    previous = settings.AUTH_MOCK
+    settings.AUTH_MOCK = True
+    try:
+        yield
+    finally:
+        settings.AUTH_MOCK = previous
 
 
 @pytest_asyncio.fixture
