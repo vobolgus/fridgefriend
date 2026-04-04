@@ -83,7 +83,11 @@ void main() {
       final item = await client.scanBarcode('0123456789');
 
       expect(capturedOptions.headers['Authorization'], 'Bearer firebase-token');
-      expect(capturedOptions.headers['Idempotency-Key'], 'barcode_0123456789');
+      expect(
+        (capturedOptions.headers['Idempotency-Key'] as String)
+            .startsWith('barcode_scan_'),
+        isTrue,
+      );
       expect(capturedOptions.path, '/v1/scan/barcode');
       expect(capturedOptions.data, {
         'barcode': '0123456789',
@@ -124,8 +128,9 @@ void main() {
 
       expect(capturedOptions.headers['Authorization'], 'Bearer test-token');
       expect(
-        capturedOptions.headers['Idempotency-Key'],
-        'photo_scan_${'mock://photo.jpg'.hashCode}',
+        (capturedOptions.headers['Idempotency-Key'] as String)
+            .startsWith('photo_scan_'),
+        isTrue,
       );
       expect(capturedOptions.path, '/v1/scan/photo');
       expect(capturedOptions.data, {'image_url': 'mock://photo.jpg'});

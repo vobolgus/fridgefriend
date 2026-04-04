@@ -115,6 +115,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                           quantity: double.parse(_quantityController.text.trim()),
                           unit: _unitController.text.trim(),
                           storageLocation: _storageController.text.trim(),
+                          version: widget.initialItem?.version,
                         );
                   } else {
                     await ref.read(inventoryProvider.notifier).addItem(

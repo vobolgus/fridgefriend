@@ -47,6 +47,10 @@ class ApiClient {
 
   Dio get rawClient => _dio;
 
+  String _uniqueIdempotencyKey(String prefix) {
+    return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
+  }
+
   Future<List<InventoryItem>> getInventoryItems() async {
     final response = await _dio.get('${ApiConfig.apiVersionPath}/items');
     final payload = response.data;
@@ -99,7 +103,7 @@ class ApiClient {
       data: data,
       options: Options(
         headers: {
-          'Idempotency-Key': '${displayName}_${quantity}_${unit}_$storageLocation',
+          'Idempotency-Key': _uniqueIdempotencyKey('create_item'),
         },
       ),
     );
@@ -118,6 +122,7 @@ class ApiClient {
     String? unit,
     String? storageLocation,
     DateTime? estimatedExpiryDate,
+    int? version,
   }) async {
     final data = <String, dynamic>{
       if (quantity != null) 'quantity': quantity,
@@ -125,6 +130,7 @@ class ApiClient {
       if (storageLocation != null) 'storage_location': storageLocation,
       if (estimatedExpiryDate != null)
         'estimated_expiry_date': estimatedExpiryDate.toIso8601String(),
+      if (version != null) 'version': version,
     };
 
     final response = await _dio.patch(
@@ -132,8 +138,7 @@ class ApiClient {
       data: data,
       options: Options(
         headers: {
-          'Idempotency-Key':
-              '${id}_update_${DateTime.now().millisecondsSinceEpoch}',
+          'Idempotency-Key': _uniqueIdempotencyKey('update_item_$id'),
         },
       ),
     );
@@ -182,7 +187,7 @@ class ApiClient {
       '${ApiConfig.apiVersionPath}/recommendations',
       data: {'servings': servings},
       options: Options(
-        headers: {'Idempotency-Key': 'recommendations_$servings'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('recommendations')},
       ),
     );
 
@@ -209,7 +214,9 @@ class ApiClient {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/plans',
       data: {'days': days},
-      options: Options(headers: {'Idempotency-Key': 'plan_$days'}),
+      options: Options(
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('plan')},
+      ),
     );
 
     final payload = response.data;
@@ -287,8 +294,7 @@ class ApiClient {
       data: data,
       options: Options(
         headers: {
-          'Idempotency-Key':
-              'notif_pref_${data.entries.map((e) => '${e.key}_${e.value}').join('_')}',
+          'Idempotency-Key': _uniqueIdempotencyKey('notif_pref'),
         },
       ),
     );
@@ -307,7 +313,7 @@ class ApiClient {
       '${ApiConfig.apiVersionPath}/notifications/devices',
       data: {'token': token, 'platform': platform},
       options: Options(
-        headers: {'Idempotency-Key': 'device_token_${token.hashCode}'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('device_token')},
       ),
     );
     final payload = response.data;
@@ -321,7 +327,7 @@ class ApiClient {
     await _dio.delete(
       '${ApiConfig.apiVersionPath}/notifications/devices/$tokenId',
       options: Options(
-        headers: {'Idempotency-Key': 'unregister_device_$tokenId'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('unregister_device')},
       ),
     );
   }
@@ -331,7 +337,7 @@ class ApiClient {
       '${ApiConfig.apiVersionPath}/households',
       data: {'name': name},
       options: Options(
-        headers: {'Idempotency-Key': 'create_household_$name'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('create_household')},
       ),
     );
     return Household.fromJson(response.data as Map<String, dynamic>);
@@ -342,7 +348,7 @@ class ApiClient {
       '${ApiConfig.apiVersionPath}/households/join',
       data: {'invite_code': inviteCode},
       options: Options(
-        headers: {'Idempotency-Key': 'join_household_$inviteCode'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('join_household')},
       ),
     );
     return Household.fromJson(response.data as Map<String, dynamic>);
@@ -352,7 +358,7 @@ class ApiClient {
     await _dio.post(
       '${ApiConfig.apiVersionPath}/households/$id/leave',
       options: Options(
-        headers: {'Idempotency-Key': 'leave_household_$id'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('leave_household')},
       ),
     );
   }
@@ -366,7 +372,7 @@ class ApiClient {
         'storage_location': 'fridge',
       },
       options: Options(
-        headers: {'Idempotency-Key': 'barcode_$barcode'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('barcode_scan')},
       ),
     );
 
@@ -407,7 +413,7 @@ class ApiClient {
       '${ApiConfig.apiVersionPath}/scan/photo',
       data: {'image_url': imageUrl},
       options: Options(
-        headers: {'Idempotency-Key': 'photo_scan_${imageUrl.hashCode}'},
+        headers: {'Idempotency-Key': _uniqueIdempotencyKey('photo_scan')},
       ),
     );
 

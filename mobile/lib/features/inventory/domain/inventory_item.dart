@@ -11,6 +11,7 @@ class InventoryItem {
     this.confidence,
     this.canonicalName,
     this.canonicalIngredientId,
+    this.version = 1,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class InventoryItem {
   final String source;
   final String? canonicalName;
   final String? canonicalIngredientId;
+  final int version;
 
   String get urgencyBucket {
     if (estimatedExpiryDate == null) return 'safe_later';
@@ -46,6 +48,7 @@ class InventoryItem {
     String? source,
     String? canonicalName,
     String? canonicalIngredientId,
+    int? version,
   }) {
     return InventoryItem(
       id: id ?? this.id,
@@ -59,6 +62,7 @@ class InventoryItem {
       source: source ?? this.source,
       canonicalName: canonicalName ?? this.canonicalName,
       canonicalIngredientId: canonicalIngredientId ?? this.canonicalIngredientId,
+      version: version ?? this.version,
     );
   }
 
@@ -83,6 +87,7 @@ class InventoryItem {
       canonicalIngredientId:
           (json['canonicalIngredientId'] ?? json['canonical_ingredient_id'])
               ?.toString(),
+      version: (json['version'] ?? 1) as int,
     );
   }
 
@@ -100,6 +105,7 @@ class InventoryItem {
       'source': source,
       'canonicalName': canonicalName,
       'canonicalIngredientId': canonicalIngredientId,
+      'version': version,
     };
   }
 

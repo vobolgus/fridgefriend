@@ -157,7 +157,7 @@ async def test_photo_scan_low_confidence_returns_editable_draft(
 
 
 @pytest.mark.asyncio
-async def test_photo_scan_failure_returns_empty_editable_draft(
+async def test_photo_scan_failure_returns_manual_entry_editable_draft(
     photo_client: httpx.AsyncClient,
     app: FastAPI,
 ) -> None:
@@ -170,7 +170,18 @@ async def test_photo_scan_failure_returns_empty_editable_draft(
     )
 
     assert response.status_code == 200
-    assert response.json() == {"draft_items": [], "source": "photo"}
+    assert response.json() == {
+        "draft_items": [
+            {
+                "display_name": "",
+                "quantity": 0.0,
+                "unit": "unit",
+                "confidence": 0.0,
+                "canonical_name": None,
+            }
+        ],
+        "source": "photo",
+    }
 
 
 @pytest.mark.asyncio

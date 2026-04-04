@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:drift/drift.dart';
+import 'package:dio/dio.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
 import 'package:fridgefriend_mobile/database/app_database.dart';
@@ -90,16 +91,53 @@ class InventoryRepositoryImpl implements InventoryRepository {
     String? unit,
     String? storageLocation,
     DateTime? estimatedExpiryDate,
+    int? version,
   }) async {
-    final updated = await _apiClient.updateItem(
-      id: id,
-      quantity: quantity,
-      unit: unit,
-      storageLocation: storageLocation,
-      estimatedExpiryDate: estimatedExpiryDate,
-    );
-    await _cacheItems([updated]);
-    return updated;
+    try {
+      final updated = await _apiClient.updateItem(
+        id: id,
+        quantity: quantity,
+        unit: unit,
+        storageLocation: storageLocation,
+        estimatedExpiryDate: estimatedExpiryDate,
+        version: version,
+      );
+      await _cacheItems([updated]);
+      return updated;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        throw StateError('Item was modified by another user. Please refresh and try again.');
+      }
+
+      final items = await _inventoryDao.getAllItems();
+      final existing = items.where((item) => item.id == id).firstOrNull;
+      if (existing == null) {
+        rethrow;
+      }
+
+      final updatedLocal = InventoryItem(
+        id: id,
+        displayName: existing.displayName,
+        quantity: quantity ?? existing.quantity,
+        unit: unit ?? existing.unit,
+        storageLocation: storageLocation ?? existing.storageLocation,
+        estimatedExpiryDate: estimatedExpiryDate ?? existing.estimatedExpiryDate,
+        confidence: existing.confidence,
+        status: existing.status,
+        source: existing.source,
+        version: version ?? existing.version,
+      );
+      await _inventoryDao.insertItem(_toCompanion(updatedLocal));
+      await _syncManager.queueUpdate(
+        itemId: id,
+        quantity: quantity,
+        unit: unit,
+        storageLocation: storageLocation,
+        estimatedExpiryDate: estimatedExpiryDate,
+        version: version,
+      );
+      return updatedLocal;
+    }
   }
 
   @override
@@ -131,6 +169,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
             confidence: item.confidence,
             status: item.status,
             source: item.source,
+            version: item.version,
           ),
         )
         .toList(growable: false);
@@ -158,6 +197,7 @@ class InventoryRepositoryImpl implements InventoryRepository {
       confidence: item.confidence ?? 0.0,
       status: Value(item.status),
       source: Value(item.source),
+      version: Value(item.version),
     );
   }
 }

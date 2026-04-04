@@ -27,6 +27,7 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
     String? unit,
     String? storageLocation,
     DateTime? estimatedExpiryDate,
+    int? version,
   }) async {
     await (update(inventoryItemsTable)..where((table) => table.id.equals(id)))
         .write(
@@ -39,6 +40,7 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
             estimatedExpiryDate: estimatedExpiryDate == null
                 ? const Value.absent()
                 : Value(estimatedExpiryDate),
+            version: version == null ? const Value.absent() : Value(version),
           ),
         );
   }

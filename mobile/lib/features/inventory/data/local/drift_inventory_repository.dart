@@ -46,7 +46,7 @@ class DriftInventoryRepository implements InventoryRepository {
       canonicalIngredientId: canonicalIngredientId,
     );
 
-    await _inventoryDao.insertItem(
+      await _inventoryDao.insertItem(
       InventoryItemsTableCompanion.insert(
         id: item.id,
         displayName: item.displayName,
@@ -57,6 +57,7 @@ class DriftInventoryRepository implements InventoryRepository {
         confidence: item.confidence,
         status: Value(item.status),
         source: Value(item.source),
+        version: Value(item.version),
       ),
     );
 
@@ -70,6 +71,7 @@ class DriftInventoryRepository implements InventoryRepository {
     String? unit,
     String? storageLocation,
     DateTime? estimatedExpiryDate,
+    int? version,
   }) async {
     await _inventoryDao.updateItem(
       id: id,
@@ -77,6 +79,7 @@ class DriftInventoryRepository implements InventoryRepository {
       unit: unit,
       storageLocation: storageLocation,
       estimatedExpiryDate: estimatedExpiryDate,
+      version: version,
     );
 
     final item = (await _inventoryDao.getAllItems())
@@ -105,6 +108,7 @@ class DriftInventoryRepository implements InventoryRepository {
       confidence: item.confidence,
       status: item.status,
       source: item.source,
+      version: item.version,
     );
   }
 }

@@ -9,129 +9,90 @@ class $InventoryItemsTableTable extends InventoryItemsTable
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $InventoryItemsTableTable(this.attachedDatabase, [this._alias]);
-
-  static const VerificationMeta _idMeta = VerificationMeta('id');
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _displayNameMeta =
-      VerificationMeta('displayName');
+      const VerificationMeta('displayName');
   @override
   late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
-    'display_name',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-
-  static const VerificationMeta _quantityMeta = VerificationMeta('quantity');
+      'display_name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _quantityMeta =
+      const VerificationMeta('quantity');
   @override
   late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
-    'quantity',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-
-  static const VerificationMeta _unitMeta = VerificationMeta('unit');
+      'quantity', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
   @override
   late final GeneratedColumn<String> unit = GeneratedColumn<String>(
-    'unit',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-
+      'unit', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _storageLocationMeta =
-      VerificationMeta('storageLocation');
+      const VerificationMeta('storageLocation');
   @override
   late final GeneratedColumn<String> storageLocation = GeneratedColumn<String>(
-    'storage_location',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-
+      'storage_location', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
   static const VerificationMeta _estimatedExpiryDateMeta =
-      VerificationMeta('estimatedExpiryDate');
+      const VerificationMeta('estimatedExpiryDate');
   @override
   late final GeneratedColumn<DateTime> estimatedExpiryDate =
-      GeneratedColumn<DateTime>(
-        'estimated_expiry_date',
-        aliasedName,
-        false,
-        type: DriftSqlType.dateTime,
-        requiredDuringInsert: true,
-      );
-
-  static const VerificationMeta _confidenceMeta = VerificationMeta('confidence');
+      GeneratedColumn<DateTime>('estimated_expiry_date', aliasedName, false,
+          type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _confidenceMeta =
+      const VerificationMeta('confidence');
   @override
   late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
-    'confidence',
-    aliasedName,
-    false,
-    type: DriftSqlType.double,
-    requiredDuringInsert: true,
-  );
-
-  static const VerificationMeta _statusMeta = VerificationMeta('status');
+      'confidence', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumn<String> status = GeneratedColumn<String>(
-    'status',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('active'),
-  );
-
-  static const VerificationMeta _sourceMeta = VerificationMeta('source');
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('active'));
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
   @override
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
-    'source',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    defaultValue: const Constant('manual'),
-  );
-
+      'source', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('manual'));
+  static const VerificationMeta _versionMeta =
+      const VerificationMeta('version');
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+      'version', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
   @override
   List<GeneratedColumn> get $columns => [
-    id,
-    displayName,
-    quantity,
-    unit,
-    storageLocation,
-    estimatedExpiryDate,
-    confidence,
-    status,
-    source,
-  ];
-
+        id,
+        displayName,
+        quantity,
+        unit,
+        storageLocation,
+        estimatedExpiryDate,
+        confidence,
+        status,
+        source,
+        version
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
-
   @override
   String get actualTableName => $name;
-
   static const String $name = 'inventory_items_table';
-
   @override
   VerificationContext validateIntegrity(
-    Insertable<InventoryItemsTableData> instance, {
-    bool isInserting = false,
-  }) {
+      Insertable<InventoryItemsTableData> instance,
+      {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -141,125 +102,91 @@ class $InventoryItemsTableTable extends InventoryItemsTable
     }
     if (data.containsKey('display_name')) {
       context.handle(
-        _displayNameMeta,
-        displayName.isAcceptableOrUnknown(
-          data['display_name']!,
           _displayNameMeta,
-        ),
-      );
+          displayName.isAcceptableOrUnknown(
+              data['display_name']!, _displayNameMeta));
     } else if (isInserting) {
       context.missing(_displayNameMeta);
     }
     if (data.containsKey('quantity')) {
-      context.handle(
-        _quantityMeta,
-        quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta),
-      );
+      context.handle(_quantityMeta,
+          quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta));
     } else if (isInserting) {
       context.missing(_quantityMeta);
     }
     if (data.containsKey('unit')) {
       context.handle(
-        _unitMeta,
-        unit.isAcceptableOrUnknown(data['unit']!, _unitMeta),
-      );
+          _unitMeta, unit.isAcceptableOrUnknown(data['unit']!, _unitMeta));
     } else if (isInserting) {
       context.missing(_unitMeta);
     }
     if (data.containsKey('storage_location')) {
       context.handle(
-        _storageLocationMeta,
-        storageLocation.isAcceptableOrUnknown(
-          data['storage_location']!,
           _storageLocationMeta,
-        ),
-      );
+          storageLocation.isAcceptableOrUnknown(
+              data['storage_location']!, _storageLocationMeta));
     } else if (isInserting) {
       context.missing(_storageLocationMeta);
     }
     if (data.containsKey('estimated_expiry_date')) {
       context.handle(
-        _estimatedExpiryDateMeta,
-        estimatedExpiryDate.isAcceptableOrUnknown(
-          data['estimated_expiry_date']!,
           _estimatedExpiryDateMeta,
-        ),
-      );
+          estimatedExpiryDate.isAcceptableOrUnknown(
+              data['estimated_expiry_date']!, _estimatedExpiryDateMeta));
     } else if (isInserting) {
       context.missing(_estimatedExpiryDateMeta);
     }
     if (data.containsKey('confidence')) {
       context.handle(
-        _confidenceMeta,
-        confidence.isAcceptableOrUnknown(
-          data['confidence']!,
           _confidenceMeta,
-        ),
-      );
+          confidence.isAcceptableOrUnknown(
+              data['confidence']!, _confidenceMeta));
     } else if (isInserting) {
       context.missing(_confidenceMeta);
     }
     if (data.containsKey('status')) {
-      context.handle(
-        _statusMeta,
-        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
-      );
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
     }
     if (data.containsKey('source')) {
-      context.handle(
-        _sourceMeta,
-        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
-      );
+      context.handle(_sourceMeta,
+          source.isAcceptableOrUnknown(data['source']!, _sourceMeta));
+    }
+    if (data.containsKey('version')) {
+      context.handle(_versionMeta,
+          version.isAcceptableOrUnknown(data['version']!, _versionMeta));
     }
     return context;
   }
 
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
-
   @override
-  InventoryItemsTableData map(
-    Map<String, dynamic> data, {
-    String? tablePrefix,
-  }) {
+  InventoryItemsTableData map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return InventoryItemsTableData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}id'],
-      )!,
-      displayName: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}display_name'],
-      )!,
-      quantity: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}quantity'],
-      )!,
-      unit: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}unit'],
-      )!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      displayName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}display_name'])!,
+      quantity: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}quantity'])!,
+      unit: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit'])!,
       storageLocation: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}storage_location'],
-      )!,
+          DriftSqlType.string, data['${effectivePrefix}storage_location'])!,
       estimatedExpiryDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
-        data['${effectivePrefix}estimated_expiry_date'],
-      )!,
-      confidence: attachedDatabase.typeMapping.read(
-        DriftSqlType.double,
-        data['${effectivePrefix}confidence'],
-      )!,
-      status: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}status'],
-      )!,
-      source: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}source'],
-      )!,
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}estimated_expiry_date'])!,
+      confidence: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}confidence'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      source: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source'])!,
+      version: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}version'])!,
     );
   }
 
@@ -280,32 +207,32 @@ class InventoryItemsTableData extends DataClass
   final double confidence;
   final String status;
   final String source;
-
-  const InventoryItemsTableData({
-    required this.id,
-    required this.displayName,
-    required this.quantity,
-    required this.unit,
-    required this.storageLocation,
-    required this.estimatedExpiryDate,
-    required this.confidence,
-    required this.status,
-    required this.source,
-  });
-
+  final int version;
+  const InventoryItemsTableData(
+      {required this.id,
+      required this.displayName,
+      required this.quantity,
+      required this.unit,
+      required this.storageLocation,
+      required this.estimatedExpiryDate,
+      required this.confidence,
+      required this.status,
+      required this.source,
+      required this.version});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
-    return <String, Expression>{
-      'id': Variable<String>(id),
-      'display_name': Variable<String>(displayName),
-      'quantity': Variable<double>(quantity),
-      'unit': Variable<String>(unit),
-      'storage_location': Variable<String>(storageLocation),
-      'estimated_expiry_date': Variable<DateTime>(estimatedExpiryDate),
-      'confidence': Variable<double>(confidence),
-      'status': Variable<String>(status),
-      'source': Variable<String>(source),
-    };
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['display_name'] = Variable<String>(displayName);
+    map['quantity'] = Variable<double>(quantity);
+    map['unit'] = Variable<String>(unit);
+    map['storage_location'] = Variable<String>(storageLocation);
+    map['estimated_expiry_date'] = Variable<DateTime>(estimatedExpiryDate);
+    map['confidence'] = Variable<double>(confidence);
+    map['status'] = Variable<String>(status);
+    map['source'] = Variable<String>(source);
+    map['version'] = Variable<int>(version);
+    return map;
   }
 
   InventoryItemsTableCompanion toCompanion(bool nullToAbsent) {
@@ -319,13 +246,12 @@ class InventoryItemsTableData extends DataClass
       confidence: Value(confidence),
       status: Value(status),
       source: Value(source),
+      version: Value(version),
     );
   }
 
-  factory InventoryItemsTableData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
+  factory InventoryItemsTableData.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return InventoryItemsTableData(
       id: serializer.fromJson<String>(json['id']),
@@ -333,15 +259,14 @@ class InventoryItemsTableData extends DataClass
       quantity: serializer.fromJson<double>(json['quantity']),
       unit: serializer.fromJson<String>(json['unit']),
       storageLocation: serializer.fromJson<String>(json['storageLocation']),
-      estimatedExpiryDate: serializer.fromJson<DateTime>(
-        json['estimatedExpiryDate'],
-      ),
+      estimatedExpiryDate:
+          serializer.fromJson<DateTime>(json['estimatedExpiryDate']),
       confidence: serializer.fromJson<double>(json['confidence']),
       status: serializer.fromJson<String>(json['status']),
       source: serializer.fromJson<String>(json['source']),
+      version: serializer.fromJson<int>(json['version']),
     );
   }
-
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
@@ -355,30 +280,51 @@ class InventoryItemsTableData extends DataClass
       'confidence': serializer.toJson<double>(confidence),
       'status': serializer.toJson<String>(status),
       'source': serializer.toJson<String>(source),
+      'version': serializer.toJson<int>(version),
     };
   }
 
-  InventoryItemsTableData copyWith({
-    String? id,
-    String? displayName,
-    double? quantity,
-    String? unit,
-    String? storageLocation,
-    DateTime? estimatedExpiryDate,
-    double? confidence,
-    String? status,
-    String? source,
-  }) {
+  InventoryItemsTableData copyWith(
+          {String? id,
+          String? displayName,
+          double? quantity,
+          String? unit,
+          String? storageLocation,
+          DateTime? estimatedExpiryDate,
+          double? confidence,
+          String? status,
+          String? source,
+          int? version}) =>
+      InventoryItemsTableData(
+        id: id ?? this.id,
+        displayName: displayName ?? this.displayName,
+        quantity: quantity ?? this.quantity,
+        unit: unit ?? this.unit,
+        storageLocation: storageLocation ?? this.storageLocation,
+        estimatedExpiryDate: estimatedExpiryDate ?? this.estimatedExpiryDate,
+        confidence: confidence ?? this.confidence,
+        status: status ?? this.status,
+        source: source ?? this.source,
+        version: version ?? this.version,
+      );
+  InventoryItemsTableData copyWithCompanion(InventoryItemsTableCompanion data) {
     return InventoryItemsTableData(
-      id: id ?? this.id,
-      displayName: displayName ?? this.displayName,
-      quantity: quantity ?? this.quantity,
-      unit: unit ?? this.unit,
-      storageLocation: storageLocation ?? this.storageLocation,
-      estimatedExpiryDate: estimatedExpiryDate ?? this.estimatedExpiryDate,
-      confidence: confidence ?? this.confidence,
-      status: status ?? this.status,
-      source: source ?? this.source,
+      id: data.id.present ? data.id.value : this.id,
+      displayName:
+          data.displayName.present ? data.displayName.value : this.displayName,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      unit: data.unit.present ? data.unit.value : this.unit,
+      storageLocation: data.storageLocation.present
+          ? data.storageLocation.value
+          : this.storageLocation,
+      estimatedExpiryDate: data.estimatedExpiryDate.present
+          ? data.estimatedExpiryDate.value
+          : this.estimatedExpiryDate,
+      confidence:
+          data.confidence.present ? data.confidence.value : this.confidence,
+      status: data.status.present ? data.status.value : this.status,
+      source: data.source.present ? data.source.value : this.source,
+      version: data.version.present ? data.version.value : this.version,
     );
   }
 
@@ -393,37 +339,38 @@ class InventoryItemsTableData extends DataClass
           ..write('estimatedExpiryDate: $estimatedExpiryDate, ')
           ..write('confidence: $confidence, ')
           ..write('status: $status, ')
-          ..write('source: $source')
+          ..write('source: $source, ')
+          ..write('version: $version')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(
-    id,
-    displayName,
-    quantity,
-    unit,
-    storageLocation,
-    estimatedExpiryDate,
-    confidence,
-    status,
-    source,
-  );
-
+      id,
+      displayName,
+      quantity,
+      unit,
+      storageLocation,
+      estimatedExpiryDate,
+      confidence,
+      status,
+      source,
+      version);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is InventoryItemsTableData &&
-          other.id == id &&
-          other.displayName == displayName &&
-          other.quantity == quantity &&
-          other.unit == unit &&
-          other.storageLocation == storageLocation &&
-          other.estimatedExpiryDate == estimatedExpiryDate &&
-          other.confidence == confidence &&
-          other.status == status &&
-          other.source == source);
+          other.id == this.id &&
+          other.displayName == this.displayName &&
+          other.quantity == this.quantity &&
+          other.unit == this.unit &&
+          other.storageLocation == this.storageLocation &&
+          other.estimatedExpiryDate == this.estimatedExpiryDate &&
+          other.confidence == this.confidence &&
+          other.status == this.status &&
+          other.source == this.source &&
+          other.version == this.version);
 }
 
 class InventoryItemsTableCompanion
@@ -437,7 +384,8 @@ class InventoryItemsTableCompanion
   final Value<double> confidence;
   final Value<String> status;
   final Value<String> source;
-
+  final Value<int> version;
+  final Value<int> rowid;
   const InventoryItemsTableCompanion({
     this.id = const Value.absent(),
     this.displayName = const Value.absent(),
@@ -448,8 +396,9 @@ class InventoryItemsTableCompanion
     this.confidence = const Value.absent(),
     this.status = const Value.absent(),
     this.source = const Value.absent(),
+    this.version = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
-
   InventoryItemsTableCompanion.insert({
     required String id,
     required String displayName,
@@ -460,6 +409,8 @@ class InventoryItemsTableCompanion
     required double confidence,
     this.status = const Value.absent(),
     this.source = const Value.absent(),
+    this.version = const Value.absent(),
+    this.rowid = const Value.absent(),
   })  : id = Value(id),
         displayName = Value(displayName),
         quantity = Value(quantity),
@@ -467,7 +418,6 @@ class InventoryItemsTableCompanion
         storageLocation = Value(storageLocation),
         estimatedExpiryDate = Value(estimatedExpiryDate),
         confidence = Value(confidence);
-
   static Insertable<InventoryItemsTableData> custom({
     Expression<String>? id,
     Expression<String>? displayName,
@@ -478,6 +428,8 @@ class InventoryItemsTableCompanion
     Expression<double>? confidence,
     Expression<String>? status,
     Expression<String>? source,
+    Expression<int>? version,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -490,20 +442,23 @@ class InventoryItemsTableCompanion
       if (confidence != null) 'confidence': confidence,
       if (status != null) 'status': status,
       if (source != null) 'source': source,
+      if (version != null) 'version': version,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
-  InventoryItemsTableCompanion copyWith({
-    Value<String>? id,
-    Value<String>? displayName,
-    Value<double>? quantity,
-    Value<String>? unit,
-    Value<String>? storageLocation,
-    Value<DateTime>? estimatedExpiryDate,
-    Value<double>? confidence,
-    Value<String>? status,
-    Value<String>? source,
-  }) {
+  InventoryItemsTableCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? displayName,
+      Value<double>? quantity,
+      Value<String>? unit,
+      Value<String>? storageLocation,
+      Value<DateTime>? estimatedExpiryDate,
+      Value<double>? confidence,
+      Value<String>? status,
+      Value<String>? source,
+      Value<int>? version,
+      Value<int>? rowid}) {
     return InventoryItemsTableCompanion(
       id: id ?? this.id,
       displayName: displayName ?? this.displayName,
@@ -514,6 +469,8 @@ class InventoryItemsTableCompanion
       confidence: confidence ?? this.confidence,
       status: status ?? this.status,
       source: source ?? this.source,
+      version: version ?? this.version,
+      rowid: rowid ?? this.rowid,
     );
   }
 
@@ -548,6 +505,12 @@ class InventoryItemsTableCompanion
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
@@ -562,7 +525,9 @@ class InventoryItemsTableCompanion
           ..write('estimatedExpiryDate: $estimatedExpiryDate, ')
           ..write('confidence: $confidence, ')
           ..write('status: $status, ')
-          ..write('source: $source')
+          ..write('source: $source, ')
+          ..write('version: $version, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -570,15 +535,278 @@ class InventoryItemsTableCompanion
 
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
-
+  $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $InventoryItemsTableTable inventoryItemsTable =
       $InventoryItemsTableTable(this);
   late final InventoryDao inventoryDao = InventoryDao(this as AppDatabase);
-
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
-
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [inventoryItemsTable];
+}
+
+typedef $$InventoryItemsTableTableCreateCompanionBuilder
+    = InventoryItemsTableCompanion Function({
+  required String id,
+  required String displayName,
+  required double quantity,
+  required String unit,
+  required String storageLocation,
+  required DateTime estimatedExpiryDate,
+  required double confidence,
+  Value<String> status,
+  Value<String> source,
+  Value<int> version,
+  Value<int> rowid,
+});
+typedef $$InventoryItemsTableTableUpdateCompanionBuilder
+    = InventoryItemsTableCompanion Function({
+  Value<String> id,
+  Value<String> displayName,
+  Value<double> quantity,
+  Value<String> unit,
+  Value<String> storageLocation,
+  Value<DateTime> estimatedExpiryDate,
+  Value<double> confidence,
+  Value<String> status,
+  Value<String> source,
+  Value<int> version,
+  Value<int> rowid,
+});
+
+class $$InventoryItemsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $InventoryItemsTableTable> {
+  $$InventoryItemsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+      column: $table.displayName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get quantity => $composableBuilder(
+      column: $table.quantity, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get unit => $composableBuilder(
+      column: $table.unit, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get storageLocation => $composableBuilder(
+      column: $table.storageLocation,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get estimatedExpiryDate => $composableBuilder(
+      column: $table.estimatedExpiryDate,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+      column: $table.confidence, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnFilters(column));
+}
+
+class $$InventoryItemsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $InventoryItemsTableTable> {
+  $$InventoryItemsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+      column: $table.displayName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get quantity => $composableBuilder(
+      column: $table.quantity, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unit => $composableBuilder(
+      column: $table.unit, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get storageLocation => $composableBuilder(
+      column: $table.storageLocation,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get estimatedExpiryDate => $composableBuilder(
+      column: $table.estimatedExpiryDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+      column: $table.confidence, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get source => $composableBuilder(
+      column: $table.source, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get version => $composableBuilder(
+      column: $table.version, builder: (column) => ColumnOrderings(column));
+}
+
+class $$InventoryItemsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $InventoryItemsTableTable> {
+  $$InventoryItemsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+      column: $table.displayName, builder: (column) => column);
+
+  GeneratedColumn<double> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get unit =>
+      $composableBuilder(column: $table.unit, builder: (column) => column);
+
+  GeneratedColumn<String> get storageLocation => $composableBuilder(
+      column: $table.storageLocation, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get estimatedExpiryDate => $composableBuilder(
+      column: $table.estimatedExpiryDate, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+      column: $table.confidence, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+}
+
+class $$InventoryItemsTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $InventoryItemsTableTable,
+    InventoryItemsTableData,
+    $$InventoryItemsTableTableFilterComposer,
+    $$InventoryItemsTableTableOrderingComposer,
+    $$InventoryItemsTableTableAnnotationComposer,
+    $$InventoryItemsTableTableCreateCompanionBuilder,
+    $$InventoryItemsTableTableUpdateCompanionBuilder,
+    (
+      InventoryItemsTableData,
+      BaseReferences<_$AppDatabase, $InventoryItemsTableTable,
+          InventoryItemsTableData>
+    ),
+    InventoryItemsTableData,
+    PrefetchHooks Function()> {
+  $$InventoryItemsTableTableTableManager(
+      _$AppDatabase db, $InventoryItemsTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$InventoryItemsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$InventoryItemsTableTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$InventoryItemsTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> displayName = const Value.absent(),
+            Value<double> quantity = const Value.absent(),
+            Value<String> unit = const Value.absent(),
+            Value<String> storageLocation = const Value.absent(),
+            Value<DateTime> estimatedExpiryDate = const Value.absent(),
+            Value<double> confidence = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String> source = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              InventoryItemsTableCompanion(
+            id: id,
+            displayName: displayName,
+            quantity: quantity,
+            unit: unit,
+            storageLocation: storageLocation,
+            estimatedExpiryDate: estimatedExpiryDate,
+            confidence: confidence,
+            status: status,
+            source: source,
+            version: version,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String displayName,
+            required double quantity,
+            required String unit,
+            required String storageLocation,
+            required DateTime estimatedExpiryDate,
+            required double confidence,
+            Value<String> status = const Value.absent(),
+            Value<String> source = const Value.absent(),
+            Value<int> version = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              InventoryItemsTableCompanion.insert(
+            id: id,
+            displayName: displayName,
+            quantity: quantity,
+            unit: unit,
+            storageLocation: storageLocation,
+            estimatedExpiryDate: estimatedExpiryDate,
+            confidence: confidence,
+            status: status,
+            source: source,
+            version: version,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$InventoryItemsTableTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $InventoryItemsTableTable,
+    InventoryItemsTableData,
+    $$InventoryItemsTableTableFilterComposer,
+    $$InventoryItemsTableTableOrderingComposer,
+    $$InventoryItemsTableTableAnnotationComposer,
+    $$InventoryItemsTableTableCreateCompanionBuilder,
+    $$InventoryItemsTableTableUpdateCompanionBuilder,
+    (
+      InventoryItemsTableData,
+      BaseReferences<_$AppDatabase, $InventoryItemsTableTable,
+          InventoryItemsTableData>
+    ),
+    InventoryItemsTableData,
+    PrefetchHooks Function()>;
+
+class $AppDatabaseManager {
+  final _$AppDatabase _db;
+  $AppDatabaseManager(this._db);
+  $$InventoryItemsTableTableTableManager get inventoryItemsTable =>
+      $$InventoryItemsTableTableTableManager(_db, _db.inventoryItemsTable);
 }

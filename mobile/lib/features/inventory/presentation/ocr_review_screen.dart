@@ -55,7 +55,19 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Review Items')),
       body: _draftItems.isEmpty
-          ? const Center(child: Text('No items to review'))
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('No items detected'),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => context.pushReplacement('/add-item'),
+                    child: const Text('Add Manually'),
+                  ),
+                ],
+              ),
+            )
           : ListView.builder(
               itemCount: _draftItems.length,
               itemBuilder: (context, index) {

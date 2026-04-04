@@ -117,6 +117,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
     required double quantity,
     required String unit,
     required String storageLocation,
+    int? version,
   }) async {
     try {
       final updated = await _repository.updateItem(
@@ -124,6 +125,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
         quantity: quantity,
         unit: unit,
         storageLocation: storageLocation,
+        version: version,
       );
       final currentItems = state.valueOrNull ?? const <InventoryItem>[];
       state = AsyncValue.data(
@@ -186,15 +188,17 @@ final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
   final apiClient = ref.watch(apiClientProvider);
   final recipeDao = ref.watch(appDatabaseProvider).recipeDao;
 
-  final cached = await recipeDao.getAllRecipes();
-  if (cached.isNotEmpty) {
-    unawaited(_refreshRecipesInBackground(apiClient, recipeDao));
-    return cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+  try {
+    final recipes = await apiClient.getRecommendations();
+    await recipeDao.replaceAllRecipes(recipes);
+    return recipes;
+  } catch (_) {
+    final cached = await recipeDao.getAllRecipes();
+    if (cached.isNotEmpty) {
+      return cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+    }
+    rethrow;
   }
-
-  final recipes = await apiClient.getRecommendations();
-  await recipeDao.replaceAllRecipes(recipes);
-  return recipes;
 });
 
 final mealPlanProvider = FutureProvider.family<MealPlan, int>((ref, days) async {
@@ -229,18 +233,6 @@ final shoppingListProvider = FutureProvider<List<ShoppingItem>>((ref) async {
   }
 });
 
-Future<void> _refreshRecipesInBackground(
-  ApiClient apiClient,
-  RecipeDao recipeDao,
-) async {
-  try {
-    final recipes = await apiClient.getRecommendations();
-    await recipeDao.replaceAllRecipes(recipes);
-  } catch (_) {
-    // Silently fail and preserve cached data.
-  }
-}
-
 /// A no-op repository used by [InventoryNotifier.withInitialData].
 class _NoopRepository implements InventoryRepository {
   @override
@@ -271,6 +263,7 @@ class _NoopRepository implements InventoryRepository {
     String? unit,
     String? storageLocation,
     DateTime? estimatedExpiryDate,
+    int? version,
   }) {
     throw UnimplementedError('_NoopRepository is for testing only');
   }

@@ -127,6 +127,17 @@ async def scan_photo(
             )
         )
 
+    if not draft_items:
+        draft_items.append(
+            DraftItem(
+                display_name="",
+                quantity=0.0,
+                unit="unit",
+                confidence=0.0,
+                canonical_name=None,
+            )
+        )
+
     response = PhotoScanResponse(draft_items=draft_items)
     store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
     return response

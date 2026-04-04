@@ -293,6 +293,36 @@ async def test_update_item_partial(
 
 
 @pytest.mark.asyncio
+async def test_update_item_display_name_updates_canonical_name(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    create_response = await client.post(
+        "/v1/items",
+        headers=_headers(test_headers, "inventory-update-name-create"),
+        json={
+            "display_name": "Milk",
+            "quantity": 1.0,
+            "unit": "liter",
+            "storage_location": "fridge",
+        },
+    )
+    item_id = create_response.json()["itemId"]
+
+    response = await client.patch(
+        f"/v1/items/{item_id}",
+        headers=_headers(test_headers, "inventory-update-name-patch"),
+        json={"display_name": "Greek Yogurt"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["displayName"] == "Greek Yogurt"
+    assert payload["canonicalName"] == "greek yogurt"
+
+
+@pytest.mark.asyncio
 async def test_mark_item_used(
     client: httpx.AsyncClient,
     test_headers: dict[str, str],

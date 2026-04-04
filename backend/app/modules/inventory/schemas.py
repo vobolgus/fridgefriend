@@ -33,11 +33,20 @@ class ItemCreate(BaseModel):
 class ItemUpdate(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(str_strip_whitespace=True)
 
+    display_name: str | None = Field(default=None, min_length=1)
     quantity: float | None = Field(default=None, gt=0)
     unit: str | None = Field(default=None, min_length=1)
     storage_location: str | None = Field(default=None, min_length=1)
+    canonical_name: str | None = None
     estimated_expiry_date: date | None = None
     version: int | None = None
+
+    @field_validator("canonical_name")
+    @classmethod
+    def normalize_optional_canonical_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value or None
 
 
 class ItemStatusUpdate(BaseModel):

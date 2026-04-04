@@ -23,6 +23,7 @@ abstract class InventoryRepository {
     String? unit,
     String? storageLocation,
     DateTime? estimatedExpiryDate,
+    int? version,
   });
 
   Future<void> updateItemStatus(String id, String status);

@@ -59,6 +59,30 @@ class SyncManager {
     );
   }
 
+  Future<void> queueUpdate({
+    required String itemId,
+    double? quantity,
+    String? unit,
+    String? storageLocation,
+    DateTime? estimatedExpiryDate,
+    int? version,
+  }) {
+    return _enqueue(
+      entityType: 'inventory',
+      entityId: itemId,
+      action: 'update',
+      payload: {
+        'id': itemId,
+        if (quantity != null) 'quantity': quantity,
+        if (unit != null) 'unit': unit,
+        if (storageLocation != null) 'storageLocation': storageLocation,
+        if (estimatedExpiryDate != null)
+          'estimatedExpiryDate': estimatedExpiryDate.toIso8601String(),
+        if (version != null) 'version': version,
+      },
+    );
+  }
+
   Future<List<QueuedMutation>> pendingMutations() async {
     final rows = await _database.customSelect(
       'SELECT id, entity_type, entity_id, action, payload_json, created_at '
@@ -107,6 +131,27 @@ class SyncManager {
         await _apiClient.updateItemStatus(
           mutation.entityId,
           (mutation.payload['status'] ?? '').toString(),
+        );
+        await _deleteMutation(mutation.id);
+        continue;
+      }
+
+      if (mutation.action == 'update') {
+        await _apiClient.updateItem(
+          id: mutation.entityId,
+          quantity: mutation.payload['quantity'] != null
+              ? _toDouble(mutation.payload['quantity'])
+              : null,
+          unit: mutation.payload['unit']?.toString(),
+          storageLocation: mutation.payload['storageLocation']?.toString(),
+          estimatedExpiryDate: mutation.payload['estimatedExpiryDate'] != null
+              ? DateTime.tryParse(
+                  mutation.payload['estimatedExpiryDate'].toString(),
+                )
+              : null,
+          version: mutation.payload['version'] is int
+              ? mutation.payload['version'] as int
+              : int.tryParse(mutation.payload['version']?.toString() ?? ''),
         );
         await _deleteMutation(mutation.id);
         continue;
@@ -171,6 +216,7 @@ class SyncManager {
       confidence: item.confidence ?? 0.0,
       status: Value(item.status),
       source: Value(item.source),
+      version: Value(item.version),
     );
   }
 

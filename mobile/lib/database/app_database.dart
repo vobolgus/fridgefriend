@@ -31,6 +31,8 @@ class InventoryItemsTable extends Table {
 
   TextColumn get source => text().withDefault(const Constant('manual'))();
 
+  IntColumn get version => integer().withDefault(const Constant(1))();
+
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
@@ -79,7 +81,7 @@ class AppDatabase extends _$AppDatabase {
   late final MealPlanDao mealPlanDao = MealPlanDao(this);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -89,6 +91,12 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (Migrator migrator, int from, int to) async {
       if (from < 2) {
+        await _ensureAuxiliaryTables();
+      }
+      if (from < 3) {
+        await customStatement(
+          'ALTER TABLE inventory_items_table ADD COLUMN version INTEGER NOT NULL DEFAULT 1',
+        );
         await _ensureAuxiliaryTables();
       }
     },
