@@ -46,6 +46,12 @@ async def _mock_auth(authorization: str | None, db: AsyncSession) -> User:
 def get_firebase_auth_service() -> FirebaseAuthInterface:
     if settings.FIREBASE_PROJECT_ID:
         return FirebaseAuthService(project_id=settings.FIREBASE_PROJECT_ID)
+    if not settings.AUTH_MOCK:
+        raise RuntimeError(
+            "AUTH_MOCK is disabled but FIREBASE_PROJECT_ID is not set. "
+            "Set FIREBASE_PROJECT_ID to a valid Firebase project, "
+            "or enable AUTH_MOCK for development."
+        )
     return MockFirebaseAuth()
 
 

@@ -82,14 +82,17 @@ class AppShell extends ConsumerWidget {
     );
   }
 
-  /// Watches the first household's SSE stream and invalidates inventory/activity
+  /// Watches the active household's SSE stream and invalidates inventory/activity
   /// providers whenever an event arrives, giving real-time sync behavior.
   void _watchHouseholdEvents(WidgetRef ref) {
     final householdsAsync = ref.watch(householdsProvider);
     final households = householdsAsync.valueOrNull;
     if (households == null || households.isEmpty) return;
 
-    final householdId = households.first.id;
+    // Use the active household; fall back to first if none is marked active.
+    final activeHousehold = households.where((h) => h.isActive).firstOrNull ?? households.first;
+    final householdId = activeHousehold.id;
+
     final eventsAsync = ref.watch(householdEventsProvider(householdId));
     eventsAsync.whenData((_) {
       // A new SSE event arrived — refresh inventory and activity log.

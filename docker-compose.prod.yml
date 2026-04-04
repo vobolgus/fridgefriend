@@ -18,7 +18,7 @@ services:
       S3_ENDPOINT_URL: http://localstack:4566
       S3_BUCKET: fridgefriend-uploads
       AWS_REGION: us-east-1
-      # Required in production: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SENTRY_DSN, AMPLITUDE_API_KEY
+      # Required in production: FIREBASE_PROJECT_ID, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SENTRY_DSN, AMPLITUDE_API_KEY
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       STORAGE_BACKEND: s3

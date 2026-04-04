@@ -264,6 +264,9 @@ class ApiClient {
   Future<void> unregisterDeviceToken(String tokenId) async {
     await _dio.delete(
       '${ApiConfig.apiVersionPath}/notifications/devices/$tokenId',
+      options: Options(
+        headers: {'Idempotency-Key': 'unregister_device_$tokenId'},
+      ),
     );
   }
 
