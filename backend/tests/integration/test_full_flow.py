@@ -456,4 +456,7 @@ async def test_item_lifecycle(
     items_response = await client.get("/v1/items", headers=test_headers)
 
     assert items_response.status_code == 200
-    assert items_response.json() == []
+    payload = items_response.json()
+    assert len(payload) == 1
+    assert payload[0]["itemId"] == item["itemId"]
+    assert payload[0]["status"] == "frozen"

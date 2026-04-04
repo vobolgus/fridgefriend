@@ -365,6 +365,18 @@ class ApiClient {
     );
   }
 
+  Future<void> setActiveHousehold(String householdId) async {
+    await _dio.patch(
+      '${ApiConfig.apiVersionPath}/households/$householdId',
+      data: {'is_active': true},
+      options: Options(
+        headers: {
+          'Idempotency-Key': _uniqueIdempotencyKey('set_active_household'),
+        },
+      ),
+    );
+  }
+
   Future<InventoryItem> scanBarcode(String barcode) async {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/scan/barcode',

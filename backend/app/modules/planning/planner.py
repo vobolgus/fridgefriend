@@ -85,7 +85,7 @@ class MealPlanner:
         max_prep_minutes: int | None = None,
         recipes_db: Sequence[Mapping[str, object]] | None = None,
     ) -> PlanResult:
-        inventory = [item for item in user_inventory if item.status == InventoryStatus.ACTIVE]
+        inventory = [item for item in user_inventory if item.status not in {InventoryStatus.USED, InventoryStatus.DISCARDED}]
         remaining_inventory = self._build_remaining_inventory(inventory)
         recipes = self._normalize_recipes(recipes_db or PLANNING_RECIPES)
         filtered_recipes = self._filter_recipes(recipes, dietary_tags or [], max_prep_minutes)

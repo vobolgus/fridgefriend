@@ -46,7 +46,7 @@ async def _collect_due_items(
         select(InventoryItem)
         .where(
             InventoryItem.household_id.in_(household_ids),
-            InventoryItem.status == InventoryStatus.ACTIVE,
+            InventoryItem.status.notin_([InventoryStatus.USED, InventoryStatus.DISCARDED]),
             InventoryItem.estimated_expiry_date >= current_date,
             InventoryItem.estimated_expiry_date <= threshold_date,
         )

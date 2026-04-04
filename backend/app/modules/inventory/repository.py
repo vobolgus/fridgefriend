@@ -39,7 +39,7 @@ class InventoryRepository:
             select(InventoryItem)
             .where(
                 InventoryItem.household_id == household_id,
-                InventoryItem.status == InventoryStatus.ACTIVE,
+                InventoryItem.status.notin_([InventoryStatus.USED, InventoryStatus.DISCARDED]),
             )
             .order_by(InventoryItem.created_at.desc())
         )

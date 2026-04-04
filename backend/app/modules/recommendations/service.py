@@ -94,7 +94,7 @@ class RecommendationService:
             statement = select(InventoryItem).where(InventoryItem.household_id == household_id)
         else:
             statement = select(InventoryItem).where(InventoryItem.user_id == user_id)
-        statement = statement.where(InventoryItem.status == InventoryStatus.ACTIVE)
+        statement = statement.where(InventoryItem.status.notin_([InventoryStatus.USED, InventoryStatus.DISCARDED]))
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 

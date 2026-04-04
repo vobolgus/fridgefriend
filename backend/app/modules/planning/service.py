@@ -162,7 +162,7 @@ class PlanningService:
         statement = (
             select(InventoryItem)
             .where(
-                InventoryItem.status == InventoryStatus.ACTIVE,
+                InventoryItem.status.notin_([InventoryStatus.USED, InventoryStatus.DISCARDED]),
             )
             .order_by(InventoryItem.estimated_expiry_date.asc(), InventoryItem.created_at.asc())
         )

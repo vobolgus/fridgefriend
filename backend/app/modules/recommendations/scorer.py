@@ -105,4 +105,4 @@ class RecipeScorer:
 
     @staticmethod
     def _is_active(item: InventoryItem) -> bool:
-        return str(item.status) == InventoryStatus.ACTIVE.value or item.status == InventoryStatus.ACTIVE
+        return item.status not in {InventoryStatus.USED, InventoryStatus.DISCARDED}

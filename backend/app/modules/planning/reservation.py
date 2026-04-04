@@ -32,7 +32,7 @@ class ReservationService:
         reserved_by_item = dict(externally_reserved_by_item)
         inventory_by_name: dict[str, list[InventoryItem]] = {}
         for item in sorted(inventory_items, key=lambda current: current.estimated_expiry_date):
-            if item.status != InventoryStatus.ACTIVE:
+            if item.status in {InventoryStatus.USED, InventoryStatus.DISCARDED}:
                 continue
             inventory_by_name.setdefault(item.canonical_name.strip().lower(), []).append(item)
 

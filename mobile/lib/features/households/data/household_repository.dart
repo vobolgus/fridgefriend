@@ -6,6 +6,7 @@ abstract class HouseholdRepository {
   Future<Household> createHousehold(String name);
   Future<Household> joinHousehold(String inviteCode);
   Future<void> leaveHousehold(String id);
+  Future<void> setActiveHousehold(String id);
 }
 
 class HouseholdRepositoryImpl implements HouseholdRepository {
@@ -23,4 +24,7 @@ class HouseholdRepositoryImpl implements HouseholdRepository {
 
   @override
   Future<void> leaveHousehold(String id) => _apiClient.leaveHousehold(id);
+
+  @override
+  Future<void> setActiveHousehold(String id) => _apiClient.setActiveHousehold(id);
 }

@@ -1,13 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart'
+    as inventory_providers;
+
+import '../domain/household.dart';
 import 'providers.dart';
 
-class HouseholdScreen extends ConsumerWidget {
+class HouseholdScreen extends ConsumerStatefulWidget {
   const HouseholdScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HouseholdScreen> createState() => _HouseholdScreenState();
+}
+
+class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
+  String? _switchingHouseholdId;
+
+  @override
+  Widget build(BuildContext context) {
     final householdsAsync = ref.watch(householdsProvider);
 
     return Scaffold(
@@ -21,41 +32,133 @@ class HouseholdScreen extends ConsumerWidget {
                 children: [
                   const Text('You are not in any household.'),
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () => _showCreateDialog(context, ref),
-                    child: const Text('Create Household'),
-                  ),
-                  TextButton(
-                    onPressed: () => _showJoinDialog(context, ref),
-                    child: const Text('Join Household'),
-                  ),
+                   ElevatedButton(
+                     onPressed: () => _showCreateDialog(context, ref),
+                     child: const Text('Create Household'),
+                   ),
+                   TextButton(
+                     onPressed: () => _showJoinDialog(context, ref),
+                     child: const Text('Join Household'),
+                   ),
                 ],
               ),
             );
           }
 
-          final household = households.where((h) => h.isActive).firstOrNull ?? households.first;
           return ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
-              Text('Name: ${household.name}', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
-              Text('Invite Code: ${household.inviteCode}'),
               const SizedBox(height: 16),
-              Text('Members:', style: Theme.of(context).textTheme.titleMedium),
-              ...household.members.map(
-                (m) => ListTile(
-                  leading: const Icon(Icons.person),
-                  title: Text(m.email),
-                  subtitle: Text(m.role),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Your Households',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ),
+                   TextButton.icon(
+                     onPressed: () => _showJoinDialog(context, ref),
+                     icon: const Icon(Icons.group_add),
+                     label: const Text('Join'),
+                   ),
+                  const SizedBox(width: 8),
+                   ElevatedButton.icon(
+                     onPressed: () => _showCreateDialog(context, ref),
+                     icon: const Icon(Icons.add_home),
+                     label: const Text('Create'),
+                   ),
+                ],
               ),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  context.pushNamed('activity-log', extra: household.id);
-                },
-                child: const Text('View Activity'),
+              ...households.map(
+                (household) => Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          leading: Icon(
+                            household.isActive
+                                ? Icons.check_circle
+                                : Icons.home_outlined,
+                            color: household.isActive
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                          ),
+                          title: Text(household.name),
+                          subtitle: Text(
+                            '${household.members.length} members • Invite Code: ${household.inviteCode}',
+                          ),
+                          trailing: household.isActive
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .primaryContainer,
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: const Text('Active'),
+                                )
+                              : FilledButton.tonal(
+                                  onPressed: _switchingHouseholdId == household.id
+                                      ? null
+                                      : () => _setActiveHousehold(household),
+                                  child: _switchingHouseholdId == household.id
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text('Set Active'),
+                                ),
+                        ),
+                        const Divider(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'Members',
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                        ),
+                        ...household.members.map(
+                          (member) => ListTile(
+                            leading: const Icon(Icons.person),
+                            title: Text(member.email),
+                            subtitle: Text(member.role),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: TextButton.icon(
+                              onPressed: () {
+                                context.pushNamed(
+                                  'activity-log',
+                                  extra: household.id,
+                                );
+                              },
+                              icon: const Icon(Icons.history),
+                              label: const Text('View Activity'),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           );
@@ -64,6 +167,40 @@ class HouseholdScreen extends ConsumerWidget {
         error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
+  }
+
+  Future<void> _setActiveHousehold(Household household) async {
+    setState(() {
+      _switchingHouseholdId = household.id;
+    });
+
+    try {
+      await ref
+          .read(householdRepositoryProvider)
+          .setActiveHousehold(household.id);
+
+      ref.invalidate(householdsProvider);
+      ref.invalidate(inventory_providers.inventoryProvider);
+      ref.invalidate(inventory_providers.recommendationsProvider);
+      ref.invalidate(inventory_providers.mealPlanProvider);
+      ref.invalidate(inventory_providers.shoppingListProvider);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${household.name} is now active')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to switch household: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _switchingHouseholdId = null;
+        });
+      }
+    }
   }
 
   void _showCreateDialog(BuildContext context, WidgetRef ref) {

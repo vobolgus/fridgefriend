@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
@@ -243,5 +244,53 @@ void main() {
 
     expect(find.text('Item marked as used'), findsOneWidget);
     expect(find.text('Undo'), findsOneWidget);
+  });
+
+  testWidgets('InventoryScreen shows Use Soon entry for expiring items', (tester) async {
+    final testItem = InventoryItem(
+      id: '1',
+      displayName: 'Milk',
+      quantity: 1,
+      unit: 'L',
+      storageLocation: 'Fridge',
+      estimatedExpiryDate: DateTime.now().add(const Duration(days: 1)),
+      confidence: 0.9,
+      status: 'active',
+      source: 'manual',
+    );
+
+    final router = GoRouter(
+      initialLocation: '/',
+      routes: [
+        GoRoute(
+          path: '/',
+          builder: (context, state) => const InventoryScreen(),
+        ),
+        GoRoute(
+          path: '/use-soon',
+          builder: (context, state) => const Scaffold(body: Text('Use Soon Page')),
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          inventoryProvider.overrideWith(
+            (ref) => InventoryNotifier.withInitialData([testItem]),
+          ),
+        ],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 item expiring soon'), findsOneWidget);
+    expect(find.text('Review what to use first'), findsOneWidget);
+
+    await tester.tap(find.text('1 item expiring soon'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Use Soon Page'), findsOneWidget);
   });
 }

@@ -19,12 +19,37 @@ class InventoryScreen extends ConsumerWidget {
             return const Center(child: Text('No inventory items yet'));
           }
 
+          final expiringCount = inventoryItems.where((item) {
+            return item.urgencyBucket == 'today' ||
+                item.urgencyBucket == 'this_week' ||
+                item.urgencyBucket == 'expired';
+          }).length;
+
           return RefreshIndicator(
             onRefresh: () => ref.read(inventoryProvider.notifier).loadItems(),
             child: ListView.builder(
-              itemCount: inventoryItems.length,
+              itemCount: inventoryItems.length + (expiringCount > 0 ? 1 : 0),
               itemBuilder: (context, index) {
-                final item = inventoryItems[index];
+                if (expiringCount > 0 && index == 0) {
+                  return Card(
+                    margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    color: Colors.orange.shade50,
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.warning_amber_rounded,
+                        color: Colors.orange,
+                      ),
+                      title: Text(
+                        '$expiringCount item${expiringCount == 1 ? '' : 's'} expiring soon',
+                      ),
+                      subtitle: const Text('Review what to use first'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => context.push('/use-soon'),
+                    ),
+                  );
+                }
+
+                final item = inventoryItems[index - (expiringCount > 0 ? 1 : 0)];
                 final badgeColor = _badgeColor(item.urgencyBucket);
 
                 return ListTile(
