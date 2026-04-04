@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     RECIPE_SOURCE: str = "mock"
     LLM_API_URL: str = "https://litellm.labs.jb.gg"
     LLM_MODEL: str = "gpt-4.1-mini"
+    PHOTO_PARSER_BACKEND: str = "mock"
     SENTRY_DSN: str = ""
     AMPLITUDE_API_KEY: str = ""
 

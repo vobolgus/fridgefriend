@@ -19,6 +19,7 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       STORAGE_BACKEND: local
+      PHOTO_PARSER_BACKEND: mock
       FIREBASE_PROJECT_ID: ""
       LLM_API_URL: https://litellm.labs.jb.gg
       LLM_MODEL: gpt-4.1-mini

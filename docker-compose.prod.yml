@@ -22,6 +22,9 @@ services:
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
       STORAGE_BACKEND: s3
+      PHOTO_PARSER_BACKEND: "${PHOTO_PARSER_BACKEND:-llm}"
+      LLM_API_URL: "${LLM_API_URL:-https://litellm.labs.jb.gg}"
+      LLM_MODEL: "${LLM_MODEL:-gpt-4.1-mini}"
       SENTRY_DSN: ""
       AMPLITUDE_API_KEY: ""
 

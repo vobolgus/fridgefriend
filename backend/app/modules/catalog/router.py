@@ -31,7 +31,7 @@ async def get_catalog_service(
 
 
 def get_photo_parser() -> PhotoParserInterface:
-    if settings.STORAGE_BACKEND == "llm":
+    if settings.PHOTO_PARSER_BACKEND == "llm":
         return LLMPhotoParser(settings.LLM_API_URL, settings.LLM_MODEL)
     return MockPhotoParser()
 

@@ -243,6 +243,30 @@ class ApiClient {
     );
   }
 
+  Future<Map<String, dynamic>> registerDeviceToken({
+    required String token,
+    required String platform,
+  }) async {
+    final response = await _dio.post(
+      '${ApiConfig.apiVersionPath}/notifications/devices',
+      data: {'token': token, 'platform': platform},
+      options: Options(
+        headers: {'Idempotency-Key': 'device_token_${token.hashCode}'},
+      ),
+    );
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      return payload;
+    }
+    return {};
+  }
+
+  Future<void> unregisterDeviceToken(String tokenId) async {
+    await _dio.delete(
+      '${ApiConfig.apiVersionPath}/notifications/devices/$tokenId',
+    );
+  }
+
   Future<Household> createHousehold(String name) async {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/households',

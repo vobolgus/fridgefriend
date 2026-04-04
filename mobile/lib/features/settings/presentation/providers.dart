@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
+import 'package:fridgefriend_mobile/features/settings/data/push_notification_service.dart';
 
 class NotificationsNotifier extends AsyncNotifier<bool> {
   @override
@@ -23,3 +25,18 @@ class NotificationsNotifier extends AsyncNotifier<bool> {
 
 final notificationsEnabledProvider =
     AsyncNotifierProvider<NotificationsNotifier, bool>(NotificationsNotifier.new);
+
+final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
+  if (useMockAuth) {
+    return MockPushNotificationService();
+  }
+  return FirebasePushNotificationService();
+});
+
+/// Registers the device token with the backend on first access.
+/// Watch this provider after sign-in to trigger automatic registration.
+final deviceTokenRegistrationProvider = FutureProvider<void>((ref) async {
+  final pushService = ref.watch(pushNotificationServiceProvider);
+  final apiClient = ref.watch(apiClientProvider);
+  await pushService.registerToken(apiClient);
+});
