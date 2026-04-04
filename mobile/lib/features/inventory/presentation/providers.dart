@@ -164,15 +164,20 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
         .where((item) => item.id == itemId)
         .map((item) => item.version)
         .fold<int?>(null, (previous, current) => previous ?? current);
+    const terminalStatuses = {'used', 'discarded'};
     try {
       final updated = await _repository.updateItemStatus(itemId, status, version: itemVersion);
-      state = AsyncValue.data(
-        currentItems
-            .map(
-              (item) => item.id == itemId ? updated : item,
-            )
-            .toList(growable: false),
-      );
+      if (terminalStatuses.contains(updated.status)) {
+        state = AsyncValue.data(
+          currentItems.where((item) => item.id != itemId).toList(growable: false),
+        );
+      } else {
+        state = AsyncValue.data(
+          currentItems
+              .map((item) => item.id == itemId ? updated : item)
+              .toList(growable: false),
+        );
+      }
       _invalidateRecommendations();
     } on StateError {
       await loadItems();

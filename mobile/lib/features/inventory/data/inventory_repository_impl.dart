@@ -91,56 +91,78 @@ class InventoryRepositoryImpl implements InventoryRepository {
       await _replaceCache(remoteItems);
       return remoteItems;
     }
-    // Merge: keep local offline items alongside server items
-    // Snapshot offline items before replacing cache
+    // Merge: snapshot all items touched by pending mutations before replacing cache
     final allLocal = await _inventoryDao.getAllItems();
-    final offlineSnapshot = <String, InventoryItemsTableData>{};
-    for (final m in remaining.where((m) => m.action == 'create')) {
-      final local = allLocal.where((i) => i.id == m.entityId).firstOrNull;
-      if (local != null) {
-        offlineSnapshot[m.entityId] = local;
-      }
-    }
+    final localById = <String, InventoryItemsTableData>{
+      for (final item in allLocal) item.id: item,
+    };
     await _replaceCache(remoteItems);
-    // Re-insert offline-created items with full field fidelity
-    for (final m in remaining.where((m) => m.action == 'create')) {
-      final snapshot = offlineSnapshot[m.entityId];
-      if (snapshot != null) {
-        await _inventoryDao.insertItem(InventoryItemsTableCompanion.insert(
-          id: snapshot.id,
-          displayName: snapshot.displayName,
-          quantity: snapshot.quantity,
-          unit: snapshot.unit,
-          storageLocation: snapshot.storageLocation,
-          estimatedExpiryDate: snapshot.estimatedExpiryDate,
-          confidence: snapshot.confidence,
-          status: Value(snapshot.status),
-          source: Value(snapshot.source),
-          canonicalName: Value(snapshot.canonicalName),
-          canonicalIngredientId: Value(snapshot.canonicalIngredientId),
-          version: Value(snapshot.version),
-        ));
-      } else {
-        // Fallback: reconstruct from payload
-        final p = m.payload;
-        final item = InventoryItem(
-          id: m.entityId,
-          displayName: (p['displayName'] ?? '').toString(),
-          quantity: double.tryParse(p['quantity']?.toString() ?? '') ?? 0,
-          unit: (p['unit'] ?? '').toString(),
-          storageLocation: (p['storageLocation'] ?? '').toString(),
-          estimatedExpiryDate: p['estimatedExpiryDate'] != null
-              ? DateTime.tryParse(p['estimatedExpiryDate'].toString())
-              : null,
-          confidence: p['confidence'] != null
-              ? double.tryParse(p['confidence'].toString())
-              : null,
-          status: (p['status'] ?? 'active').toString(),
-          source: (p['source'] ?? 'manual').toString(),
-          canonicalName: p['canonicalName']?.toString(),
-          canonicalIngredientId: p['canonicalIngredientId']?.toString(),
-        );
-        await _inventoryDao.insertItem(_toCompanion(item));
+
+    for (final m in remaining) {
+      if (m.action == 'create') {
+        // Re-insert offline-created items with full field fidelity
+        final snapshot = localById[m.entityId];
+        if (snapshot != null) {
+          await _inventoryDao.insertItem(InventoryItemsTableCompanion.insert(
+            id: snapshot.id,
+            displayName: snapshot.displayName,
+            quantity: snapshot.quantity,
+            unit: snapshot.unit,
+            storageLocation: snapshot.storageLocation,
+            estimatedExpiryDate: snapshot.estimatedExpiryDate,
+            confidence: snapshot.confidence,
+            status: Value(snapshot.status),
+            source: Value(snapshot.source),
+            canonicalName: Value(snapshot.canonicalName),
+            canonicalIngredientId: Value(snapshot.canonicalIngredientId),
+            version: Value(snapshot.version),
+          ));
+        } else {
+          final p = m.payload;
+          final item = InventoryItem(
+            id: m.entityId,
+            displayName: (p['displayName'] ?? '').toString(),
+            quantity: double.tryParse(p['quantity']?.toString() ?? '') ?? 0,
+            unit: (p['unit'] ?? '').toString(),
+            storageLocation: (p['storageLocation'] ?? '').toString(),
+            estimatedExpiryDate: p['estimatedExpiryDate'] != null
+                ? DateTime.tryParse(p['estimatedExpiryDate'].toString())
+                : null,
+            confidence: p['confidence'] != null
+                ? double.tryParse(p['confidence'].toString())
+                : null,
+            status: (p['status'] ?? 'active').toString(),
+            source: (p['source'] ?? 'manual').toString(),
+            canonicalName: p['canonicalName']?.toString(),
+            canonicalIngredientId: p['canonicalIngredientId']?.toString(),
+          );
+          await _inventoryDao.insertItem(_toCompanion(item));
+        }
+      } else if (m.action == 'status_update') {
+        // Re-apply optimistic status change on top of server item
+        final status = (m.payload['status'] ?? '').toString();
+        if (status.isNotEmpty) {
+          await _inventoryDao.updateItemStatus(m.entityId, status);
+        }
+      } else if (m.action == 'update') {
+        // Re-apply optimistic field edits from local snapshot
+        final snapshot = localById[m.entityId];
+        if (snapshot != null) {
+          await _inventoryDao.insertItem(InventoryItemsTableCompanion.insert(
+            id: snapshot.id,
+            displayName: snapshot.displayName,
+            quantity: snapshot.quantity,
+            unit: snapshot.unit,
+            storageLocation: snapshot.storageLocation,
+            estimatedExpiryDate: snapshot.estimatedExpiryDate,
+            confidence: snapshot.confidence,
+            status: Value(snapshot.status),
+            source: Value(snapshot.source),
+            canonicalName: Value(snapshot.canonicalName),
+            canonicalIngredientId: Value(snapshot.canonicalIngredientId),
+            version: Value(snapshot.version),
+          ));
+        }
       }
     }
     return _loadCachedItems();
