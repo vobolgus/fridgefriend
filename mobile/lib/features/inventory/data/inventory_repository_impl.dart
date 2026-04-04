@@ -92,28 +92,56 @@ class InventoryRepositoryImpl implements InventoryRepository {
       return remoteItems;
     }
     // Merge: keep local offline items alongside server items
-    await _replaceCache(remoteItems);
-    final offlineItems = await Future.wait(
-      remaining
-          .where((m) => m.action == 'create')
-          .map((m) => _inventoryDao.getAllItems().then(
-                (all) => all.where((i) => i.id == m.entityId),
-              )),
-    );
-    final offlineIds = offlineItems.expand((e) => e).map((i) => i.id).toSet();
-    // Re-insert offline-only items so they remain visible
+    // Snapshot offline items before replacing cache
+    final allLocal = await _inventoryDao.getAllItems();
+    final offlineSnapshot = <String, InventoryItemsTableData>{};
     for (final m in remaining.where((m) => m.action == 'create')) {
-      if (offlineIds.contains(m.entityId)) continue;
-      final item = InventoryItem(
-        id: m.entityId,
-        displayName: (m.payload['displayName'] ?? '').toString(),
-        quantity: double.tryParse(m.payload['quantity']?.toString() ?? '') ?? 0,
-        unit: (m.payload['unit'] ?? '').toString(),
-        storageLocation: (m.payload['storageLocation'] ?? '').toString(),
-        status: 'active',
-        source: m.payload['source']?.toString() ?? 'manual',
-      );
-      await _inventoryDao.insertItem(_toCompanion(item));
+      final local = allLocal.where((i) => i.id == m.entityId).firstOrNull;
+      if (local != null) {
+        offlineSnapshot[m.entityId] = local;
+      }
+    }
+    await _replaceCache(remoteItems);
+    // Re-insert offline-created items with full field fidelity
+    for (final m in remaining.where((m) => m.action == 'create')) {
+      final snapshot = offlineSnapshot[m.entityId];
+      if (snapshot != null) {
+        await _inventoryDao.insertItem(InventoryItemsTableCompanion.insert(
+          id: snapshot.id,
+          displayName: snapshot.displayName,
+          quantity: snapshot.quantity,
+          unit: snapshot.unit,
+          storageLocation: snapshot.storageLocation,
+          estimatedExpiryDate: snapshot.estimatedExpiryDate,
+          confidence: snapshot.confidence,
+          status: Value(snapshot.status),
+          source: Value(snapshot.source),
+          canonicalName: Value(snapshot.canonicalName),
+          canonicalIngredientId: Value(snapshot.canonicalIngredientId),
+          version: Value(snapshot.version),
+        ));
+      } else {
+        // Fallback: reconstruct from payload
+        final p = m.payload;
+        final item = InventoryItem(
+          id: m.entityId,
+          displayName: (p['displayName'] ?? '').toString(),
+          quantity: double.tryParse(p['quantity']?.toString() ?? '') ?? 0,
+          unit: (p['unit'] ?? '').toString(),
+          storageLocation: (p['storageLocation'] ?? '').toString(),
+          estimatedExpiryDate: p['estimatedExpiryDate'] != null
+              ? DateTime.tryParse(p['estimatedExpiryDate'].toString())
+              : null,
+          confidence: p['confidence'] != null
+              ? double.tryParse(p['confidence'].toString())
+              : null,
+          status: (p['status'] ?? 'active').toString(),
+          source: (p['source'] ?? 'manual').toString(),
+          canonicalName: p['canonicalName']?.toString(),
+          canonicalIngredientId: p['canonicalIngredientId']?.toString(),
+        );
+        await _inventoryDao.insertItem(_toCompanion(item));
+      }
     }
     return _loadCachedItems();
   }
