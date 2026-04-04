@@ -5,6 +5,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.events import RecommendationSession
 from app.models.inventory_item import InventoryItem, InventoryStatus
 
 from .interfaces import RecipeSourceInterface
@@ -71,7 +72,18 @@ class RecommendationService:
             )
 
         recommendations.sort(key=lambda recommendation: recommendation.score, reverse=True)
-        return recommendations[:10]
+        top_recommendations = recommendations[:10]
+
+        if household_id is not None:
+            session_record = RecommendationSession(
+                household_id=household_id,
+                request_params=request.model_dump(mode="json"),
+                recipes_shown=[recommendation.id for recommendation in top_recommendations],
+            )
+            self._session.add(session_record)
+            await self._session.flush()
+
+        return top_recommendations
 
     async def list_inventory_items(self, user_id: UUID, household_id: UUID | None = None) -> list[InventoryItem]:
         if household_id is not None:

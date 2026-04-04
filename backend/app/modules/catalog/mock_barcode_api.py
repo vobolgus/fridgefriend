@@ -37,6 +37,7 @@ MOCK_BARCODES = {
         display_name="Whole Milk 1L",
         canonical_name="milk",
         brand="Generic",
+        unit="l",
     ),
     "5010029013018": BarcodeResult(
         barcode="5010029013018",

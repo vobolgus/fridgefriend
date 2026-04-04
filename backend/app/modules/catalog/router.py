@@ -36,7 +36,7 @@ def get_photo_parser() -> PhotoParserInterface:
     return MockPhotoParser()
 
 
-@router.post("/barcode", response_model=BarcodeScanResponse)
+@router.post("/barcode", response_model=BarcodeScanResponse, response_model_exclude_unset=True)
 async def scan_barcode(
     payload: BarcodeScanRequest,
     service: Annotated[CatalogService, Depends(get_catalog_service)],
@@ -62,19 +62,24 @@ async def scan_barcode(
         )
     else:
         result, canonical = resolved
+        response_payload: dict[str, object] = {
+            "barcode": result.barcode,
+            "display_name": result.display_name,
+            "canonical_name": result.canonical_name,
+            "canonical_ingredient_id": str(canonical.id) if canonical is not None else None,
+            "brand": result.brand,
+            "quantity": payload.quantity,
+            "storage_location": payload.storage_location,
+            "source": "barcode",
+        }
+        if "unit" in result.model_fields_set or payload.unit != "unit":
+            response_payload["unit"] = result.unit if "unit" in result.model_fields_set else payload.unit
 
-        response = BarcodeScanResponse(
-            barcode=result.barcode,
-            display_name=result.display_name,
-            canonical_name=result.canonical_name,
-            canonical_ingredient_id=str(canonical.id) if canonical is not None else None,
-            brand=result.brand,
-            quantity=payload.quantity,
-            storage_location=payload.storage_location,
-            source="barcode",
-        )
+        response = BarcodeScanResponse.model_validate(response_payload)
 
-    store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+    store_cached(
+        str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json", exclude_unset=True),
+    )
 
     return response
 

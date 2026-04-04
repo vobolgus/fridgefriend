@@ -105,7 +105,9 @@ class HouseholdService:
             return
 
         if was_active:
-            _ = await self._repository.set_active_membership(user.id, remaining[0].household_id)
+            user_remaining = await self._repository.list_memberships_for_user(user.id)
+            if user_remaining:
+                _ = await self._repository.set_active_membership(user.id, user_remaining[0].household_id)
 
         if membership.role == HouseholdRole.OWNER and not any(member.role == HouseholdRole.OWNER for member in remaining):
             promoted = await self._repository.get_membership(household.id, remaining[0].user_id)

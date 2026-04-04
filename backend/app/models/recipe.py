@@ -22,3 +22,8 @@ class Recipe(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "MealPlanDay",
         back_populates="recipe",
     )
+    recipe_ingredients: Mapped[list[Any]] = relationship(
+        "RecipeIngredient",
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+    )

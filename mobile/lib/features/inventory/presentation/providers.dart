@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
 import 'package:fridgefriend_mobile/database/app_database.dart';
+import 'package:fridgefriend_mobile/database/daos/recipe_dao.dart';
 import 'package:fridgefriend_mobile/database/sync_manager.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/data/inventory_repository_impl.dart';
@@ -142,17 +143,64 @@ final inventoryProvider =
       (ref) => InventoryNotifier(ref.watch(inventoryRepositoryProvider)),
     );
 
-final recommendationsProvider = FutureProvider<List<Recipe>>((ref) {
-  return ref.watch(apiClientProvider).getRecommendations();
+final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
+  final apiClient = ref.watch(apiClientProvider);
+  final recipeDao = ref.watch(appDatabaseProvider).recipeDao;
+
+  final cached = await recipeDao.getAllRecipes();
+  if (cached.isNotEmpty) {
+    unawaited(_refreshRecipesInBackground(apiClient, recipeDao));
+    return cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+  }
+
+  final recipes = await apiClient.getRecommendations();
+  await recipeDao.replaceAllRecipes(recipes);
+  return recipes;
 });
 
-final mealPlanProvider = FutureProvider.family<MealPlan, int>((ref, days) {
-  return ref.watch(apiClientProvider).generatePlan(days: days);
+final mealPlanProvider = FutureProvider.family<MealPlan, int>((ref, days) async {
+  final apiClient = ref.watch(apiClientProvider);
+  final mealPlanDao = ref.watch(appDatabaseProvider).mealPlanDao;
+
+  try {
+    final plan = await apiClient.generatePlan(days: days);
+    await mealPlanDao.saveMealPlan(plan);
+    return plan;
+  } catch (_) {
+    final cached = await mealPlanDao.getLatestMealPlan();
+    if (cached != null) {
+      return cached.toDomain();
+    }
+    rethrow;
+  }
 });
 
-final shoppingListProvider = FutureProvider<List<ShoppingItem>>((ref) {
-  return ref.watch(apiClientProvider).getShoppingList();
+final shoppingListProvider = FutureProvider<List<ShoppingItem>>((ref) async {
+  final apiClient = ref.watch(apiClientProvider);
+  final mealPlanDao = ref.watch(appDatabaseProvider).mealPlanDao;
+
+  try {
+    return await apiClient.getShoppingList();
+  } catch (_) {
+    final cached = await mealPlanDao.getLatestMealPlan();
+    if (cached != null) {
+      return cached.toDomain().shoppingList;
+    }
+    rethrow;
+  }
 });
+
+Future<void> _refreshRecipesInBackground(
+  ApiClient apiClient,
+  RecipeDao recipeDao,
+) async {
+  try {
+    final recipes = await apiClient.getRecommendations();
+    await recipeDao.replaceAllRecipes(recipes);
+  } catch (_) {
+    // Silently fail and preserve cached data.
+  }
+}
 
 /// A no-op repository used by [InventoryNotifier.withInitialData].
 class _NoopRepository implements InventoryRepository {

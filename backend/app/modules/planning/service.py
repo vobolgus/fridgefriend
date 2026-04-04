@@ -53,6 +53,7 @@ class PlanningService:
         planned = self._planner.generate_plan(
             inventory_items,
             days=request.days,
+            servings=request.servings,
             dietary_tags=request.dietary_tags,
             max_prep_minutes=request.max_prep_minutes,
             recipes_db=planner_input,

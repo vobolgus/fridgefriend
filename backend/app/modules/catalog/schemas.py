@@ -6,11 +6,13 @@ class BarcodeResult(BaseModel):
     display_name: str
     canonical_name: str
     brand: str
+    unit: str = "unit"
 
 
 class BarcodeScanRequest(BaseModel):
     barcode: str
     quantity: float
+    unit: str = "unit"
     storage_location: str
     household_id: str | None = None
 

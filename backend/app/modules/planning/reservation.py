@@ -50,10 +50,11 @@ class ReservationService:
                     candidates, ingredient.quantity, ingredient.unit, reserved_by_item,
                 )
                 allocated_quantity = sum(quantity for _, quantity in allocations)
+                required_base_quantity, required_base_unit = convert_to_base(ingredient.quantity, ingredient.unit)
                 has_existing_reservations = any(
                     externally_reserved_by_item.get(item.id, 0.0) > 0 for item in candidates
                 )
-                if has_existing_reservations and allocated_quantity + 1e-9 < ingredient.quantity:
+                if has_existing_reservations and allocated_quantity + 1e-9 < required_base_quantity:
                     raise InsufficientReservationQuantityError(
                         f"Insufficient free quantity for {ingredient_name}",
                     )
@@ -65,7 +66,7 @@ class ReservationService:
                             meal_plan_day_id=meal_plan_day.id,
                             inventory_item_id=inventory_item.id,
                             quantity_reserved=quantity,
-                            unit=ingredient.unit,
+                            unit=required_base_unit,
                         )
                     )
                     reserved_by_item[inventory_item.id] = reserved_by_item.get(inventory_item.id, 0.0) + quantity
@@ -120,18 +121,14 @@ class ReservationService:
             item_base, item_base_unit = convert_to_base(item.quantity, item.unit)
             if item_base_unit != required_base_unit:
                 continue
-            already_reserved_base, _ = convert_to_base(
-                reserved_by_item.get(item.id, 0.0), item.unit,
-            )
+            already_reserved_base = reserved_by_item.get(item.id, 0.0)
             free_base = max(0.0, item_base - already_reserved_base)
             if free_base <= 0:
                 continue
             allocation_base = min(free_base, remaining_required)
             if allocation_base <= 0:
                 continue
-            one_unit_in_base, _ = convert_to_base(1.0, item.unit)
-            allocation_in_item_unit = allocation_base / one_unit_in_base if one_unit_in_base > 0 else allocation_base
-            allocations.append((item, allocation_in_item_unit))
+            allocations.append((item, allocation_base))
             remaining_required -= allocation_base
             if remaining_required <= 1e-9:
                 break

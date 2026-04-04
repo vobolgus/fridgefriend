@@ -89,6 +89,10 @@ class InventoryService:
         if existing is None:
             raise InventoryItemNotFoundError
         previous_state = snapshot_item(existing)
+        if data.unit is not None:
+            data = data.model_copy(update={"unit": normalize_unit(data.unit)})
+        if data.quantity is not None:
+            data = data.model_copy(update={"quantity": max(0.0, round(data.quantity, 3))})
         item = await self._repository.update(item_id, household_id, data)
         if item is None:
             raise InventoryItemNotFoundError

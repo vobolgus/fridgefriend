@@ -9,6 +9,7 @@ from app.models.user import User
 from app.models.canonical_ingredient import CanonicalIngredient, ProductBarcode, ShelfLifeRule
 from app.models.notification import DeviceToken, NotificationPreference
 from app.models.events import AnalyticsEvent, InventoryEvent, RecommendationSession
+from app.models.recipe_ingredient import RecipeIngredient
 from app.models.reserved_ingredient import ReservedIngredient
 
 __all__ = [
@@ -31,5 +32,6 @@ __all__ = [
     "InventoryEvent",
     "AnalyticsEvent",
     "RecommendationSession",
+    "RecipeIngredient",
     "ReservedIngredient",
 ]

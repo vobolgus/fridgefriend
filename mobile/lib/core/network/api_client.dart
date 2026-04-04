@@ -399,6 +399,7 @@ class ApiClient {
       ...json,
       'itemId': json['itemId'] ?? json['item_id'] ?? json['id'],
       'displayName': json['displayName'] ?? json['display_name'],
+      'unit': json['unit'] ?? json['unit_name'],
       'storageLocation': json['storageLocation'] ?? json['storage_location'],
       'estimatedExpiryDate':
           json['estimatedExpiryDate'] ?? json['estimated_expiry_date'],
