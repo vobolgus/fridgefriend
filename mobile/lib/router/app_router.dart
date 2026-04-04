@@ -23,220 +23,187 @@ import 'package:fridgefriend_mobile/features/households/presentation/household_s
 import 'package:fridgefriend_mobile/features/households/presentation/activity_log_screen.dart';
 import 'package:fridgefriend_mobile/features/settings/presentation/settings_screen.dart';
 
-final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
-  final isOnboardingComplete = ref.watch(onboardingCompleteProvider);
+/// Notifier that drives GoRouter.refreshListenable without recreating
+/// the router (avoids Flutter ShellRoute page-key assertion).
+class _RouterRefreshNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
 
-  return AppRouter.createRouter(
-    initialLocation: '/',
+final routerProvider = Provider<GoRouter>((ref) {
+  final refreshNotifier = _RouterRefreshNotifier();
+
+  // Schedule the first refresh after build to avoid triggering redirect
+  // during initial router construction (which causes ShellRoute key collision).
+  var initialized = false;
+  ref.listen(authStateProvider, (_, __) {
+    if (initialized) refreshNotifier.notify();
+  });
+  ref.listen(onboardingCompleteProvider, (_, __) {
+    if (initialized) refreshNotifier.notify();
+  });
+
+  final router = AppRouter.createRouter(
+    initialLocation: '/onboarding',
     redirect: (context, state) {
-      final isAuth = authState.valueOrNull != null;
+      final authState = ref.read(authStateProvider);
+      final isOnboardingComplete = ref.read(onboardingCompleteProvider);
+      // Treat loading as not-authenticated — the stream hasn't emitted yet.
+      final isAuthenticated =
+          !authState.isLoading && authState.valueOrNull != null;
       final isGoingToSignIn = state.matchedLocation == '/sign-in';
       final isGoingToOnboarding = state.matchedLocation == '/onboarding';
 
-      if (!isAuth && !isOnboardingComplete && !isGoingToOnboarding) {
+      if (!isAuthenticated && !isOnboardingComplete && !isGoingToOnboarding) {
         return '/onboarding';
       }
 
-      if (!isAuth && isOnboardingComplete && !isGoingToSignIn) {
+      if (!isAuthenticated && isOnboardingComplete && !isGoingToSignIn) {
         return '/sign-in';
       }
 
-      if (isAuth && (isGoingToSignIn || isGoingToOnboarding)) {
+      if (isAuthenticated && (isGoingToSignIn || isGoingToOnboarding)) {
         return '/';
       }
 
       return null;
     },
+    refreshListenable: refreshNotifier,
   );
+
+  // Mark as initialized after the first frame so subsequent state
+  // changes trigger redirect via refreshListenable.
+  Future.microtask(() => initialized = true);
+
+  return router;
 });
 
 class AppRouter {
-  static Page<dynamic> _fadeTransitionPage(
-      BuildContext context, GoRouterState state, Widget child) {
-    return CustomTransitionPage<void>(
-      key: state.pageKey,
-      child: child,
-      transitionDuration: const Duration(milliseconds: 200),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        return FadeTransition(opacity: animation, child: child);
-      },
-    );
-  }
-
-  static Page<dynamic> _slideRightTransitionPage(
-      BuildContext context, GoRouterState state, Widget child) {
-    return CustomTransitionPage<void>(
-      key: state.pageKey,
-      child: child,
-      transitionDuration: const Duration(milliseconds: 300),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(1.0, 0.0);
-        const end = Offset.zero;
-        const curve = Curves.easeOutCubic;
-        final tween =
-            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
-      },
-    );
-  }
-
-  static Page<dynamic> _slideUpTransitionPage(
-      BuildContext context, GoRouterState state, Widget child) {
-    return CustomTransitionPage<void>(
-      key: state.pageKey,
-      child: child,
-      transitionDuration: const Duration(milliseconds: 350),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0);
-        const end = Offset.zero;
-        const curve = Curves.easeOutCubic;
-        final tween =
-            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
-      },
-    );
-  }
+  /// Routes where AppShell shows its full chrome (AppBar, BottomNav, FAB).
+  /// Everything else renders as a full-screen page with no shell chrome.
+  static const chromeRoutes = {'/', '/recipes', '/meal-plan', '/shopping-list'};
 
   static GoRouter createRouter({
     String initialLocation = '/',
     String? Function(BuildContext, GoRouterState)? redirect,
+    Listenable? refreshListenable,
   }) {
     return GoRouter(
       initialLocation: initialLocation,
       redirect: redirect,
+      refreshListenable: refreshListenable,
       routes: [
-        GoRoute(
-          path: '/onboarding',
-          name: 'onboarding',
-          builder: (context, state) => const OnboardingScreen(),
-        ),
-        GoRoute(
-          path: '/sign-in',
-          name: 'sign-in',
-          builder: (context, state) => const SignInScreen(),
-        ),
+        // Every route lives inside a single ShellRoute to avoid
+        // cross-navigator page-key assertions in Flutter's navigator.
+        // AppShell shows chrome only for main tab routes; all others
+        // render as full-screen pages via early-return in AppShell.build.
         ShellRoute(
           builder: (context, state, child) => AppShell(child: child),
           routes: [
             GoRoute(
+              path: '/onboarding',
+              name: 'onboarding',
+              builder: (context, state) => const OnboardingScreen(),
+            ),
+            GoRoute(
+              path: '/sign-in',
+              name: 'sign-in',
+              builder: (context, state) => const SignInScreen(),
+            ),
+            GoRoute(
               path: '/',
               name: 'inventory',
-              pageBuilder: (context, state) =>
-                  _fadeTransitionPage(context, state, const InventoryScreen()),
+              builder: (context, state) => const InventoryScreen(),
             ),
             GoRoute(
               path: '/recipes',
               name: 'recipes',
-              pageBuilder: (context, state) => _fadeTransitionPage(
-                  context, state, const RecommendationsScreen()),
+              builder: (context, state) => const RecommendationsScreen(),
             ),
             GoRoute(
               path: '/meal-plan',
               name: 'meal-plan',
-              pageBuilder: (context, state) =>
-                  _fadeTransitionPage(context, state, const MealPlanScreen()),
+              builder: (context, state) => const MealPlanScreen(),
             ),
             GoRoute(
               path: '/shopping-list',
               name: 'shopping-list',
-              pageBuilder: (context, state) => _fadeTransitionPage(
-                  context, state, const ShoppingListScreen()),
+              builder: (context, state) => const ShoppingListScreen(),
+            ),
+            GoRoute(
+              path: '/add-item',
+              name: 'add-item',
+              builder: (context, state) => AddItemScreen(
+                initialItem: state.extra is InventoryItem
+                    ? state.extra! as InventoryItem
+                    : null,
+              ),
+            ),
+            GoRoute(
+              path: '/settings',
+              name: 'settings',
+              builder: (context, state) => const SettingsScreen(),
+            ),
+            GoRoute(
+              path: '/household',
+              name: 'household',
+              builder: (context, state) => const HouseholdScreen(),
+            ),
+            GoRoute(
+              path: '/activity-log',
+              name: 'activity-log',
+              builder: (context, state) {
+                final extra = state.extra;
+                final householdId = extra is String ? extra : '';
+                return ActivityLogScreen(householdId: householdId);
+              },
+            ),
+            GoRoute(
+              path: '/scan/barcode',
+              name: 'scan-barcode',
+              builder: (context, state) => const BarcodeScanScreen(),
+            ),
+            GoRoute(
+              path: '/scan/photo',
+              name: 'scan-photo',
+              builder: (context, state) => const PhotoUploadScreen(),
+            ),
+            GoRoute(
+              path: '/scan/photo/review',
+              name: 'scan-photo-review',
+              builder: (context, state) {
+                final extra = state.extra;
+                final rawItems = switch (extra) {
+                  final List<dynamic> value => value,
+                  final Map<String, dynamic> value => () {
+                      final candidate = value['draft_items'] ??
+                          value['draftItems'] ??
+                          value['items'];
+                      return candidate is List ? candidate : const <dynamic>[];
+                    }(),
+                  _ => const <dynamic>[],
+                };
+                final items =
+                    rawItems.whereType<InventoryItem>().toList(growable: false);
+                return OcrReviewScreen(items: items);
+              },
+            ),
+            GoRoute(
+              path: '/use-soon',
+              name: 'use-soon',
+              builder: (context, state) => const UseSoonScreen(),
+            ),
+            GoRoute(
+              path: '/recipes/:id',
+              name: 'recipe-detail',
+              builder: (context, state) {
+                final extra = state.extra;
+                if (extra is Recipe) {
+                  return RecipeDetailScreen(recipe: extra);
+                }
+                return const RecommendationsScreen();
+              },
             ),
           ],
-        ),
-        GoRoute(
-          path: '/add-item',
-          name: 'add-item',
-          pageBuilder: (context, state) => _slideRightTransitionPage(
-            context,
-            state,
-            AddItemScreen(
-              initialItem: state.extra is InventoryItem
-                  ? state.extra! as InventoryItem
-                  : null,
-            ),
-          ),
-        ),
-        GoRoute(
-          path: '/settings',
-          name: 'settings',
-          pageBuilder: (context, state) =>
-              _slideRightTransitionPage(context, state, const SettingsScreen()),
-        ),
-        GoRoute(
-          path: '/household',
-          name: 'household',
-          pageBuilder: (context, state) => _slideRightTransitionPage(
-              context, state, const HouseholdScreen()),
-        ),
-        GoRoute(
-          path: '/activity-log',
-          name: 'activity-log',
-          pageBuilder: (context, state) {
-            final extra = state.extra;
-            final householdId = extra is String ? extra : '';
-            return _slideRightTransitionPage(
-                context, state, ActivityLogScreen(householdId: householdId));
-          },
-        ),
-        GoRoute(
-          path: '/scan/barcode',
-          name: 'scan-barcode',
-          pageBuilder: (context, state) => _slideRightTransitionPage(
-              context, state, const BarcodeScanScreen()),
-        ),
-        GoRoute(
-          path: '/scan/photo',
-          name: 'scan-photo',
-          pageBuilder: (context, state) => _slideRightTransitionPage(
-              context, state, const PhotoUploadScreen()),
-        ),
-        GoRoute(
-          path: '/scan/photo/review',
-          name: 'scan-photo-review',
-          pageBuilder: (context, state) {
-            final extra = state.extra;
-            final rawItems = switch (extra) {
-              final List<dynamic> value => value,
-              final Map<String, dynamic> value => () {
-                  final candidate = value['draft_items'] ??
-                      value['draftItems'] ??
-                      value['items'];
-                  return candidate is List ? candidate : const <dynamic>[];
-                }(),
-              _ => const <dynamic>[],
-            };
-            final items =
-                rawItems.whereType<InventoryItem>().toList(growable: false);
-            return _slideRightTransitionPage(
-                context, state, OcrReviewScreen(items: items));
-          },
-        ),
-        GoRoute(
-          path: '/use-soon',
-          name: 'use-soon',
-          pageBuilder: (context, state) =>
-              _slideRightTransitionPage(context, state, const UseSoonScreen()),
-        ),
-        GoRoute(
-          path: '/recipes/:id',
-          name: 'recipe-detail',
-          pageBuilder: (context, state) {
-            final extra = state.extra;
-            if (extra is Recipe) {
-              return _slideUpTransitionPage(
-                  context, state, RecipeDetailScreen(recipe: extra));
-            }
-            return _slideUpTransitionPage(
-                context, state, const RecommendationsScreen());
-          },
         ),
       ],
     );

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
+import 'package:fridgefriend_mobile/router/app_router.dart';
 import 'package:fridgefriend_mobile/features/settings/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/households/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
@@ -23,10 +24,19 @@ class AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final location = GoRouterState.of(context).uri.path;
+
+    // Only the main tab routes get the full shell chrome (AppBar,
+    // BottomNav, FAB). Everything else renders as a full-screen page.
+    // All routes live inside one ShellRoute to avoid the Flutter
+    // navigator page-key assertion on cross-boundary navigation.
+    if (!AppRouter.chromeRoutes.contains(location)) {
+      return child;
+    }
+
     ref.watch(deviceTokenRegistrationProvider);
     _watchHouseholdEvents(ref);
 
-    final location = GoRouterState.of(context).uri.path;
     final currentIndex = switch (location) {
       '/recipes' => 1,
       '/meal-plan' => 2,

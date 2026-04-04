@@ -12,7 +12,7 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@db:5432/fridgefriend
       REDIS_URL: redis://redis:6379/0
-      AUTH_MOCK: "false"
+      AUTH_MOCK: "true"
       S3_ENDPOINT_URL: http://localstack:4566
       S3_BUCKET: fridgefriend-uploads
       AWS_REGION: us-east-1
@@ -24,7 +24,7 @@ services:
       LLM_API_URL: https://litellm.labs.jb.gg
       LLM_MODEL: gpt-4.1-mini
       SPOONACULAR_API_KEY: "${SPOONACULAR_API_KEY:-}"
-      RECIPE_SOURCE: "spoonacular"
+      RECIPE_SOURCE: "mock"
       SENTRY_DSN: ""
       AMPLITUDE_API_KEY: ""
 
