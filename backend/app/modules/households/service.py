@@ -126,6 +126,7 @@ class HouseholdService:
             raise HouseholdNotFoundError
 
         was_active = membership.is_active
+        removed_role = membership.role
         await self._repository.remove_membership(membership)
 
         if was_active:
@@ -138,6 +139,14 @@ class HouseholdService:
             return
         if not household.members:
             await self._repository.delete_household(household)
+            return
+
+        if removed_role == HouseholdRole.OWNER and not any(
+            member.role == HouseholdRole.OWNER for member in household.members
+        ):
+            promoted = await self._repository.get_membership(household_id, household.members[0].user_id)
+            if promoted is not None:
+                _ = await self._repository.update_member_role(promoted, HouseholdRole.OWNER)
 
     async def get_active_household_id(self, user: User) -> uuid.UUID:
         memberships = await self._repository.list_memberships_for_user(user.id)

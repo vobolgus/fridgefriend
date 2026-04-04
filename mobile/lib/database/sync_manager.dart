@@ -96,9 +96,13 @@ class SyncManager {
   }
 
   Future<void> flushPendingMutations() async {
-    final mutations = await pendingMutations();
+    while (true) {
+      final mutations = await pendingMutations();
+      if (mutations.isEmpty) {
+        return;
+      }
+      final mutation = mutations.first;
 
-    for (final mutation in mutations) {
       if (mutation.entityType != 'inventory') {
         await _deleteMutation(mutation.id);
         continue;
@@ -123,6 +127,11 @@ class SyncManager {
                   mutation.payload['estimatedExpiryDate'].toString(),
                 ),
         );
+        await _retargetPendingMutations(
+          fromEntityId: mutation.entityId,
+          toEntityId: syncedItem.id,
+          version: syncedItem.version,
+        );
 
         await _inventoryDao.deleteItem(mutation.entityId);
         await _inventoryDao.insertItem(_toCompanion(syncedItem));
@@ -138,6 +147,10 @@ class SyncManager {
           mutation.entityId,
           (mutation.payload['status'] ?? '').toString(),
           version: statusVersion,
+        );
+        await _rebasePendingMutations(
+          entityId: mutation.entityId,
+          version: syncedStatus.version,
         );
         await _inventoryDao.insertItem(_toCompanion(syncedStatus));
         await _deleteMutation(mutation.id);
@@ -162,12 +175,57 @@ class SyncManager {
               ? mutation.payload['version'] as int
               : int.tryParse(mutation.payload['version']?.toString() ?? ''),
         );
+        await _rebasePendingMutations(
+          entityId: mutation.entityId,
+          version: syncedUpdate.version,
+        );
         await _inventoryDao.insertItem(_toCompanion(syncedUpdate));
         await _deleteMutation(mutation.id);
         continue;
       }
 
       await _deleteMutation(mutation.id);
+    }
+  }
+
+  Future<void> _retargetPendingMutations({
+    required String fromEntityId,
+    required String toEntityId,
+    required int version,
+  }) async {
+    final queued = await pendingMutations();
+    for (final m in queued.where(
+      (m) => m.entityType == 'inventory' && m.entityId == fromEntityId,
+    )) {
+      final payload = Map<String, dynamic>.from(m.payload);
+      payload['id'] = toEntityId;
+      if (m.action != 'create') {
+        payload['version'] = version;
+      }
+      await _database.customStatement(
+        'UPDATE offline_mutation_queue SET entity_id = ?, payload_json = ? WHERE id = ?',
+        <Object?>[toEntityId, jsonEncode(payload), m.id],
+      );
+    }
+  }
+
+  Future<void> _rebasePendingMutations({
+    required String entityId,
+    required int version,
+  }) async {
+    final queued = await pendingMutations();
+    for (final m in queued.where(
+      (m) =>
+          m.entityType == 'inventory' &&
+          m.entityId == entityId &&
+          m.action != 'create',
+    )) {
+      final payload = Map<String, dynamic>.from(m.payload);
+      payload['version'] = version;
+      await _database.customStatement(
+        'UPDATE offline_mutation_queue SET payload_json = ? WHERE id = ?',
+        <Object?>[jsonEncode(payload), m.id],
+      );
     }
   }
 

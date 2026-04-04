@@ -22,12 +22,8 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
 
   bool get _isEditing {
     final initialItem = widget.initialItem;
-    if (initialItem == null) {
-      return false;
-    }
-
+    if (initialItem == null) return false;
     return initialItem.id.isNotEmpty &&
-        !initialItem.id.startsWith('offline_') &&
         !initialItem.id.startsWith('draft_') &&
         !initialItem.id.startsWith('draft-');
   }

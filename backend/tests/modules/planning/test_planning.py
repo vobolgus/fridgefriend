@@ -346,7 +346,7 @@ def test_plan_raises_when_recipe_catalog_empty() -> None:
 
 
 @pytest.mark.asyncio
-async def test_api_post_plans_returns_422_when_no_recipes_exist(
+async def test_api_post_plans_uses_fixture_fallback_when_db_empty(
     client: httpx.AsyncClient,
     test_headers: dict[str, str],
     planning_test_user: User,
@@ -364,8 +364,9 @@ async def test_api_post_plans_returns_422_when_no_recipes_exist(
         json={"days": 3, "servings": 2},
     )
 
-    assert response.status_code == 422
-    assert "No recipes" in response.json()["detail"]
+    assert response.status_code == 200
+    payload = response.json()
+    assert len(payload["plan"]["days"]) == 3
 
 
 def test_shopping_list_empty_when_all_items_on_hand() -> None:
