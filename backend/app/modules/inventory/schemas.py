@@ -38,6 +38,7 @@ class ItemUpdate(BaseModel):
     unit: str | None = Field(default=None, min_length=1)
     storage_location: str | None = Field(default=None, min_length=1)
     canonical_name: str | None = None
+    canonical_ingredient_id: uuid.UUID | None = None
     estimated_expiry_date: date | None = None
     version: int | None = None
 

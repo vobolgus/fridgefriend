@@ -23,6 +23,10 @@ class InventoryItemsTable extends Table {
 
   TextColumn get storageLocation => text()();
 
+  TextColumn get canonicalName => text().nullable()();
+
+  TextColumn get canonicalIngredientId => text().nullable()();
+
   DateTimeColumn get estimatedExpiryDate => dateTime()();
 
   RealColumn get confidence => real()();
@@ -81,7 +85,7 @@ class AppDatabase extends _$AppDatabase {
   late final MealPlanDao mealPlanDao = MealPlanDao(this);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -98,6 +102,18 @@ class AppDatabase extends _$AppDatabase {
           'ALTER TABLE inventory_items_table ADD COLUMN version INTEGER NOT NULL DEFAULT 1',
         );
         await _ensureAuxiliaryTables();
+      }
+      if (from < 4) {
+        try {
+          await customStatement(
+            'ALTER TABLE inventory_items_table ADD COLUMN canonical_name TEXT',
+          );
+        } catch (_) {}
+        try {
+          await customStatement(
+            'ALTER TABLE inventory_items_table ADD COLUMN canonical_ingredient_id TEXT',
+          );
+        } catch (_) {}
       }
     },
     beforeOpen: (details) async {

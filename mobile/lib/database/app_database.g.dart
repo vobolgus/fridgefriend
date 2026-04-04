@@ -37,6 +37,18 @@ class $InventoryItemsTableTable extends InventoryItemsTable
   late final GeneratedColumn<String> storageLocation = GeneratedColumn<String>(
       'storage_location', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _canonicalNameMeta =
+      const VerificationMeta('canonicalName');
+  @override
+  late final GeneratedColumn<String> canonicalName = GeneratedColumn<String>(
+      'canonical_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _canonicalIngredientIdMeta =
+      const VerificationMeta('canonicalIngredientId');
+  @override
+  late final GeneratedColumn<String> canonicalIngredientId =
+      GeneratedColumn<String>('canonical_ingredient_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _estimatedExpiryDateMeta =
       const VerificationMeta('estimatedExpiryDate');
   @override
@@ -78,6 +90,8 @@ class $InventoryItemsTableTable extends InventoryItemsTable
         quantity,
         unit,
         storageLocation,
+        canonicalName,
+        canonicalIngredientId,
         estimatedExpiryDate,
         confidence,
         status,
@@ -128,6 +142,18 @@ class $InventoryItemsTableTable extends InventoryItemsTable
     } else if (isInserting) {
       context.missing(_storageLocationMeta);
     }
+    if (data.containsKey('canonical_name')) {
+      context.handle(
+          _canonicalNameMeta,
+          canonicalName.isAcceptableOrUnknown(
+              data['canonical_name']!, _canonicalNameMeta));
+    }
+    if (data.containsKey('canonical_ingredient_id')) {
+      context.handle(
+          _canonicalIngredientIdMeta,
+          canonicalIngredientId.isAcceptableOrUnknown(
+              data['canonical_ingredient_id']!, _canonicalIngredientIdMeta));
+    }
     if (data.containsKey('estimated_expiry_date')) {
       context.handle(
           _estimatedExpiryDateMeta,
@@ -176,6 +202,11 @@ class $InventoryItemsTableTable extends InventoryItemsTable
           .read(DriftSqlType.string, data['${effectivePrefix}unit'])!,
       storageLocation: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}storage_location'])!,
+      canonicalName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}canonical_name']),
+      canonicalIngredientId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}canonical_ingredient_id']),
       estimatedExpiryDate: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime,
           data['${effectivePrefix}estimated_expiry_date'])!,
@@ -203,6 +234,8 @@ class InventoryItemsTableData extends DataClass
   final double quantity;
   final String unit;
   final String storageLocation;
+  final String? canonicalName;
+  final String? canonicalIngredientId;
   final DateTime estimatedExpiryDate;
   final double confidence;
   final String status;
@@ -214,6 +247,8 @@ class InventoryItemsTableData extends DataClass
       required this.quantity,
       required this.unit,
       required this.storageLocation,
+      this.canonicalName,
+      this.canonicalIngredientId,
       required this.estimatedExpiryDate,
       required this.confidence,
       required this.status,
@@ -227,6 +262,12 @@ class InventoryItemsTableData extends DataClass
     map['quantity'] = Variable<double>(quantity);
     map['unit'] = Variable<String>(unit);
     map['storage_location'] = Variable<String>(storageLocation);
+    if (!nullToAbsent || canonicalName != null) {
+      map['canonical_name'] = Variable<String>(canonicalName);
+    }
+    if (!nullToAbsent || canonicalIngredientId != null) {
+      map['canonical_ingredient_id'] = Variable<String>(canonicalIngredientId);
+    }
     map['estimated_expiry_date'] = Variable<DateTime>(estimatedExpiryDate);
     map['confidence'] = Variable<double>(confidence);
     map['status'] = Variable<String>(status);
@@ -242,6 +283,12 @@ class InventoryItemsTableData extends DataClass
       quantity: Value(quantity),
       unit: Value(unit),
       storageLocation: Value(storageLocation),
+      canonicalName: canonicalName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(canonicalName),
+      canonicalIngredientId: canonicalIngredientId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(canonicalIngredientId),
       estimatedExpiryDate: Value(estimatedExpiryDate),
       confidence: Value(confidence),
       status: Value(status),
@@ -259,6 +306,9 @@ class InventoryItemsTableData extends DataClass
       quantity: serializer.fromJson<double>(json['quantity']),
       unit: serializer.fromJson<String>(json['unit']),
       storageLocation: serializer.fromJson<String>(json['storageLocation']),
+      canonicalName: serializer.fromJson<String?>(json['canonicalName']),
+      canonicalIngredientId:
+          serializer.fromJson<String?>(json['canonicalIngredientId']),
       estimatedExpiryDate:
           serializer.fromJson<DateTime>(json['estimatedExpiryDate']),
       confidence: serializer.fromJson<double>(json['confidence']),
@@ -276,6 +326,9 @@ class InventoryItemsTableData extends DataClass
       'quantity': serializer.toJson<double>(quantity),
       'unit': serializer.toJson<String>(unit),
       'storageLocation': serializer.toJson<String>(storageLocation),
+      'canonicalName': serializer.toJson<String?>(canonicalName),
+      'canonicalIngredientId':
+          serializer.toJson<String?>(canonicalIngredientId),
       'estimatedExpiryDate': serializer.toJson<DateTime>(estimatedExpiryDate),
       'confidence': serializer.toJson<double>(confidence),
       'status': serializer.toJson<String>(status),
@@ -290,6 +343,8 @@ class InventoryItemsTableData extends DataClass
           double? quantity,
           String? unit,
           String? storageLocation,
+          Value<String?> canonicalName = const Value.absent(),
+          Value<String?> canonicalIngredientId = const Value.absent(),
           DateTime? estimatedExpiryDate,
           double? confidence,
           String? status,
@@ -301,6 +356,11 @@ class InventoryItemsTableData extends DataClass
         quantity: quantity ?? this.quantity,
         unit: unit ?? this.unit,
         storageLocation: storageLocation ?? this.storageLocation,
+        canonicalName:
+            canonicalName.present ? canonicalName.value : this.canonicalName,
+        canonicalIngredientId: canonicalIngredientId.present
+            ? canonicalIngredientId.value
+            : this.canonicalIngredientId,
         estimatedExpiryDate: estimatedExpiryDate ?? this.estimatedExpiryDate,
         confidence: confidence ?? this.confidence,
         status: status ?? this.status,
@@ -317,6 +377,12 @@ class InventoryItemsTableData extends DataClass
       storageLocation: data.storageLocation.present
           ? data.storageLocation.value
           : this.storageLocation,
+      canonicalName: data.canonicalName.present
+          ? data.canonicalName.value
+          : this.canonicalName,
+      canonicalIngredientId: data.canonicalIngredientId.present
+          ? data.canonicalIngredientId.value
+          : this.canonicalIngredientId,
       estimatedExpiryDate: data.estimatedExpiryDate.present
           ? data.estimatedExpiryDate.value
           : this.estimatedExpiryDate,
@@ -336,6 +402,8 @@ class InventoryItemsTableData extends DataClass
           ..write('quantity: $quantity, ')
           ..write('unit: $unit, ')
           ..write('storageLocation: $storageLocation, ')
+          ..write('canonicalName: $canonicalName, ')
+          ..write('canonicalIngredientId: $canonicalIngredientId, ')
           ..write('estimatedExpiryDate: $estimatedExpiryDate, ')
           ..write('confidence: $confidence, ')
           ..write('status: $status, ')
@@ -352,6 +420,8 @@ class InventoryItemsTableData extends DataClass
       quantity,
       unit,
       storageLocation,
+      canonicalName,
+      canonicalIngredientId,
       estimatedExpiryDate,
       confidence,
       status,
@@ -366,6 +436,8 @@ class InventoryItemsTableData extends DataClass
           other.quantity == this.quantity &&
           other.unit == this.unit &&
           other.storageLocation == this.storageLocation &&
+          other.canonicalName == this.canonicalName &&
+          other.canonicalIngredientId == this.canonicalIngredientId &&
           other.estimatedExpiryDate == this.estimatedExpiryDate &&
           other.confidence == this.confidence &&
           other.status == this.status &&
@@ -380,6 +452,8 @@ class InventoryItemsTableCompanion
   final Value<double> quantity;
   final Value<String> unit;
   final Value<String> storageLocation;
+  final Value<String?> canonicalName;
+  final Value<String?> canonicalIngredientId;
   final Value<DateTime> estimatedExpiryDate;
   final Value<double> confidence;
   final Value<String> status;
@@ -392,6 +466,8 @@ class InventoryItemsTableCompanion
     this.quantity = const Value.absent(),
     this.unit = const Value.absent(),
     this.storageLocation = const Value.absent(),
+    this.canonicalName = const Value.absent(),
+    this.canonicalIngredientId = const Value.absent(),
     this.estimatedExpiryDate = const Value.absent(),
     this.confidence = const Value.absent(),
     this.status = const Value.absent(),
@@ -405,6 +481,8 @@ class InventoryItemsTableCompanion
     required double quantity,
     required String unit,
     required String storageLocation,
+    this.canonicalName = const Value.absent(),
+    this.canonicalIngredientId = const Value.absent(),
     required DateTime estimatedExpiryDate,
     required double confidence,
     this.status = const Value.absent(),
@@ -424,6 +502,8 @@ class InventoryItemsTableCompanion
     Expression<double>? quantity,
     Expression<String>? unit,
     Expression<String>? storageLocation,
+    Expression<String>? canonicalName,
+    Expression<String>? canonicalIngredientId,
     Expression<DateTime>? estimatedExpiryDate,
     Expression<double>? confidence,
     Expression<String>? status,
@@ -437,6 +517,9 @@ class InventoryItemsTableCompanion
       if (quantity != null) 'quantity': quantity,
       if (unit != null) 'unit': unit,
       if (storageLocation != null) 'storage_location': storageLocation,
+      if (canonicalName != null) 'canonical_name': canonicalName,
+      if (canonicalIngredientId != null)
+        'canonical_ingredient_id': canonicalIngredientId,
       if (estimatedExpiryDate != null)
         'estimated_expiry_date': estimatedExpiryDate,
       if (confidence != null) 'confidence': confidence,
@@ -453,6 +536,8 @@ class InventoryItemsTableCompanion
       Value<double>? quantity,
       Value<String>? unit,
       Value<String>? storageLocation,
+      Value<String?>? canonicalName,
+      Value<String?>? canonicalIngredientId,
       Value<DateTime>? estimatedExpiryDate,
       Value<double>? confidence,
       Value<String>? status,
@@ -465,6 +550,9 @@ class InventoryItemsTableCompanion
       quantity: quantity ?? this.quantity,
       unit: unit ?? this.unit,
       storageLocation: storageLocation ?? this.storageLocation,
+      canonicalName: canonicalName ?? this.canonicalName,
+      canonicalIngredientId:
+          canonicalIngredientId ?? this.canonicalIngredientId,
       estimatedExpiryDate: estimatedExpiryDate ?? this.estimatedExpiryDate,
       confidence: confidence ?? this.confidence,
       status: status ?? this.status,
@@ -491,6 +579,13 @@ class InventoryItemsTableCompanion
     }
     if (storageLocation.present) {
       map['storage_location'] = Variable<String>(storageLocation.value);
+    }
+    if (canonicalName.present) {
+      map['canonical_name'] = Variable<String>(canonicalName.value);
+    }
+    if (canonicalIngredientId.present) {
+      map['canonical_ingredient_id'] =
+          Variable<String>(canonicalIngredientId.value);
     }
     if (estimatedExpiryDate.present) {
       map['estimated_expiry_date'] =
@@ -522,6 +617,8 @@ class InventoryItemsTableCompanion
           ..write('quantity: $quantity, ')
           ..write('unit: $unit, ')
           ..write('storageLocation: $storageLocation, ')
+          ..write('canonicalName: $canonicalName, ')
+          ..write('canonicalIngredientId: $canonicalIngredientId, ')
           ..write('estimatedExpiryDate: $estimatedExpiryDate, ')
           ..write('confidence: $confidence, ')
           ..write('status: $status, ')
@@ -553,6 +650,8 @@ typedef $$InventoryItemsTableTableCreateCompanionBuilder
   required double quantity,
   required String unit,
   required String storageLocation,
+  Value<String?> canonicalName,
+  Value<String?> canonicalIngredientId,
   required DateTime estimatedExpiryDate,
   required double confidence,
   Value<String> status,
@@ -567,6 +666,8 @@ typedef $$InventoryItemsTableTableUpdateCompanionBuilder
   Value<double> quantity,
   Value<String> unit,
   Value<String> storageLocation,
+  Value<String?> canonicalName,
+  Value<String?> canonicalIngredientId,
   Value<DateTime> estimatedExpiryDate,
   Value<double> confidence,
   Value<String> status,
@@ -598,6 +699,13 @@ class $$InventoryItemsTableTableFilterComposer
 
   ColumnFilters<String> get storageLocation => $composableBuilder(
       column: $table.storageLocation,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get canonicalName => $composableBuilder(
+      column: $table.canonicalName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get canonicalIngredientId => $composableBuilder(
+      column: $table.canonicalIngredientId,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get estimatedExpiryDate => $composableBuilder(
@@ -642,6 +750,14 @@ class $$InventoryItemsTableTableOrderingComposer
       column: $table.storageLocation,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get canonicalName => $composableBuilder(
+      column: $table.canonicalName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get canonicalIngredientId => $composableBuilder(
+      column: $table.canonicalIngredientId,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get estimatedExpiryDate => $composableBuilder(
       column: $table.estimatedExpiryDate,
       builder: (column) => ColumnOrderings(column));
@@ -682,6 +798,12 @@ class $$InventoryItemsTableTableAnnotationComposer
 
   GeneratedColumn<String> get storageLocation => $composableBuilder(
       column: $table.storageLocation, builder: (column) => column);
+
+  GeneratedColumn<String> get canonicalName => $composableBuilder(
+      column: $table.canonicalName, builder: (column) => column);
+
+  GeneratedColumn<String> get canonicalIngredientId => $composableBuilder(
+      column: $table.canonicalIngredientId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get estimatedExpiryDate => $composableBuilder(
       column: $table.estimatedExpiryDate, builder: (column) => column);
@@ -734,6 +856,8 @@ class $$InventoryItemsTableTableTableManager extends RootTableManager<
             Value<double> quantity = const Value.absent(),
             Value<String> unit = const Value.absent(),
             Value<String> storageLocation = const Value.absent(),
+            Value<String?> canonicalName = const Value.absent(),
+            Value<String?> canonicalIngredientId = const Value.absent(),
             Value<DateTime> estimatedExpiryDate = const Value.absent(),
             Value<double> confidence = const Value.absent(),
             Value<String> status = const Value.absent(),
@@ -747,6 +871,8 @@ class $$InventoryItemsTableTableTableManager extends RootTableManager<
             quantity: quantity,
             unit: unit,
             storageLocation: storageLocation,
+            canonicalName: canonicalName,
+            canonicalIngredientId: canonicalIngredientId,
             estimatedExpiryDate: estimatedExpiryDate,
             confidence: confidence,
             status: status,
@@ -760,6 +886,8 @@ class $$InventoryItemsTableTableTableManager extends RootTableManager<
             required double quantity,
             required String unit,
             required String storageLocation,
+            Value<String?> canonicalName = const Value.absent(),
+            Value<String?> canonicalIngredientId = const Value.absent(),
             required DateTime estimatedExpiryDate,
             required double confidence,
             Value<String> status = const Value.absent(),
@@ -773,6 +901,8 @@ class $$InventoryItemsTableTableTableManager extends RootTableManager<
             quantity: quantity,
             unit: unit,
             storageLocation: storageLocation,
+            canonicalName: canonicalName,
+            canonicalIngredientId: canonicalIngredientId,
             estimatedExpiryDate: estimatedExpiryDate,
             confidence: confidence,
             status: status,

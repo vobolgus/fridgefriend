@@ -172,6 +172,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
             confidence: item.confidence,
             status: item.status,
             source: item.source,
+            canonicalName: item.canonicalName,
+            canonicalIngredientId: item.canonicalIngredientId,
             version: item.version,
           ),
         )
@@ -200,6 +202,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
       confidence: item.confidence ?? 0.0,
       status: Value(item.status),
       source: Value(item.source),
+      canonicalName: Value(item.canonicalName),
+      canonicalIngredientId: Value(item.canonicalIngredientId),
       version: Value(item.version),
     );
   }

@@ -98,7 +98,13 @@ class InventoryService:
             if self._catalog_service is not None:
                 canonical = await self._catalog_service.resolve_canonical(data.canonical_name or data.display_name)
             canonical_name = canonical.name if canonical is not None else (data.canonical_name or data.display_name)
-            data = data.model_copy(update={"canonical_name": canonical_name})
+            canonical_ingredient_id = canonical.id if canonical is not None else None
+            data = data.model_copy(
+                update={
+                    "canonical_name": canonical_name,
+                    "canonical_ingredient_id": canonical_ingredient_id,
+                }
+            )
         if data.unit is not None:
             data = data.model_copy(update={"unit": normalize_unit(data.unit)})
         if data.quantity is not None:

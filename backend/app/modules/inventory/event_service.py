@@ -38,6 +38,7 @@ def snapshot_item(item: InventoryItem) -> dict[str, Any]:
         "status": _serialize_value(item.status),
         "source": _serialize_value(item.source),
         "canonical_name": item.canonical_name,
+        "canonical_ingredient_id": str(item.canonical_ingredient_id) if item.canonical_ingredient_id is not None else None,
         "version": item.version,
     }
 
@@ -128,6 +129,7 @@ class InventoryEventService:
                 status=InventoryStatus(str(previous_state["status"])),
                 source=InventorySource(str(previous_state["source"])),
                 canonical_name=str(previous_state["canonical_name"]),
+                canonical_ingredient_id=uuid.UUID(previous_state["canonical_ingredient_id"]) if previous_state.get("canonical_ingredient_id") else None,
                 version=int(previous_state.get("version", 1)),
             )
             db.add(restored_item)
@@ -157,6 +159,7 @@ class InventoryEventService:
         item.status = InventoryStatus(str(previous_state["status"]))
         item.source = InventorySource(str(previous_state["source"]))
         item.canonical_name = str(previous_state["canonical_name"])
+        item.canonical_ingredient_id = uuid.UUID(previous_state["canonical_ingredient_id"]) if previous_state.get("canonical_ingredient_id") else None
         item.version = int(previous_state.get("version", item.version))
         await db.commit()
         await db.refresh(item)

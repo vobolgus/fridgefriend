@@ -223,6 +223,8 @@ class SyncManager {
       confidence: item.confidence ?? 0.0,
       status: Value(item.status),
       source: Value(item.source),
+      canonicalName: Value(item.canonicalName),
+      canonicalIngredientId: Value(item.canonicalIngredientId),
       version: Value(item.version),
     );
   }
