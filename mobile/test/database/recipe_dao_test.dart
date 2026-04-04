@@ -27,6 +27,7 @@ void main() {
         score: 8.4,
         prepMinutes: 10,
         missingItems: ['cheese'],
+        substitutions: const [],
       ),
     ]);
 

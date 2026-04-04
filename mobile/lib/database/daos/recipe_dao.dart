@@ -32,6 +32,7 @@ class CachedRecipeRecord {
       score: score,
       prepMinutes: prepMinutes,
       missingItems: missingItems,
+      substitutions: const [],
     );
   }
 }

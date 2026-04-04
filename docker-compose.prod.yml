@@ -13,13 +13,15 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://fridgefriend:fridgefriend@postgres:5432/fridgefriend
       REDIS_URL: redis://redis:6379/0
-      AUTH_MOCK: "true"
+      AUTH_MOCK: "false"
+      FIREBASE_PROJECT_ID: "${FIREBASE_PROJECT_ID:-}"
       S3_ENDPOINT_URL: http://localstack:4566
       S3_BUCKET: fridgefriend-uploads
       AWS_REGION: us-east-1
+      # Required in production: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SENTRY_DSN, AMPLITUDE_API_KEY
       AWS_ACCESS_KEY_ID: test
       AWS_SECRET_ACCESS_KEY: test
-      STORAGE_BACKEND: local
+      STORAGE_BACKEND: s3
       SENTRY_DSN: ""
       AMPLITUDE_API_KEY: ""
 

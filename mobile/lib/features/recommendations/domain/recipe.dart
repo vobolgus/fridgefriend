@@ -6,6 +6,7 @@ class Recipe {
     required this.score,
     required this.prepMinutes,
     required this.missingItems,
+    required this.substitutions,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class Recipe {
   final double score;
   final int prepMinutes;
   final List<String> missingItems;
+  final List<String> substitutions;
 
   factory Recipe.fromJson(Map<String, dynamic> json) {
     return Recipe(
@@ -24,6 +26,9 @@ class Recipe {
       prepMinutes: _asInt(json['prepMinutes']),
       missingItems: (json['missingItems'] as List<dynamic>? ?? const [])
           .map((item) => item.toString())
+          .toList(growable: false),
+      substitutions: (json['substitutions'] as List<dynamic>? ?? const [])
+          .map((s) => s.toString())
           .toList(growable: false),
     );
   }
@@ -36,6 +41,7 @@ class Recipe {
       'score': score,
       'prepMinutes': prepMinutes,
       'missingItems': missingItems,
+      'substitutions': substitutions,
     };
   }
 

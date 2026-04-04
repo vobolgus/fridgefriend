@@ -12,6 +12,7 @@ void main() {
       score: 0.9,
       prepMinutes: 30,
       missingItems: ['Cheese'],
+      substitutions: const [],
     );
 
     await tester.pumpWidget(

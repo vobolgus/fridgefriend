@@ -53,6 +53,7 @@ void main() {
           score: 0.88,
           prepMinutes: 30,
           missingItems: ['Mozzarella'],
+          substitutions: const [],
         ),
       ],
     );
@@ -144,6 +145,10 @@ void main() {
     await pumpRouterApp(tester, '/meal-plan');
 
     expect(find.byType(MealPlanScreen), findsOneWidget);
+    
+    await tester.tap(find.text('Generate Plan'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Pasta Bake'), findsOneWidget);
   });
 

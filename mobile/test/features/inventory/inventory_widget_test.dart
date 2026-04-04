@@ -130,4 +130,49 @@ void main() {
     expect(fields[2].controller?.text, 'container');
     expect(fields[3].controller?.text, 'fridge');
   });
+
+  testWidgets('InventoryScreen shows popup menu options and handles actions', (tester) async {
+    final mockClient = MockApiClient();
+    final testItem = InventoryItem(
+      id: '1',
+      displayName: 'Milk',
+      quantity: 1,
+      unit: 'L',
+      storageLocation: 'Fridge',
+      estimatedExpiryDate: DateTime.now().add(const Duration(days: 4)),
+      confidence: 0.9,
+      status: 'active',
+      source: 'manual',
+    );
+
+    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => [testItem]);
+
+    final preloadedNotifier = InventoryNotifier.withInitialData([testItem]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          apiClientProvider.overrideWithValue(mockClient),
+          inventoryProvider.overrideWith((ref) => preloadedNotifier),
+        ],
+        child: const MaterialApp(home: Scaffold(body: InventoryScreen())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final menuFinder = find.byType(PopupMenuButton<String>);
+    expect(menuFinder, findsOneWidget);
+    await tester.tap(menuFinder);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mark Used'), findsOneWidget);
+    expect(find.text('Mark Discarded'), findsOneWidget);
+    expect(find.text('Mark Frozen'), findsOneWidget);
+
+    await tester.tap(find.text('Mark Used'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Item marked as used'), findsOneWidget);
+    expect(find.text('Undo'), findsOneWidget);
+  });
 }

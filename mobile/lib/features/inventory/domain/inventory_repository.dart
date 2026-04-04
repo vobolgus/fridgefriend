@@ -13,4 +13,6 @@ abstract class InventoryRepository {
   });
 
   Future<void> updateItemStatus(String id, String status);
+
+  Future<void> undoItem(String id);
 }

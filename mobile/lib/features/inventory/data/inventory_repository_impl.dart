@@ -80,6 +80,11 @@ class InventoryRepositoryImpl implements InventoryRepository {
     }
   }
 
+  @override
+  Future<void> undoItem(String id) async {
+    await _apiClient.undoItem(id);
+  }
+
   Future<List<InventoryItem>> _loadCachedItems() async {
     final items = await _inventoryDao.getAllItems();
     return items

@@ -97,6 +97,19 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
 
   Future<void> markUsed(String itemId) => _updateStatus(itemId, 'used');
 
+  Future<void> markDiscarded(String itemId) => _updateStatus(itemId, 'discarded');
+
+  Future<void> markFrozen(String itemId) => _updateStatus(itemId, 'frozen');
+
+  Future<void> undoItem(String itemId) async {
+    try {
+      await _repository.undoItem(itemId);
+      await loadItems();
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+    }
+  }
+
   Future<void> _updateStatus(String itemId, String status) async {
     final currentItems = state.valueOrNull ?? const <InventoryItem>[];
     try {
@@ -123,8 +136,8 @@ final recommendationsProvider = FutureProvider<List<Recipe>>((ref) {
   return ref.watch(apiClientProvider).getRecommendations();
 });
 
-final mealPlanProvider = FutureProvider<MealPlan>((ref) {
-  return ref.watch(apiClientProvider).generatePlan();
+final mealPlanProvider = FutureProvider.family<MealPlan, int>((ref, days) {
+  return ref.watch(apiClientProvider).generatePlan(days: days);
 });
 
 final shoppingListProvider = FutureProvider<List<ShoppingItem>>((ref) {
@@ -150,7 +163,8 @@ class _NoopRepository implements InventoryRepository {
   }
 
   @override
-  Future<void> updateItemStatus(String id, String status) {
-    throw UnimplementedError('_NoopRepository is for testing only');
-  }
+  Future<void> updateItemStatus(String id, String status) async {}
+
+  @override
+  Future<void> undoItem(String id) async {}
 }

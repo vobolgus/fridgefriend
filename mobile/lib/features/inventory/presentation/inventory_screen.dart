@@ -32,21 +32,63 @@ class InventoryScreen extends ConsumerWidget {
                   subtitle: Text(
                     '${item.quantity.toStringAsFixed(item.quantity.truncateToDouble() == item.quantity ? 0 : 1)} ${item.unit} • ${item.storageLocation}',
                   ),
-                  trailing: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: badgeColor,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: badgeColor,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            _urgencyLabel(item.urgencyBucket),
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        _urgencyLabel(item.urgencyBucket),
-                        style: const TextStyle(color: Colors.white),
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          final notifier = ref.read(inventoryProvider.notifier);
+                          if (value == 'used') {
+                            notifier.markUsed(item.id);
+                          } else if (value == 'discarded') {
+                            notifier.markDiscarded(item.id);
+                          } else if (value == 'frozen') {
+                            notifier.markFrozen(item.id);
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Item marked as $value'),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                onPressed: () {
+                                  notifier.undoItem(item.id);
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'used',
+                            child: Text('Mark Used'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'discarded',
+                            child: Text('Mark Discarded'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'frozen',
+                            child: Text('Mark Frozen'),
+                          ),
+                        ],
                       ),
-                    ),
+                    ],
                   ),
                 );
               },

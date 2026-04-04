@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'providers.dart';
 
 class HouseholdScreen extends ConsumerWidget {
@@ -48,6 +49,13 @@ class HouseholdScreen extends ConsumerWidget {
                   title: Text(m.email),
                   subtitle: Text(m.role),
                 ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  context.pushNamed('activity-log', extra: household.id);
+                },
+                child: const Text('View Activity'),
               ),
             ],
           );

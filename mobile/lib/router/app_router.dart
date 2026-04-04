@@ -18,6 +18,7 @@ import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dar
 import 'package:fridgefriend_mobile/features/inventory/presentation/use_soon_screen.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/ocr_review_screen.dart';
 import 'package:fridgefriend_mobile/features/households/presentation/household_screen.dart';
+import 'package:fridgefriend_mobile/features/households/presentation/activity_log_screen.dart';
 import 'package:fridgefriend_mobile/features/settings/presentation/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -99,6 +100,14 @@ class AppRouter {
           path: '/household',
           name: 'household',
           builder: (context, state) => const HouseholdScreen(),
+        ),
+        GoRoute(
+          path: '/activity-log',
+          name: 'activity-log',
+          builder: (context, state) {
+            final householdId = state.extra as String? ?? '';
+            return ActivityLogScreen(householdId: householdId);
+          },
         ),
         GoRoute(
           path: '/scan/barcode',

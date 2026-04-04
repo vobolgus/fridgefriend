@@ -9,19 +9,30 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final notificationsEnabled = ref.watch(notificationsEnabledProvider);
+    final notificationsEnabledAsync = ref.watch(notificationsEnabledProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
-          SwitchListTile(
-            title: const Text('Push Notifications'),
-            subtitle: const Text('Reminders for expiring items'),
-            value: notificationsEnabled,
-            onChanged: (val) {
-              ref.read(notificationsEnabledProvider.notifier).state = val;
-            },
+          notificationsEnabledAsync.when(
+            data: (enabled) => SwitchListTile(
+              title: const Text('Push Notifications'),
+              subtitle: const Text('Reminders for expiring items'),
+              value: enabled,
+              onChanged: (val) {
+                ref.read(notificationsEnabledProvider.notifier).toggle(val);
+              },
+            ),
+            loading: () => const ListTile(
+              title: Text('Push Notifications'),
+              subtitle: Text('Reminders for expiring items'),
+              trailing: CircularProgressIndicator(),
+            ),
+            error: (err, stack) => ListTile(
+              title: const Text('Push Notifications'),
+              subtitle: Text('Error loading preferences: $err'),
+            ),
           ),
           const Divider(),
           ListTile(

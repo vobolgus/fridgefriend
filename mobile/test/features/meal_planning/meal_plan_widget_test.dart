@@ -12,9 +12,9 @@ import 'package:fridgefriend_mobile/features/meal_planning/presentation/shopping
 class MockApiClient extends Mock implements ApiClient {}
 
 void main() {
-  testWidgets('MealPlanScreen shows planned recipe titles', (tester) async {
+  testWidgets('MealPlanScreen shows day picker and generates plan', (tester) async {
     final mockClient = MockApiClient();
-    when(() => mockClient.generatePlan()).thenAnswer(
+    when(() => mockClient.generatePlan(days: any(named: 'days'))).thenAnswer(
       (_) async => MealPlan(
         planId: 'plan-1',
         days: [
@@ -43,8 +43,20 @@ void main() {
         child: const MaterialApp(home: MealPlanScreen()),
       ),
     );
-    await tester.pump();
 
+    expect(find.text('Select days and generate plan'), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButton<int>));
+    await tester.pumpAndSettle();
+    
+    // the dropdown item '5 days' appears twice when menu is open: one in the button, one in the menu
+    await tester.tap(find.text('5 days').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Generate Plan'));
+    await tester.pumpAndSettle();
+
+    verify(() => mockClient.generatePlan(days: 5)).called(1);
     expect(find.text('Veggie Stir Fry'), findsOneWidget);
     expect(find.text('2026-04-03'), findsOneWidget);
   });

@@ -108,6 +108,23 @@ class ApiClient {
     );
   }
 
+  Future<void> undoItem(String id) async {
+    await _dio.post('${ApiConfig.apiVersionPath}/items/$id/undo');
+  }
+
+  Future<List<Map<String, dynamic>>> getActivityLog(String householdId) async {
+    final response = await _dio.get('${ApiConfig.apiVersionPath}/households/$householdId/activity');
+    final payload = response.data;
+    if (payload is List) {
+      return payload.whereType<Map<String, dynamic>>().toList(growable: false);
+    }
+    if (payload is Map<String, dynamic>) {
+      final items = payload['events'] as List<dynamic>? ?? payload['activity'] as List<dynamic>? ?? const [];
+      return items.whereType<Map<String, dynamic>>().toList(growable: false);
+    }
+    return const [];
+  }
+
   Future<List<Recipe>> getRecommendations({int servings = 2}) async {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/recommendations',
@@ -183,6 +200,22 @@ class ApiClient {
       return items.whereType<Map<String, dynamic>>().map(Household.fromJson).toList(growable: false);
     }
     return const [];
+  }
+
+  Future<Map<String, dynamic>> getNotificationPreferences() async {
+    final response = await _dio.get('${ApiConfig.apiVersionPath}/notifications');
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      return payload;
+    }
+    return {};
+  }
+
+  Future<void> updateNotificationPreferences({required bool expiryReminderEnabled}) async {
+    await _dio.patch(
+      '${ApiConfig.apiVersionPath}/notifications',
+      data: {'expiry_reminder_enabled': expiryReminderEnabled},
+    );
   }
 
   Future<Household> createHousehold(String name) async {

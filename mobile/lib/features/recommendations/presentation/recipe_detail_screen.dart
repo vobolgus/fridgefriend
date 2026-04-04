@@ -10,8 +10,7 @@ class RecipeDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     // In a real app, Recipe might have full ingredient list, dietary tags, substitutions, etc.
     // For now we render what we can from the domain model or mock it for UI demonstration.
-    final dietaryTags = ['Healthy', 'Quick']; // Mocked for UI requirements
-    final substitutions = {'Mozzarella': 'Cheddar'}; // Mocked for UI requirements
+    final substitutions = recipe.substitutions;
 
     return Scaffold(
       appBar: AppBar(title: Text(recipe.title)),
@@ -31,15 +30,6 @@ class RecipeDetailScreen extends StatelessWidget {
               const SizedBox(width: 4),
               Text('${recipe.prepMinutes} min'),
               const Spacer(),
-              ...dietaryTags.map(
-                (tag) => Padding(
-                  padding: const EdgeInsets.only(left: 4.0),
-                  child: Chip(
-                    label: Text(tag, style: const TextStyle(fontSize: 10)),
-                    padding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
             ],
           ),
           const Divider(height: 32),
@@ -69,13 +59,16 @@ class RecipeDetailScreen extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
-          ...substitutions.entries.map(
-            (entry) => ListTile(
-              leading: const Icon(Icons.swap_horiz, color: Colors.orange),
-              title: Text('${entry.key} → ${entry.value}'),
-              dense: true,
+          if (substitutions.isEmpty)
+            const Text('No substitutions suggested')
+          else
+            ...substitutions.map(
+              (sub) => ListTile(
+                leading: const Icon(Icons.swap_horiz, color: Colors.orange),
+                title: Text(sub),
+                dense: true,
+              ),
             ),
-          ),
         ],
       ),
     );
