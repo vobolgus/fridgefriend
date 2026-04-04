@@ -13,6 +13,7 @@ import 'package:fridgefriend_mobile/features/meal_planning/presentation/meal_pla
 import 'package:fridgefriend_mobile/features/meal_planning/presentation/shopping_list_screen.dart';
 import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
 import 'package:fridgefriend_mobile/features/recommendations/presentation/recommendations_screen.dart';
+import 'package:fridgefriend_mobile/features/settings/presentation/settings_screen.dart';
 import 'package:fridgefriend_mobile/router/app_router.dart';
 
 class MockApiClient extends Mock implements ApiClient {}
@@ -153,5 +154,12 @@ void main() {
 
     expect(find.byType(ShoppingListScreen), findsOneWidget);
     expect(find.text('Mozzarella'), findsOneWidget);
+  });
+
+  testWidgets('settings route resolves to settings screen', (tester) async {
+    await pumpRouterApp(tester, '/settings');
+
+    expect(find.byType(SettingsScreen), findsOneWidget);
+    expect(find.text('Push Notifications'), findsOneWidget);
   });
 }

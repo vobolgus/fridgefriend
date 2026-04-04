@@ -1,11 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.idempotency import get_cached, store_cached
+from app.models.user import User
+from app.modules.inventory.dependencies import get_current_user
 
 from .photo_interfaces import LLMPhotoParser, MockPhotoParser, PhotoParserInterface
 from .schemas import (
@@ -36,36 +38,43 @@ def get_photo_parser() -> PhotoParserInterface:
 async def scan_barcode(
     payload: BarcodeScanRequest,
     service: Annotated[CatalogService, Depends(get_catalog_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> BarcodeScanResponse:
     if idempotency_key:
-        cached = get_cached("anon", request.url.path, idempotency_key)
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
         if cached:
             return BarcodeScanResponse.model_validate(cached)
 
     resolved = await service.lookup_barcode_with_canonical(payload.barcode)
     if resolved is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Barcode not found in catalog",
+        response = BarcodeScanResponse(
+            barcode=payload.barcode,
+            display_name="",
+            canonical_name="",
+            canonical_ingredient_id=None,
+            brand="",
+            quantity=payload.quantity,
+            storage_location=payload.storage_location,
+            source="barcode",
+        )
+    else:
+        result, canonical = resolved
+
+        response = BarcodeScanResponse(
+            barcode=result.barcode,
+            display_name=result.display_name,
+            canonical_name=result.canonical_name,
+            canonical_ingredient_id=str(canonical.id) if canonical is not None else None,
+            brand=result.brand,
+            quantity=payload.quantity,
+            storage_location=payload.storage_location,
+            source="barcode",
         )
 
-    result, canonical = resolved
-
-    response = BarcodeScanResponse(
-        barcode=result.barcode,
-        display_name=result.display_name,
-        canonical_name=result.canonical_name,
-        canonical_ingredient_id=str(canonical.id) if canonical is not None else None,
-        brand=result.brand,
-        quantity=payload.quantity,
-        storage_location=payload.storage_location,
-        source="barcode",
-    )
-
     if idempotency_key:
-        store_cached("anon", request.url.path, idempotency_key, response.model_dump(mode="json"))
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
 
@@ -74,11 +83,12 @@ async def scan_barcode(
 async def scan_photo(
     payload: PhotoScanRequest,
     parser: Annotated[PhotoParserInterface, Depends(get_photo_parser)],
+    current_user: Annotated[User, Depends(get_current_user)],
     request: Request,
     idempotency_key: Annotated[str | None, Header()] = None,
 ) -> PhotoScanResponse:
     if idempotency_key:
-        cached = get_cached("anon", request.url.path, idempotency_key)
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
         if cached:
             return PhotoScanResponse.model_validate(cached)
 
@@ -112,7 +122,7 @@ async def scan_photo(
 
     response = PhotoScanResponse(draft_items=draft_items)
     if idempotency_key:
-        store_cached("anon", request.url.path, idempotency_key, response.model_dump(mode="json"))
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
     return response
 
 

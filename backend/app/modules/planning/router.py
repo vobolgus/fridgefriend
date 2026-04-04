@@ -25,7 +25,7 @@ async def get_planning_service(
     return PlanningService(db)
 
 
-@router.post("/v1/plans", response_model=PlanResult)
+@router.post("/v1/plans", response_model=PlanResult, response_model_by_alias=True)
 async def create_plan(
     payload: PlanRequest,
     planning_service: Annotated[PlanningService, Depends(get_planning_service)],
@@ -65,8 +65,18 @@ async def delete_plan(
     planning_service: Annotated[PlanningService, Depends(get_planning_service)],
     current_user: Annotated[User, Depends(get_current_user)],
     household_id: Annotated[UUID, Depends(get_active_household_id)],
+    request: Request,
+    idempotency_key: Annotated[str | None, Header()] = None,
 ) -> None:
+    if idempotency_key:
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+        if cached is not None:
+            return None
+
     try:
         await planning_service.delete_plan(plan_id, current_user, household_id)
     except MealPlanNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal plan not found") from exc
+
+    if idempotency_key:
+        store_cached(str(current_user.id), request.url.path, idempotency_key, {})

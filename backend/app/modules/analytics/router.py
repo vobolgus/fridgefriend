@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Header, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.idempotency import get_cached, store_cached
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
@@ -20,6 +21,18 @@ async def collect_event(
     payload: AnalyticsEventCreate,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[User, Depends(get_current_user)],
+    request: Request,
+    idempotency_key: Annotated[str | None, Header()] = None,
 ) -> AnalyticsEventAccepted:
+    if idempotency_key:
+        cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
+        if cached:
+            return AnalyticsEventAccepted.model_validate(cached)
+
     event = await AnalyticsService(db).collect_event(current_user, payload)
-    return AnalyticsEventAccepted(event_id=event.id, created_at=event.created_at)
+    response = AnalyticsEventAccepted(event_id=event.id, created_at=event.created_at)
+
+    if idempotency_key:
+        store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
+
+    return response

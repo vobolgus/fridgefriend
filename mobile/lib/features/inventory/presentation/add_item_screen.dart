@@ -1,36 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
-class AddItemScreen extends ConsumerWidget {
-  const AddItemScreen({super.key});
+class AddItemScreen extends ConsumerStatefulWidget {
+  const AddItemScreen({this.initialItem, super.key});
+
+  final InventoryItem? initialItem;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final nameController = TextEditingController();
-    final quantityController = TextEditingController();
-    final unitController = TextEditingController();
-    final storageController = TextEditingController();
-    final formKey = GlobalKey<FormState>();
+  ConsumerState<AddItemScreen> createState() => _AddItemScreenState();
+}
 
+class _AddItemScreenState extends ConsumerState<AddItemScreen> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _quantityController;
+  late final TextEditingController _unitController;
+  late final TextEditingController _storageController;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    final initialItem = widget.initialItem;
+    _nameController = TextEditingController(
+      text: initialItem?.displayName ?? '',
+    );
+    _quantityController = TextEditingController(
+      text: initialItem != null ? _formatQuantity(initialItem.quantity) : '',
+    );
+    _unitController = TextEditingController(text: initialItem?.unit ?? '');
+    _storageController = TextEditingController(
+      text: initialItem?.storageLocation ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _quantityController.dispose();
+    _unitController.dispose();
+    _storageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Add Item')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
-          key: formKey,
+          key: _formKey,
           child: ListView(
             children: [
               TextFormField(
-                controller: nameController,
+                controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Item name'),
                 validator: (value) =>
                     (value == null || value.trim().isEmpty) ? 'Enter a name' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: quantityController,
+                controller: _quantityController,
                 decoration: const InputDecoration(labelText: 'Quantity'),
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 validator: (value) {
@@ -43,14 +76,14 @@ class AddItemScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: unitController,
+                controller: _unitController,
                 decoration: const InputDecoration(labelText: 'Unit'),
                 validator: (value) =>
                     (value == null || value.trim().isEmpty) ? 'Enter a unit' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: storageController,
+                controller: _storageController,
                 decoration: const InputDecoration(labelText: 'Storage location'),
                 validator: (value) => (value == null || value.trim().isEmpty)
                     ? 'Enter a storage location'
@@ -59,15 +92,15 @@ class AddItemScreen extends ConsumerWidget {
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: () async {
-                  if (!formKey.currentState!.validate()) {
+                  if (!_formKey.currentState!.validate()) {
                     return;
                   }
 
                   await ref.read(inventoryProvider.notifier).addItem(
-                        displayName: nameController.text.trim(),
-                        quantity: double.parse(quantityController.text.trim()),
-                        unit: unitController.text.trim(),
-                        storageLocation: storageController.text.trim(),
+                        displayName: _nameController.text.trim(),
+                        quantity: double.parse(_quantityController.text.trim()),
+                        unit: _unitController.text.trim(),
+                        storageLocation: _storageController.text.trim(),
                       );
 
                   if (context.mounted) {
@@ -84,5 +117,13 @@ class AddItemScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  String _formatQuantity(double quantity) {
+    if (quantity == quantity.truncateToDouble()) {
+      return quantity.toInt().toString();
+    }
+
+    return quantity.toString();
   }
 }

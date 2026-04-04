@@ -24,12 +24,14 @@ class PlanRequest(BaseModel):
 
 
 class PlanDay(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True, populate_by_name=True)
+
     date: date
-    recipe_id: str
-    recipe_title: str
+    recipe_id: str = Field(alias="recipeId")
+    recipe_title: str = Field(alias="recipeTitle")
     servings: int
-    reserved_items: list[str] = Field(default_factory=list)
-    recipe_ingredients: list[RecipeIngredient] = Field(default_factory=list, exclude=True)
+    reserved_items: list[str] = Field(default_factory=list, alias="reservedItems")
+    recipe_ingredients: list[RecipeIngredient] = Field(default_factory=list, exclude=True, alias="recipeIngredients")
 
 
 class ShoppingItem(BaseModel):
@@ -40,9 +42,11 @@ class ShoppingItem(BaseModel):
 
 
 class PlanResult(BaseModel):
-    plan_id: str
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    plan_id: str = Field(alias="planId")
     days: list[PlanDay]
-    shopping_list: list[ShoppingItem] = Field(default_factory=list)
+    shopping_list: list[ShoppingItem] = Field(default_factory=list, alias="shoppingList")
 
 
 class ShoppingListResponse(BaseModel):

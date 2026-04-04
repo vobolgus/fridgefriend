@@ -100,6 +100,7 @@ def test_lookup_known_barcode_returns_expected_payload(service: CatalogServiceLi
 async def test_barcode_api_endpoint_found(client: httpx.AsyncClient) -> None:
     response = await client.post(
         "/v1/scan/barcode",
+        headers={"Authorization": "Bearer test-token"},
         json={
             "barcode": "8710847909610",
             "quantity": 1,
@@ -120,9 +121,24 @@ async def test_barcode_api_endpoint_found(client: httpx.AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_barcode_api_endpoint_not_found(client: httpx.AsyncClient) -> None:
+async def test_barcode_api_endpoint_requires_auth(client: httpx.AsyncClient) -> None:
     response = await client.post(
         "/v1/scan/barcode",
+        json={
+            "barcode": "8710847909610",
+            "quantity": 1,
+            "storage_location": "fridge",
+        },
+    )
+
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_barcode_api_endpoint_not_found_returns_editable_draft(client: httpx.AsyncClient) -> None:
+    response = await client.post(
+        "/v1/scan/barcode",
+        headers={"Authorization": "Bearer test-token"},
         json={
             "barcode": "9999999999999",
             "quantity": 1,
@@ -130,15 +146,24 @@ async def test_barcode_api_endpoint_not_found(client: httpx.AsyncClient) -> None
         },
     )
 
-    assert response.status_code == 404
-    detail = cast(str, response.json()["detail"])
-    assert "not found" in detail.lower()
+    assert response.status_code == 200
+    assert response.json() == {
+        "barcode": "9999999999999",
+        "display_name": "",
+        "canonical_name": "",
+        "brand": "",
+        "canonical_ingredient_id": None,
+        "quantity": 1.0,
+        "storage_location": "pantry",
+        "source": "barcode",
+    }
 
 
 @pytest.mark.asyncio
 async def test_barcode_api_endpoint_missing_field(client: httpx.AsyncClient) -> None:
     response = await client.post(
         "/v1/scan/barcode",
+        headers={"Authorization": "Bearer test-token"},
         json={"quantity": 1, "storage_location": "fridge"},
     )
 

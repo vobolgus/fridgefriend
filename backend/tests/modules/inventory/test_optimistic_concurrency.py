@@ -53,7 +53,7 @@ async def test_update_with_correct_version_succeeds(
         },
     )
     create_payload = cast(dict[str, object], create_response.json())
-    item_id = create_payload["id"]
+    item_id = create_payload["itemId"]
 
     assert isinstance(item_id, str)
 
@@ -84,7 +84,7 @@ async def test_update_with_stale_version_returns_409(
         },
     )
     create_payload = cast(dict[str, object], create_response.json())
-    item_id = create_payload["id"]
+    item_id = create_payload["itemId"]
 
     assert isinstance(item_id, str)
 
@@ -116,7 +116,7 @@ async def test_version_increments_on_update(
         },
     )
     create_payload = cast(dict[str, object], create_response.json())
-    item_id = create_payload["id"]
+    item_id = create_payload["itemId"]
 
     assert isinstance(item_id, str)
 

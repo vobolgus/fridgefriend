@@ -153,7 +153,7 @@ async def test_add_items_via_manual_barcode_photo(
         json={"image_url": "https://example.test/fridge.png"},
     )
 
-    assert manual["display_name"] == "Milk"
+    assert manual["displayName"] == "Milk"
     assert barcode.status_code == 200
     assert barcode.json()["source"] == "barcode"
     assert photo.status_code == 200
@@ -195,8 +195,8 @@ async def test_recommendations_account_for_expiry_and_coverage(
     payload = cast(dict[str, object], response.json())
     recipes = cast(list[dict[str, object]], payload["recipes"])
     assert recipes[0]["title"] == "French Toast"
-    top_coverage = cast(float, recipes[0]["coverage_pct"])
-    bottom_coverage = cast(float, recipes[-1]["coverage_pct"])
+    top_coverage = cast(float, recipes[0]["coveragePct"])
+    bottom_coverage = cast(float, recipes[-1]["coveragePct"])
     assert top_coverage >= bottom_coverage
 
 
@@ -225,7 +225,7 @@ async def test_meal_plan_reserves_ingredients_transactionally(
     payload = cast(dict[str, object], response.json())
     days = cast(list[dict[str, object]], payload["days"])
     assert days
-    assert any(cast(list[object], day["reserved_items"]) for day in days)
+    assert any(cast(list[object], day["reservedItems"]) for day in days)
 
     meal_plans = await db_session.execute(select(MealPlan))
     assert meal_plans.scalars().first() is not None
@@ -377,9 +377,9 @@ async def test_inventory_event_undo(
         estimated_expiry_date=date.today() + timedelta(days=3),
         canonical_name="tomato",
     )
-    _ = await client.post(f"/v1/items/{item['id']}/status", headers=test_headers, json={"status": "used"})
+    _ = await client.post(f"/v1/items/{item['itemId']}/status", headers=test_headers, json={"status": "used"})
 
-    item_id_raw = item["id"]
+    item_id_raw = item["itemId"]
     assert isinstance(item_id_raw, str)
     item_id = UUID(item_id_raw)
     result = await db_session.execute(select(InventoryEvent).where(InventoryEvent.item_id == item_id))
@@ -405,7 +405,7 @@ async def test_optimistic_concurrency_conflict(
     )
 
     response = await client.put(
-        f"/v1/items/{item['id']}",
+        f"/v1/items/{item['itemId']}",
         headers=test_headers,
         json={"quantity": 2.0, "version": 0},
     )

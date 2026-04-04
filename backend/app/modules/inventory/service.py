@@ -2,21 +2,18 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from uuid import UUID
 
 from app.models.inventory_item import InventoryItem, InventoryStatus
 from app.models.user import User
 from app.modules.catalog.service import CatalogService
+from app.modules.expiry.service import ExpiryService
 
 from .exceptions import InventoryItemNotFoundError
 from .event_service import InventoryEventService, snapshot_item
 from .repository import InventoryRepository
 from .schemas import ItemCreate, ItemUpdate
-
-
-DEFAULT_EXPIRY_DAYS = 7
-DEFAULT_CONFIDENCE = 0.5
 
 
 class InventoryService:
@@ -25,21 +22,34 @@ class InventoryService:
         repository: InventoryRepository,
         event_service: InventoryEventService | None = None,
         catalog_service: CatalogService | None = None,
+        expiry_service: ExpiryService | None = None,
     ) -> None:
         self._repository: InventoryRepository = repository
         self._event_service: InventoryEventService = event_service or InventoryEventService()
         self._catalog_service: CatalogService | None = catalog_service
+        self._expiry_service: ExpiryService = expiry_service or ExpiryService()
 
     async def create_item(self, user: User, household_id: UUID, data: ItemCreate) -> InventoryItem:
-        default_expiry_date = date.today() + timedelta(days=DEFAULT_EXPIRY_DAYS)
         canonical = None
         if self._catalog_service is not None:
             canonical = await self._catalog_service.resolve_canonical(data.canonical_name or data.display_name)
+        canonical_name = canonical.name if canonical is not None else (data.canonical_name or data.display_name)
+
+        if data.estimated_expiry_date is None:
+            estimated_expiry_date, confidence = self._expiry_service.calculate_expiry(
+                canonical_name,
+                data.storage_location,
+                date.today(),
+            )
+        else:
+            estimated_expiry_date = data.estimated_expiry_date
+            confidence = data.confidence
+
         payload = data.model_copy(
             update={
-                "estimated_expiry_date": data.estimated_expiry_date or default_expiry_date,
-                "confidence": data.confidence if data.estimated_expiry_date is not None else DEFAULT_CONFIDENCE,
-                "canonical_name": data.canonical_name or data.display_name,
+                "estimated_expiry_date": estimated_expiry_date,
+                "confidence": confidence,
+                "canonical_name": canonical_name,
                 "canonical_ingredient_id": (
                     canonical.id if canonical is not None else data.canonical_ingredient_id
                 ),
@@ -58,20 +68,22 @@ class InventoryService:
         return item
 
     async def list_active_items(self, user: User, household_id: UUID) -> list[InventoryItem]:
-        return await self._repository.list_active(user.id, household_id)
+        _ = user
+        return await self._repository.list_active(household_id)
 
     async def get_item(self, item_id: UUID, user: User, household_id: UUID) -> InventoryItem:
-        item = await self._repository.get_by_id(item_id, user.id, household_id)
+        _ = user
+        item = await self._repository.get_by_id(item_id, household_id)
         if item is None:
             raise InventoryItemNotFoundError
         return item
 
     async def update_item(self, item_id: UUID, user: User, household_id: UUID, data: ItemUpdate) -> InventoryItem:
-        existing = await self._repository.get_by_id(item_id, user.id, household_id)
+        existing = await self._repository.get_by_id(item_id, household_id)
         if existing is None:
             raise InventoryItemNotFoundError
         previous_state = snapshot_item(existing)
-        item = await self._repository.update(item_id, user.id, household_id, data)
+        item = await self._repository.update(item_id, household_id, data)
         if item is None:
             raise InventoryItemNotFoundError
         _ = await self._event_service.log_event(
@@ -92,11 +104,11 @@ class InventoryService:
         household_id: UUID,
         status: InventoryStatus,
     ) -> InventoryItem:
-        existing = await self._repository.get_by_id(item_id, user.id, household_id)
+        existing = await self._repository.get_by_id(item_id, household_id)
         if existing is None:
             raise InventoryItemNotFoundError
         previous_state = snapshot_item(existing)
-        item = await self._repository.update_status(item_id, user.id, household_id, status)
+        item = await self._repository.update_status(item_id, household_id, status)
         if item is None:
             raise InventoryItemNotFoundError
         _ = await self._event_service.log_event(
@@ -111,11 +123,11 @@ class InventoryService:
         return item
 
     async def delete_item(self, item_id: UUID, user: User, household_id: UUID) -> None:
-        existing = await self._repository.get_by_id(item_id, user.id, household_id)
+        existing = await self._repository.get_by_id(item_id, household_id)
         if existing is None:
             raise InventoryItemNotFoundError
         previous_state = snapshot_item(existing)
-        deleted = await self._repository.delete(item_id, user.id, household_id)
+        deleted = await self._repository.delete(item_id, household_id)
         if deleted is None:
             raise InventoryItemNotFoundError
         _ = await self._event_service.log_event(

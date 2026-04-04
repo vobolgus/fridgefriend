@@ -102,7 +102,7 @@ async def test_update_status_emits_event_with_previous_state(
             "storage_location": "fridge",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
@@ -133,7 +133,7 @@ async def test_delete_item_emits_removed_event(
             "storage_location": "fridge",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.delete(f"/v1/items/{item_id}", headers=test_headers)
 

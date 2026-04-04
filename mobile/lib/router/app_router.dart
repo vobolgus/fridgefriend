@@ -84,7 +84,16 @@ class AppRouter {
         GoRoute(
           path: '/add-item',
           name: 'add-item',
-          builder: (context, state) => const AddItemScreen(),
+          builder: (context, state) => AddItemScreen(
+            initialItem: state.extra is InventoryItem
+                ? state.extra! as InventoryItem
+                : null,
+          ),
+        ),
+        GoRoute(
+          path: '/settings',
+          name: 'settings',
+          builder: (context, state) => const SettingsScreen(),
         ),
         GoRoute(
           path: '/household',
@@ -105,7 +114,15 @@ class AppRouter {
           path: '/scan/photo/review',
           name: 'scan-photo-review',
           builder: (context, state) {
-            final items = state.extra as List<dynamic>? ?? [];
+            final extra = state.extra;
+            final items = switch (extra) {
+              final List<dynamic> value => value,
+              final Map<String, dynamic> value =>
+                (value['draft_items'] ?? value['draftItems'] ?? value['items'])
+                        as List<dynamic>? ??
+                    const [],
+              _ => const <dynamic>[],
+            };
             // Cast list to actual InventoryItem type (would be robustly done in real app)
             return OcrReviewScreen(items: items.cast<InventoryItem>());
           },

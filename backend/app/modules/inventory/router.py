@@ -26,7 +26,7 @@ def _raise_version_conflict() -> NoReturn:
     raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Item version conflict")
 
 
-@router.post("", response_model=ItemResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ItemResponse, response_model_by_alias=True, status_code=status.HTTP_201_CREATED)
 async def create_item(
     payload: ItemCreate,
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
@@ -49,7 +49,7 @@ async def create_item(
     return response
 
 
-@router.get("", response_model=list[ItemResponse])
+@router.get("", response_model=list[ItemResponse], response_model_by_alias=True)
 async def list_items(
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
     current_user: Annotated[User, Depends(get_current_user)],
@@ -59,7 +59,7 @@ async def list_items(
     return [ItemResponse.model_validate(item) for item in items]
 
 
-@router.get("/{item_id}", response_model=ItemResponse)
+@router.get("/{item_id}", response_model=ItemResponse, response_model_by_alias=True)
 async def get_item(
     item_id: UUID,
     inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
@@ -72,7 +72,7 @@ async def get_item(
         _raise_not_found()
 
 
-@router.patch("/{item_id}", response_model=ItemResponse)
+@router.patch("/{item_id}", response_model=ItemResponse, response_model_by_alias=True)
 async def update_item(
     item_id: UUID,
     payload: ItemUpdate,
@@ -102,7 +102,7 @@ async def update_item(
     return response
 
 
-@router.put("/{item_id}", response_model=ItemResponse)
+@router.put("/{item_id}", response_model=ItemResponse, response_model_by_alias=True)
 async def replace_item(
     item_id: UUID,
     payload: ItemUpdate,
@@ -140,7 +140,7 @@ async def delete_item(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.post("/{item_id}/status", response_model=ItemResponse)
+@router.post("/{item_id}/status", response_model=ItemResponse, response_model_by_alias=True)
 async def update_item_status(
     item_id: UUID,
     payload: ItemStatusUpdate,
@@ -166,3 +166,17 @@ async def update_item_status(
         store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
+
+
+@router.post("/{item_id}/undo", response_model=ItemResponse, response_model_by_alias=True)
+async def undo_item_event(
+    item_id: UUID,
+    inventory_service: Annotated[InventoryService, Depends(get_inventory_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    household_id: Annotated[UUID, Depends(get_active_household_id)],
+) -> ItemResponse:
+    _ = household_id
+    try:
+        return ItemResponse.model_validate(await inventory_service.undo_last_event(item_id, current_user))
+    except InventoryItemNotFoundError:
+        _raise_not_found()

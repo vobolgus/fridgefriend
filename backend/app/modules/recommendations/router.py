@@ -33,7 +33,7 @@ async def get_recommendation_service(
     return RecommendationService(db, recipe_source=recipe_source)
 
 
-@router.post("", response_model=RecommendationResponse)
+@router.post("", response_model=RecommendationResponse, response_model_by_alias=True)
 async def get_recommendations(
     payload: RecommendationRequest,
     recommendation_service: Annotated[RecommendationService, Depends(get_recommendation_service)],

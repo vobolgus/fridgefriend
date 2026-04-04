@@ -419,7 +419,7 @@ async def test_api_post_plans(
     assert response.status_code == 200
     payload = response.json()
     assert len(payload["days"]) == 3
-    assert all(day["recipe_id"] for day in payload["days"])
+    assert all(day["recipeId"] for day in payload["days"])
 
 
 @pytest.mark.asyncio
@@ -554,5 +554,56 @@ async def test_planning_scoped_by_household(
 
     assert response.status_code == 200
     payload = response.json()
-    titles = [day["recipe_title"] for day in payload["days"]]
+    titles = [day["recipeTitle"] for day in payload["days"]]
     assert "Slow Braised Beef" not in titles
+
+
+@pytest.mark.asyncio
+async def test_shopping_list_uses_latest_household_plan(
+    client: httpx.AsyncClient,
+    app: FastAPI,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    shared_household = await _seed_household(
+        db_session,
+        planning_test_user,
+        name="Shared Planning Household",
+        invite_code="shared-planning-household",
+    )
+    other_user = User(email="planning-shared-member@example.com")
+    db_session.add(other_user)
+    await db_session.commit()
+    await db_session.refresh(other_user)
+    db_session.add(HouseholdMember(household_id=shared_household.id, user_id=other_user.id, role=HouseholdRole.MEMBER))
+    await db_session.commit()
+
+    await _seed_recipes(db_session, planner_recipes)
+    await _seed_inventory(
+        db_session,
+        planning_test_user,
+        [
+            _inventory_item("eggs", 4.0, "count", 2, household_id=shared_household.id),
+            _inventory_item("milk", 2.0, "cup", 2, household_id=shared_household.id),
+            _inventory_item("spinach", 1.0, "bag", 1, household_id=shared_household.id),
+        ],
+    )
+
+    async def override_get_current_user_shared_member() -> User:
+        return other_user
+
+    app.dependency_overrides[get_current_user] = override_get_current_user_shared_member
+
+    create_response = await client.post(
+        "/v1/plans",
+        headers=test_headers,
+        json={"days": 3, "servings": 2, "dietary_tags": ["vegetarian"]},
+    )
+    assert create_response.status_code == 200
+
+    shopping_list_response = await client.get("/v1/shopping-list", headers=test_headers)
+
+    assert shopping_list_response.status_code == 200
+    assert isinstance(shopping_list_response.json()["items"], list)

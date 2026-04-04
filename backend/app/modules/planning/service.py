@@ -31,7 +31,7 @@ class PlanningService:
         self._reservation_service: ReservationService = ReservationService(session)
 
     async def generate_plan(self, user: User, household_id: UUID, request: PlanRequest) -> PlanResult:
-        inventory_items = await self._list_active_inventory(user.id, household_id)
+        inventory_items = await self._list_active_inventory(household_id)
         recipes = await self._list_recipes()
         planner_input: list[dict[str, object]] = [
             {
@@ -88,44 +88,45 @@ class PlanningService:
         )
 
         return PlanResult(
-            plan_id=str(meal_plan.id),
+            planId=str(meal_plan.id),
             days=[
                 PlanDay(
                     date=day.date,
-                    recipe_id=day.recipe_id,
-                    recipe_title=day.recipe_title,
+                    recipeId=day.recipe_id,
+                    recipeTitle=day.recipe_title,
                     servings=request.servings,
-                    reserved_items=day.reserved_items,
-                    recipe_ingredients=day.recipe_ingredients,
+                    reservedItems=day.reserved_items,
+                    recipeIngredients=day.recipe_ingredients,
                 )
                 for day in planned.days
             ],
-            shopping_list=derive_shopping_list(planned, inventory_items, reserved_quantities=reserved_by_others),
+            shoppingList=derive_shopping_list(planned, inventory_items, reserved_quantities=reserved_by_others),
         )
 
     async def get_shopping_list(self, user: User, household_id: UUID) -> ShoppingListResponse:
-        meal_plan = await self._get_latest_meal_plan(user.id, household_id)
-        inventory_items = await self._list_active_inventory(user.id, household_id)
+        _ = user
+        meal_plan = await self._get_latest_meal_plan(household_id)
+        inventory_items = await self._list_active_inventory(household_id)
         plan = PlanResult(
-            plan_id=str(meal_plan.id),
+            planId=str(meal_plan.id),
             days=[
                 PlanDay(
                     date=day.date,
-                    recipe_id=str(day.recipe_id),
-                    recipe_title=day.recipe.title if day.recipe else "Unknown Recipe",
+                    recipeId=str(day.recipe_id),
+                    recipeTitle=day.recipe.title if day.recipe else "Unknown Recipe",
                     servings=day.servings,
-                    reserved_items=[
+                    reservedItems=[
                         self._get_recipe_ingredient_name(ingredient)
                         for ingredient in (day.recipe.ingredients if day.recipe else [])
                     ],
-                    recipe_ingredients=[
+                    recipeIngredients=[
                         RecipeIngredient.model_validate(ingredient)
                         for ingredient in (day.recipe.ingredients if day.recipe else [])
                     ],
                 )
                 for day in meal_plan.days
             ],
-            shopping_list=[],
+            shoppingList=[],
         )
         reserved_by_others = await self._reservation_service.reserved_quantities_by_ingredient(
             household_id=household_id,
@@ -150,11 +151,10 @@ class PlanningService:
     def _get_recipe_ingredient_name(ingredient: Mapping[str, object]) -> str:
         return str(ingredient.get("canonical_name") or ingredient.get("name") or "")
 
-    async def _list_active_inventory(self, user_id: UUID, household_id: UUID | None = None) -> list[InventoryItem]:
+    async def _list_active_inventory(self, household_id: UUID | None = None) -> list[InventoryItem]:
         statement = (
             select(InventoryItem)
             .where(
-                InventoryItem.user_id == user_id,
                 InventoryItem.status == InventoryStatus.ACTIVE,
             )
             .order_by(InventoryItem.estimated_expiry_date.asc(), InventoryItem.created_at.asc())
@@ -169,11 +169,10 @@ class PlanningService:
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
-    async def _get_latest_meal_plan(self, user_id: UUID, household_id: UUID | None = None) -> MealPlan:
+    async def _get_latest_meal_plan(self, household_id: UUID | None = None) -> MealPlan:
         statement = (
             select(MealPlan)
             .options(selectinload(MealPlan.days).selectinload(MealPlanDay.recipe))
-            .where(MealPlan.user_id == user_id)
             .order_by(MealPlan.created_at.desc())
         )
         if household_id is not None:

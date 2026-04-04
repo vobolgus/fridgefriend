@@ -344,7 +344,7 @@ async def test_api_endpoint_recommendations_empty_inventory(
     payload = response.json()
     assert "recipes" in payload
     if payload["recipes"]:
-        assert all(recipe["coverage_pct"] == pytest.approx(0.0) for recipe in payload["recipes"])
+        assert all(recipe["coveragePct"] == pytest.approx(0.0) for recipe in payload["recipes"])
 
 
 @pytest.mark.asyncio

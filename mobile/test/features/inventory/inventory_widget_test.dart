@@ -98,4 +98,36 @@ void main() {
     ).called(1);
     expect(find.text('Save item'), findsOneWidget);
   });
+
+  testWidgets('AddItemScreen pre-fills values from scanned item', (
+    tester,
+  ) async {
+    final mockClient = MockApiClient();
+    when(() => mockClient.getInventoryItems()).thenAnswer((_) async => const []);
+
+    final draftItem = InventoryItem(
+      id: 'draft-1',
+      displayName: 'Greek Yogurt',
+      quantity: 1,
+      unit: 'container',
+      storageLocation: 'fridge',
+      estimatedExpiryDate: DateTime.now().add(const Duration(days: 7)),
+      confidence: 0.82,
+      status: 'active',
+      source: 'barcode',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [apiClientProvider.overrideWithValue(mockClient)],
+        child: MaterialApp(home: AddItemScreen(initialItem: draftItem)),
+      ),
+    );
+
+    final fields = tester.widgetList<TextFormField>(find.byType(TextFormField)).toList();
+    expect(fields[0].controller?.text, 'Greek Yogurt');
+    expect(fields[1].controller?.text, '1');
+    expect(fields[2].controller?.text, 'container');
+    expect(fields[3].controller?.text, 'fridge');
+  });
 }

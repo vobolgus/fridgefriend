@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:dio/dio.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_config.dart';
@@ -9,15 +7,41 @@ import 'package:fridgefriend_mobile/features/meal_planning/domain/meal_plan.dart
 import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
 
 class ApiClient {
-  ApiClient({String? baseUrl, String? token})
-      : _dio = Dio(
+  ApiClient({
+    String? baseUrl,
+    String? token,
+    String? fallbackToken,
+    Future<String?> Function()? tokenProvider,
+  }) : _token = token,
+        _fallbackToken = fallbackToken,
+        _tokenProvider = tokenProvider,
+        _dio = Dio(
           BaseOptions(
             baseUrl: baseUrl ?? ApiClient._baseUrl,
-            headers: token != null ? {'Authorization': 'Bearer $token'} : const {'Authorization': 'Bearer test-token'},
           ),
-        );
+        ) {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final resolvedToken = await (_tokenProvider?.call() ?? Future.value(_token));
+          final authorizationToken = resolvedToken ?? _fallbackToken;
+
+          if (authorizationToken != null && authorizationToken.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $authorizationToken';
+          } else {
+            options.headers.remove('Authorization');
+          }
+
+          handler.next(options);
+        },
+      ),
+    );
+  }
 
   final Dio _dio;
+  final String? _token;
+  final String? _fallbackToken;
+  final Future<String?> Function()? _tokenProvider;
 
   static const String _baseUrl = ApiConfig.defaultBaseUrl;
 
@@ -181,24 +205,54 @@ class ApiClient {
     await _dio.post('${ApiConfig.apiVersionPath}/households/$id/leave');
   }
 
-  Future<List<InventoryItem>> scanPhoto(File imageFile) async {
-    final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(imageFile.path),
-    });
-
+  Future<InventoryItem> scanBarcode(String barcode) async {
     final response = await _dio.post(
-      '${ApiConfig.apiVersionPath}/scan/photo',
-      data: formData,
+      '${ApiConfig.apiVersionPath}/scan/barcode',
+      data: {
+        'barcode': barcode,
+        'quantity': 1,
+        'storage_location': 'fridge',
+      },
     );
 
     final payload = response.data;
     if (payload is Map<String, dynamic>) {
-      final items = payload['items'] as List<dynamic>? ?? const [];
+      return InventoryItem.fromJson(_normalizeInventoryItemJson(payload));
+    }
+
+    throw const FormatException('Invalid barcode scan response');
+  }
+
+  Future<List<InventoryItem>> scanPhoto(String imageUrl) async {
+    final response = await _dio.post(
+      '${ApiConfig.apiVersionPath}/scan/photo',
+      data: {'image_url': imageUrl},
+    );
+
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      final items = (payload['draft_items'] ?? payload['draftItems'] ?? payload['items'])
+              as List<dynamic>? ??
+          const [];
       return items
           .whereType<Map<String, dynamic>>()
+          .map(_normalizeInventoryItemJson)
           .map(InventoryItem.fromJson)
           .toList(growable: false);
     }
     return const [];
+  }
+
+  static Map<String, dynamic> _normalizeInventoryItemJson(
+    Map<String, dynamic> json,
+  ) {
+    return {
+      ...json,
+      'itemId': json['itemId'] ?? json['item_id'] ?? json['id'],
+      'displayName': json['displayName'] ?? json['display_name'],
+      'storageLocation': json['storageLocation'] ?? json['storage_location'],
+      'estimatedExpiryDate':
+          json['estimatedExpiryDate'] ?? json['estimated_expiry_date'],
+    };
   }
 }

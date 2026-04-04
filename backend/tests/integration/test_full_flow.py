@@ -163,7 +163,7 @@ async def test_full_user_journey(
     assert items_response.status_code == 200
     items_payload = items_response.json()
     assert len(items_payload) == 3
-    assert {item["display_name"] for item in items_payload} == {"Milk", "Eggs", "Pasta"}
+    assert {item["displayName"] for item in items_payload} == {"Milk", "Eggs", "Pasta"}
     assert {item["status"] for item in items_payload} == {"active"}
 
     recommendations_response = await client.post(
@@ -186,7 +186,7 @@ async def test_full_user_journey(
     assert plan_response.status_code == 200
     plan_payload = plan_response.json()
     assert len(plan_payload["days"]) == 3
-    assert all(day["recipe_id"] for day in plan_payload["days"])
+    assert all(day["recipeId"] for day in plan_payload["days"])
 
     shopping_response = await client.get("/v1/shopping-list", headers=test_headers)
 
@@ -198,7 +198,7 @@ async def test_full_user_journey(
     assert shopping_ingredient_names & {"bread", "cheese", "rice"}
 
     status_response = await client.post(
-        f"/v1/items/{milk['id']}/status",
+        f"/v1/items/{milk['itemId']}/status",
         headers=test_headers,
         json={"status": "used"},
     )
@@ -210,7 +210,7 @@ async def test_full_user_journey(
     assert remaining_items_response.status_code == 200
     remaining_items = remaining_items_response.json()
     assert len(remaining_items) == 2
-    assert {item["display_name"] for item in remaining_items} == {"Eggs", "Pasta"}
+    assert {item["displayName"] for item in remaining_items} == {"Eggs", "Pasta"}
 
 
 @pytest.mark.asyncio
@@ -220,6 +220,7 @@ async def test_barcode_scan_and_expiry(
 ) -> None:
     response = await client.post(
         "/v1/scan/barcode",
+        headers={"Authorization": "Bearer test-token"},
         json={
             "barcode": "8710847909610",
             "quantity": 1.0,
@@ -328,8 +329,8 @@ async def test_meal_plan_uses_expiring_first(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["days"][0]["recipe_title"] == "Chicken First"
-    assert "chicken" in payload["days"][0]["reserved_items"]
+    assert payload["days"][0]["recipeTitle"] == "Chicken First"
+    assert "chicken" in payload["days"][0]["reservedItems"]
 
 
 @pytest.mark.asyncio
@@ -412,7 +413,7 @@ async def test_item_lifecycle(
     )
 
     update_response = await client.patch(
-        f"/v1/items/{item['id']}",
+        f"/v1/items/{item['itemId']}",
         headers=test_headers,
         json={"quantity": 2.0},
     )
@@ -421,7 +422,7 @@ async def test_item_lifecycle(
     assert update_response.json()["quantity"] == 2.0
 
     freeze_response = await client.post(
-        f"/v1/items/{item['id']}/status",
+        f"/v1/items/{item['itemId']}/status",
         headers=test_headers,
         json={"status": "frozen"},
     )

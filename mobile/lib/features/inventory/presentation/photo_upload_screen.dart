@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -30,10 +28,14 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
       });
 
       final apiClient = ref.read(apiClientProvider);
-      final items = await apiClient.scanPhoto(File(image.path));
+      final imageUrl = image.path;
+      final draftItems = await apiClient.scanPhoto(imageUrl);
       
       if (mounted) {
-        context.pushReplacement('/scan/photo/review', extra: items);
+        context.pushReplacement(
+          '/scan/photo/review',
+          extra: {'draft_items': draftItems},
+        );
       }
     } catch (e) {
       if (mounted) {

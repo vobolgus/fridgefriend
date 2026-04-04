@@ -45,20 +45,20 @@ class ItemStatusUpdate(BaseModel):
 
 
 class ItemResponse(BaseModel):
-    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True)
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True, populate_by_name=True)
 
-    id: uuid.UUID
-    user_id: uuid.UUID
-    display_name: str
+    id: uuid.UUID = Field(alias="itemId")
+    user_id: uuid.UUID = Field(alias="userId")
+    display_name: str = Field(alias="displayName")
     quantity: float
     unit: str
-    storage_location: str
-    estimated_expiry_date: date
+    storage_location: str = Field(alias="storageLocation")
+    estimated_expiry_date: date = Field(alias="estimatedExpiryDate")
     confidence: float
     status: InventoryStatus
     source: InventorySource
-    canonical_name: str
-    canonical_ingredient_id: uuid.UUID | None = None
+    canonical_name: str = Field(alias="canonicalName")
+    canonical_ingredient_id: uuid.UUID | None = Field(default=None, alias="canonicalIngredientId")
     version: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(alias="createdAt")
+    updated_at: datetime = Field(alias="updatedAt")

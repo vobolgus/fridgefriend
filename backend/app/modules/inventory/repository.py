@@ -25,20 +25,18 @@ class InventoryRepository:
         await self._session.refresh(item)
         return item
 
-    async def get_by_id(self, item_id: UUID, user_id: UUID, household_id: UUID) -> InventoryItem | None:
+    async def get_by_id(self, item_id: UUID, household_id: UUID) -> InventoryItem | None:
         statement = select(InventoryItem).where(
             InventoryItem.id == item_id,
-            InventoryItem.user_id == user_id,
             InventoryItem.household_id == household_id,
         )
         result = await self._session.execute(statement)
         return result.scalar_one_or_none()
 
-    async def list_active(self, user_id: UUID, household_id: UUID) -> list[InventoryItem]:
+    async def list_active(self, household_id: UUID) -> list[InventoryItem]:
         statement = (
             select(InventoryItem)
             .where(
-                InventoryItem.user_id == user_id,
                 InventoryItem.household_id == household_id,
                 InventoryItem.status == InventoryStatus.ACTIVE,
             )
@@ -47,8 +45,8 @@ class InventoryRepository:
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
-    async def update(self, item_id: UUID, user_id: UUID, household_id: UUID, data: ItemUpdate) -> InventoryItem | None:
-        item = await self.get_by_id(item_id, user_id, household_id)
+    async def update(self, item_id: UUID, household_id: UUID, data: ItemUpdate) -> InventoryItem | None:
+        item = await self.get_by_id(item_id, household_id)
         if item is None:
             return None
 
@@ -70,11 +68,10 @@ class InventoryRepository:
     async def update_status(
         self,
         item_id: UUID,
-        user_id: UUID,
         household_id: UUID,
         status: InventoryStatus,
     ) -> InventoryItem | None:
-        item = await self.get_by_id(item_id, user_id, household_id)
+        item = await self.get_by_id(item_id, household_id)
         if item is None:
             return None
 
@@ -83,8 +80,8 @@ class InventoryRepository:
         await self._session.refresh(item)
         return item
 
-    async def delete(self, item_id: UUID, user_id: UUID, household_id: UUID) -> InventoryItem | None:
-        item = await self.get_by_id(item_id, user_id, household_id)
+    async def delete(self, item_id: UUID, household_id: UUID) -> InventoryItem | None:
+        item = await self.get_by_id(item_id, household_id)
         if item is None:
             return None
 

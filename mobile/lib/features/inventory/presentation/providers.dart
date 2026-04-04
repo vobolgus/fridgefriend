@@ -13,8 +13,11 @@ import 'package:fridgefriend_mobile/features/meal_planning/domain/meal_plan.dart
 import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) {
-  final token = ref.watch(authStateProvider).valueOrNull;
-  return ApiClient(token: token);
+  final authService = ref.watch(authServiceProvider);
+  return ApiClient(
+    tokenProvider: authService.getToken,
+    fallbackToken: useMockAuth ? 'test-token' : null,
+  );
 });
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {

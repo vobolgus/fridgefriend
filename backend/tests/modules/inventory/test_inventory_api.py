@@ -58,13 +58,39 @@ async def test_create_item_success(
 
     assert response.status_code == 201
     payload = response.json()
-    assert payload["user_id"] == str(test_user.id)
-    assert payload["display_name"] == "Milk"
+    assert payload["itemId"]
+    assert "id" not in payload
+    assert payload["userId"] == str(test_user.id)
+    assert payload["displayName"] == "Milk"
     assert payload["status"] == "active"
     assert payload["source"] == "manual"
-    assert payload["canonical_name"] == "Milk"
-    assert payload["confidence"] == 0.5
-    assert payload["estimated_expiry_date"] == str(date.today() + timedelta(days=7))
+    assert payload["canonicalName"] == "milk"
+    assert payload["confidence"] == 0.95
+    assert payload["estimatedExpiryDate"] == str(date.today() + timedelta(days=7))
+
+
+@pytest.mark.asyncio
+async def test_create_item_uses_shelf_life_rules_for_default_expiry(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    response = await client.post(
+        "/v1/items",
+        headers=test_headers,
+        json={
+            "display_name": "Milk",
+            "canonical_name": "milk",
+            "quantity": 1.0,
+            "unit": "liter",
+            "storage_location": "fridge",
+        },
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["estimatedExpiryDate"] == str(date.today() + timedelta(days=7))
+    assert payload["confidence"] == 0.95
 
 
 @pytest.mark.asyncio
@@ -145,7 +171,7 @@ async def test_list_items_returns_only_active(
         },
     )
 
-    used_item_id = used_response.json()["id"]
+    used_item_id = used_response.json()["itemId"]
     await client.post(
         f"/v1/items/{used_item_id}/status",
         headers=test_headers,
@@ -157,7 +183,7 @@ async def test_list_items_returns_only_active(
     assert response.status_code == 200
     payload = response.json()
     assert len(payload) == 1
-    assert payload[0]["id"] == active_response.json()["id"]
+    assert payload[0]["itemId"] == active_response.json()["itemId"]
     assert payload[0]["status"] == "active"
 
 
@@ -177,14 +203,14 @@ async def test_get_item_by_id(
             "storage_location": "fridge",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.get(f"/v1/items/{item_id}", headers=test_headers)
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["id"] == item_id
-    assert payload["display_name"] == "Eggs"
+    assert payload["itemId"] == item_id
+    assert payload["displayName"] == "Eggs"
     assert payload["unit"] == "count"
 
 
@@ -216,7 +242,7 @@ async def test_update_item_quantity(
             "storage_location": "fridge",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.patch(
         f"/v1/items/{item_id}",
@@ -246,7 +272,7 @@ async def test_update_item_partial(
             "confidence": 0.9,
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.patch(
         f"/v1/items/{item_id}",
@@ -256,10 +282,10 @@ async def test_update_item_partial(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["storage_location"] == "freezer"
+    assert payload["storageLocation"] == "freezer"
     assert payload["quantity"] == 1.0
     assert payload["unit"] == "pack"
-    assert payload["estimated_expiry_date"] == "2026-04-15"
+    assert payload["estimatedExpiryDate"] == "2026-04-15"
 
 
 @pytest.mark.asyncio
@@ -278,7 +304,7 @@ async def test_mark_item_used(
             "storage_location": "counter",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
@@ -306,7 +332,7 @@ async def test_mark_item_discarded(
             "storage_location": "fridge",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
@@ -334,7 +360,7 @@ async def test_mark_item_frozen(
             "storage_location": "pantry",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     response = await client.post(
         f"/v1/items/{item_id}/status",
@@ -362,7 +388,7 @@ async def test_delete_item(
             "storage_location": "fridge",
         },
     )
-    item_id = create_response.json()["id"]
+    item_id = create_response.json()["itemId"]
 
     delete_response = await client.delete(f"/v1/items/{item_id}", headers=test_headers)
     get_response = await client.get(f"/v1/items/{item_id}", headers=test_headers)
@@ -370,3 +396,37 @@ async def test_delete_item(
     assert delete_response.status_code == 204
     assert get_response.status_code == 404
     assert get_response.json() == {"detail": "Item not found"}
+
+
+@pytest.mark.asyncio
+async def test_undo_endpoint_restores_previous_state(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    create_response = await client.post(
+        "/v1/items",
+        headers=test_headers,
+        json={
+            "display_name": "Yogurt",
+            "quantity": 1.0,
+            "unit": "cup",
+            "storage_location": "fridge",
+        },
+    )
+    item_id = create_response.json()["itemId"]
+
+    update_response = await client.patch(
+        f"/v1/items/{item_id}",
+        headers=test_headers,
+        json={"quantity": 2.0, "storage_location": "freezer"},
+    )
+    assert update_response.status_code == 200
+
+    undo_response = await client.post(f"/v1/items/{item_id}/undo", headers=test_headers)
+
+    assert undo_response.status_code == 200
+    payload = undo_response.json()
+    assert payload["itemId"] == item_id
+    assert payload["quantity"] == 1.0
+    assert payload["storageLocation"] == "fridge"

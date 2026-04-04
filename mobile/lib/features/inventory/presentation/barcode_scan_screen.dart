@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-class BarcodeScanScreen extends StatefulWidget {
+import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
+
+class BarcodeScanScreen extends ConsumerStatefulWidget {
   const BarcodeScanScreen({super.key});
 
   @override
-  State<BarcodeScanScreen> createState() => _BarcodeScanScreenState();
+  ConsumerState<BarcodeScanScreen> createState() => _BarcodeScanScreenState();
 }
 
-class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
+class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
   final MobileScannerController controller = MobileScannerController();
   final TextEditingController _manualController = TextEditingController();
+  bool _isLoading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -24,11 +29,41 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
     final List<Barcode> barcodes = capture.barcodes;
     if (barcodes.isNotEmpty) {
       final barcode = barcodes.first.rawValue;
-      if (barcode != null && mounted) {
-        controller.stop();
-        // Just push to add-item. Pre-filling logic can be handled via query params or state.
-        context.pushReplacement('/add-item');
+      if (barcode != null && mounted && !_isLoading) {
+        _submitBarcode(barcode);
       }
+    }
+  }
+
+  Future<void> _submitBarcode(String barcode) async {
+    if (_isLoading) {
+      return;
+    }
+
+    controller.stop();
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final item = await ref.read(apiClientProvider).scanBarcode(barcode);
+
+      if (!mounted) {
+        return;
+      }
+
+      context.pushReplacement('/add-item', extra: item);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+      await controller.start();
     }
   }
 
@@ -42,9 +77,18 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
         children: [
           Expanded(
             flex: 3,
-            child: MobileScanner(
-              controller: controller,
-              onDetect: _onDetect,
+            child: Stack(
+              children: [
+                MobileScanner(
+                  controller: controller,
+                  onDetect: _onDetect,
+                ),
+                if (_isLoading)
+                  const ColoredBox(
+                    color: Color(0x88000000),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+              ],
             ),
           ),
           Expanded(
@@ -54,6 +98,14 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  if (_error != null) ...[
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   const Text('Or enter manually:'),
                   const SizedBox(height: 8),
                   Row(
@@ -69,12 +121,14 @@ class _BarcodeScanScreenState extends State<BarcodeScanScreen> {
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
-                        onPressed: () {
-                          if (_manualController.text.isNotEmpty) {
-                            controller.stop();
-                            context.pushReplacement('/add-item');
-                          }
-                        },
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                final barcode = _manualController.text.trim();
+                                if (barcode.isNotEmpty) {
+                                  _submitBarcode(barcode);
+                                }
+                              },
                         child: const Text('Submit'),
                       ),
                     ],

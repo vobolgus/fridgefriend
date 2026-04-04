@@ -61,7 +61,7 @@ async def test_idempotency_key_deduplicates_item_creation(
 
     assert r1.status_code == 201
     assert r2.status_code == 201
-    assert r1.json()["id"] == r2.json()["id"]
+    assert r1.json()["itemId"] == r2.json()["itemId"]
 
 
 @pytest.mark.asyncio
@@ -90,7 +90,7 @@ async def test_different_idempotency_keys_create_different_items(
 
     assert r1.status_code == 201
     assert r2.status_code == 201
-    assert r1.json()["id"] != r2.json()["id"]
+    assert r1.json()["itemId"] != r2.json()["itemId"]
 
 
 @pytest.mark.asyncio
@@ -111,7 +111,7 @@ async def test_no_idempotency_key_creates_duplicates(
 
     assert r1.status_code == 201
     assert r2.status_code == 201
-    assert r1.json()["id"] != r2.json()["id"]
+    assert r1.json()["itemId"] != r2.json()["itemId"]
 
 
 @pytest.mark.asyncio
@@ -130,7 +130,7 @@ async def test_idempotency_key_on_update_item(
             "storage_location": "fridge",
         },
     )
-    item_id = create_resp.json()["id"]
+    item_id = create_resp.json()["itemId"]
 
     headers = {**test_headers, "Idempotency-Key": "update-key-1"}
     r1 = await client.patch(f"/v1/items/{item_id}", headers=headers, json={"quantity": 2.0})
@@ -157,7 +157,7 @@ async def test_idempotency_key_on_status_update(
             "storage_location": "pantry",
         },
     )
-    item_id = create_resp.json()["id"]
+    item_id = create_resp.json()["itemId"]
 
     headers = {**test_headers, "Idempotency-Key": "status-key-1"}
     r1 = await client.post(f"/v1/items/{item_id}/status", headers=headers, json={"status": "used"})
@@ -230,7 +230,7 @@ async def test_idempotency_key_isolated_across_endpoints(
 
     assert r_item.status_code == 201
     assert r_rec.status_code == 200
-    assert "display_name" in r_item.json()
+    assert "displayName" in r_item.json()
     assert "recipes" in r_rec.json()
 
 
@@ -258,7 +258,7 @@ async def test_idempotency_key_isolated_across_users(
         json=payload,
     )
     assert r_user1.status_code == 201
-    item_id_user1 = r_user1.json()["id"]
+    item_id_user1 = r_user1.json()["itemId"]
 
     # Second user with the SAME idempotency key — should get a NEW item, not the cached one
     user2 = User(email="user2-idempotency@example.com")
@@ -285,4 +285,4 @@ async def test_idempotency_key_isolated_across_users(
 
     assert r_user2.status_code == 201
     # Different users → different item IDs even with same idempotency key
-    assert r_user2.json()["id"] != item_id_user1
+    assert r_user2.json()["itemId"] != item_id_user1

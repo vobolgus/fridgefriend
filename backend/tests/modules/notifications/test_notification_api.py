@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.idempotency import clear_cache
 from app.models.notification import DeviceToken, NotificationPreference
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
@@ -36,6 +37,11 @@ async def notifications_test_user(app: FastAPI, db_session: AsyncSession) -> Asy
     yield user
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _reset_idempotency_cache() -> None:
+    clear_cache()
 
 
 @pytest.mark.asyncio
@@ -123,3 +129,32 @@ async def test_unregister_device_token(
     assert response.status_code == 204
     result = await db_session.execute(select(DeviceToken).where(DeviceToken.id == token.id))
     assert result.scalar_one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_update_notification_preferences_is_idempotent(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    notifications_test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    headers = {**test_headers, "Idempotency-Key": "notification-pref-update-1"}
+    payload = {
+        "expiry_reminder_enabled": False,
+        "reminder_days_before": 2,
+        "quiet_hours_start": "21:00:00",
+        "quiet_hours_end": "06:00:00",
+    }
+
+    first_response = await client.patch("/v1/notifications", headers=headers, json=payload)
+    second_response = await client.patch("/v1/notifications", headers=headers, json=payload)
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert first_response.json() == second_response.json()
+
+    result = await db_session.execute(
+        select(NotificationPreference).where(NotificationPreference.user_id == notifications_test_user.id),
+    )
+    preferences = result.scalars().all()
+    assert len(preferences) == 1

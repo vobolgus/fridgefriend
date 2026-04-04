@@ -29,13 +29,15 @@ class FixtureRecipe(BaseModel):
 
 
 class RecipeRecommendation(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(from_attributes=True, populate_by_name=True)
+
     id: str
     title: str
-    use_soon_score: float
-    coverage_pct: float
-    missing_items: list[str]
+    use_soon_score: float = Field(alias="useSoonScore")
+    coverage_pct: float = Field(alias="coveragePct")
+    missing_items: list[str] = Field(alias="missingItems")
     substitutions: list[str]
-    prep_minutes: int
+    prep_minutes: int = Field(alias="prepMinutes")
     score: float
 
 

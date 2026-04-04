@@ -55,13 +55,16 @@ class InventoryItem {
 
   factory InventoryItem.fromJson(Map<String, dynamic> json) {
     return InventoryItem(
-      id: (json['itemId'] ?? json['id'] ?? '').toString(),
-      displayName: (json['displayName'] ?? '').toString(),
+      id: (json['itemId'] ?? json['item_id'] ?? json['id'] ?? '').toString(),
+      displayName: (json['displayName'] ?? json['display_name'] ?? '').toString(),
       quantity: _asDouble(json['quantity']),
       unit: (json['unit'] ?? '').toString(),
-      storageLocation: (json['storageLocation'] ?? '').toString(),
+      storageLocation: (json['storageLocation'] ?? json['storage_location'] ?? '').toString(),
       estimatedExpiryDate: DateTime.tryParse(
-            (json['estimatedExpiryDate'] ?? '').toString(),
+            (json['estimatedExpiryDate'] ??
+                    json['estimated_expiry_date'] ??
+                    '')
+                .toString(),
           ) ??
           DateTime.now(),
       confidence: _asDouble(json['confidence']),
