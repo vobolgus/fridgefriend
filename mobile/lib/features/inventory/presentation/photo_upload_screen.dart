@@ -28,9 +28,13 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
       });
 
       final apiClient = ref.read(apiClientProvider);
-      final imageUrl = image.path;
+
+      // Step 1: Upload image to get a signed URL
+      final imageUrl = await apiClient.uploadPhoto(image.path);
+
+      // Step 2: Send the URL to the scan endpoint for AI parsing
       final draftItems = await apiClient.scanPhoto(imageUrl);
-      
+
       if (mounted) {
         context.pushReplacement(
           '/scan/photo/review',

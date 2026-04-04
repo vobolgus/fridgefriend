@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'package:fridgefriend_mobile/app.dart';
 
 const String _sentryDsn = String.fromEnvironment('SENTRY_DSN', defaultValue: '');
+const bool _useMockAuth = bool.fromEnvironment('USE_MOCK_AUTH', defaultValue: true);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase when using real auth.
+  // Requires platform config files (GoogleService-Info.plist / google-services.json).
+  if (!_useMockAuth) {
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      debugPrint('Firebase initialization failed: $e');
+      debugPrint('Ensure Firebase config files are present, or use USE_MOCK_AUTH=true.');
+    }
+  }
 
   if (_sentryDsn.isEmpty) {
     runApp(const ProviderScope(child: MyApp()));

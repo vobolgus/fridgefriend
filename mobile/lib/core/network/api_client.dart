@@ -99,11 +99,11 @@ class ApiClient {
   }
 
   Future<void> updateItemStatus(String id, String status) async {
-    await _dio.patch(
-      '${ApiConfig.apiVersionPath}/items/$id',
+    await _dio.post(
+      '${ApiConfig.apiVersionPath}/items/$id/status',
       data: {'status': status},
       options: Options(
-        headers: {'Idempotency-Key': '${id}_$status'},
+        headers: {'Idempotency-Key': '${id}_status_$status'},
       ),
     );
   }
@@ -221,6 +221,24 @@ class ApiClient {
     }
 
     throw const FormatException('Invalid barcode scan response');
+  }
+
+  Future<String> uploadPhoto(String localFilePath) async {
+    final formData = FormData.fromMap({
+      'file': await MultipartFile.fromFile(localFilePath),
+    });
+    final response = await _dio.post(
+      '${ApiConfig.apiVersionPath}/scan/photo/upload',
+      data: formData,
+    );
+
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      final url = payload['image_url'] as String?;
+      if (url != null) return url;
+    }
+
+    throw const FormatException('Invalid upload response');
   }
 
   Future<List<InventoryItem>> scanPhoto(String imageUrl) async {

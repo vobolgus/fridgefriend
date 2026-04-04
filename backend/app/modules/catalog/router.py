@@ -1,11 +1,13 @@
 from typing import Annotated
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Header, Request
+from fastapi import APIRouter, Depends, File, Header, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.idempotency import get_cached, store_cached
+from app.core.storage import LocalStorage, S3Storage, StorageInterface
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 
@@ -141,3 +143,34 @@ def _to_float(value: object, *, default: float) -> float:
         except ValueError:
             return default
     return default
+
+
+def get_storage() -> StorageInterface:
+    if settings.STORAGE_BACKEND == "s3":
+        return S3Storage(
+            endpoint_url=settings.S3_ENDPOINT_URL,
+            bucket=settings.S3_BUCKET,
+            region=settings.AWS_REGION,
+        )
+    return LocalStorage()
+
+
+@router.post("/photo/upload")
+async def upload_photo(
+    file: Annotated[UploadFile, File()],
+    current_user: Annotated[User, Depends(get_current_user)],
+    storage: Annotated[StorageInterface, Depends(get_storage)],
+) -> dict[str, str]:
+    """Upload a photo and return a URL for use with /v1/scan/photo.
+
+    The mobile client uploads the image here first, then passes the
+    returned ``image_url`` to ``POST /v1/scan/photo`` for AI parsing.
+    This avoids sending raw local file paths to the scan endpoint.
+    """
+    content_type = file.content_type or "image/jpeg"
+    ext = content_type.split("/")[-1] if "/" in content_type else "jpg"
+    key = f"photos/{current_user.id}/{uuid4()}.{ext}"
+    data = await file.read()
+    await storage.upload(key, data, content_type)
+    signed_url = await storage.generate_signed_url(key)
+    return {"image_url": signed_url, "key": key}
