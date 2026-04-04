@@ -22,10 +22,10 @@ dependencies:
   json_annotation: ^4.9.0
   sentry_flutter: ^8.0.0
   amplitude_flutter: ^4.0.0
-  mobile_scanner: ^5.1.1
+  mobile_scanner: ^7.0.0
   image_picker: ^1.0.7
-  firebase_core: ^3.6.0
-  firebase_auth: ^5.3.0
+  firebase_core: ^4.0.0
+  firebase_auth: ^6.0.0
 
 dev_dependencies:
   flutter_test:

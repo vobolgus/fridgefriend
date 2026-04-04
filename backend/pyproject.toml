@@ -16,6 +16,7 @@ dependencies = [
   "redis[hiredis]>=5.0.0",
   "sentry-sdk[fastapi]>=2.27.0",
   "python-multipart>=0.0.9",
+  "asyncpg>=0.30.0",
 ]
 
 [project.optional-dependencies]

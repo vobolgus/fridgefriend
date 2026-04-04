@@ -54,6 +54,10 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>FridgeFriend needs camera access to scan barcodes and take photos of your fridge.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FridgeFriend needs photo library access to upload fridge photos for item detection.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
