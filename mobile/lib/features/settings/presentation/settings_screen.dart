@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
+import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 import 'providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -49,6 +50,9 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.logout, color: Colors.red),
             textColor: Colors.red,
             onTap: () async {
+              final pushService = ref.read(pushNotificationServiceProvider);
+              final apiClient = ref.read(apiClientProvider);
+              await pushService.unregisterToken(apiClient);
               await ref.read(authServiceProvider).signOut();
             },
           ),

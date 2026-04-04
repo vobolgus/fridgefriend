@@ -20,8 +20,31 @@ class MockFirebaseAuth:
 
 
 class FirebaseAuthService:
+    _initialized: bool = False
+
     def __init__(self, project_id: str) -> None:
         self._project_id: str = project_id
+        self._ensure_initialized()
+
+    def _ensure_initialized(self) -> None:
+        if FirebaseAuthService._initialized:
+            return
+        try:
+            firebase_admin = importlib.import_module("firebase_admin")
+            credentials = importlib.import_module("firebase_admin.credentials")
+            cred = credentials.ApplicationDefault()
+            firebase_admin.initialize_app(cred, {"projectId": self._project_id})
+            FirebaseAuthService._initialized = True
+        except Exception:
+            try:
+                firebase_admin = importlib.import_module("firebase_admin")
+                firebase_admin.get_app()
+                FirebaseAuthService._initialized = True
+            except Exception as exc:
+                raise RuntimeError(
+                    f"Failed to initialize Firebase Admin SDK for project '{self._project_id}'. "
+                    "Ensure GOOGLE_APPLICATION_CREDENTIALS is set or Application Default Credentials are configured."
+                ) from exc
 
     async def verify_token(self, token: str) -> dict[str, object]:
         try:

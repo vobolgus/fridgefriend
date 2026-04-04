@@ -34,7 +34,7 @@ class HouseholdScreen extends ConsumerWidget {
             );
           }
 
-          final household = households.first;
+          final household = households.where((h) => h.isActive).firstOrNull ?? households.first;
           return ListView(
             padding: const EdgeInsets.all(16.0),
             children: [
