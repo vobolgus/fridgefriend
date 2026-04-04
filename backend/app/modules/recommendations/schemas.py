@@ -24,6 +24,13 @@ class FixtureRecipe(BaseModel):
     id: str
     title: str
     prep_minutes: int = Field(ge=0)
+    image_url: str | None = None
+    source_url: str | None = None
+    summary: str | None = None
+    instructions: list[dict[str, object]] = Field(default_factory=list)
+    cuisines: list[str] = Field(default_factory=list)
+    servings: int | None = None
+    nutrition: dict[str, object] | None = None
     dietary_tags: list[str] = Field(default_factory=list)
     ingredients: list[RecipeIngredient] = Field(default_factory=list)
 
@@ -38,6 +45,15 @@ class RecipeRecommendation(BaseModel):
     missing_items: list[str] = Field(alias="missingItems")
     substitutions: list[str]
     prep_minutes: int = Field(alias="prepMinutes")
+    image_url: str | None = Field(default=None, alias="imageUrl")
+    source_url: str | None = Field(default=None, alias="sourceUrl")
+    summary: str | None = None
+    instructions: list[dict[str, object]] = Field(default_factory=list)
+    cuisines: list[str] = Field(default_factory=list)
+    servings: int | None = None
+    nutrition: dict[str, object] | None = None
+    dietary_tags: list[str] = Field(default_factory=list, alias="dietaryTags")
+    ingredients: list[RecipeIngredient] = Field(default_factory=list)
     score: float
 
 

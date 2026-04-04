@@ -22,7 +22,10 @@ void main() {
           score: 0.9,
           prepMinutes: 20,
           missingItems: ['Parmesan'],
-          substitutions: const [],
+          substitutions: [],
+          cuisines: ['Italian'],
+          dietaryTags: ['Vegetarian'],
+          servings: 2,
         ),
       ],
     );
@@ -36,9 +39,11 @@ void main() {
     await tester.pump();
 
     expect(find.text('Creamy Pasta'), findsOneWidget);
-    expect(find.text('Coverage: 80%'), findsOneWidget);
+    expect(find.text('80% Match'), findsOneWidget);
     expect(find.text('20 min'), findsOneWidget);
-    expect(find.text('1 missing'), findsOneWidget);
-    expect(find.text('Parmesan'), findsOneWidget);
+    expect(find.text('Missing 1 items'), findsOneWidget);
+    expect(find.text('Italian'), findsOneWidget);
+    expect(find.text('Vegetarian'), findsOneWidget);
+    expect(find.text('2 servings'), findsOneWidget);
   });
 }

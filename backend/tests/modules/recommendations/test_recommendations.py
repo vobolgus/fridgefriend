@@ -348,6 +348,56 @@ async def test_api_endpoint_recommendations(
 
 
 @pytest.mark.asyncio
+async def test_api_endpoint_recommendations_includes_rich_recipe_fields(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    household = await ensure_household(
+        db_session,
+        test_user,
+        name="API Rich Recommendations Household",
+        invite_code="api-rich-recommend-household",
+    )
+    await add_inventory_item(db_session, test_user, "eggs", household_id=household.id)
+    await add_inventory_item(db_session, test_user, "butter", household_id=household.id)
+
+    response = await client.post(
+        "/v1/recommendations",
+        headers=_headers(test_headers, "recommendations-rich-fields"),
+        json={},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    recipe = next(recipe for recipe in payload["recipes"] if recipe["title"] == "Scrambled Eggs")
+
+    assert recipe["imageUrl"] == "https://img.spoonacular.com/recipes/641803-556x370.jpg"
+    assert recipe["sourceUrl"] == "https://www.simplyrecipes.com/recipes/perfect_scrambled_eggs/"
+    assert recipe["summary"].startswith("Soft scrambled eggs")
+    assert recipe["instructions"] == [
+        {"number": 1, "step": "Crack the eggs into a bowl and whisk until smooth."},
+        {"number": 2, "step": "Melt the butter in a nonstick skillet over low heat."},
+        {"number": 3, "step": "Pour in the eggs and stir slowly with a spatula as curds begin to form."},
+        {"number": 4, "step": "Cook until softly set and serve immediately."},
+    ]
+    assert recipe["cuisines"] == ["American"]
+    assert recipe["servings"] == 1
+    assert recipe["nutrition"] == {
+        "calories": "220 kcal",
+        "protein": "13g",
+        "fat": "17g",
+        "carbs": "2g",
+    }
+    assert recipe["dietaryTags"] == ["gluten-free", "high-protein"]
+    assert recipe["ingredients"] == [
+        {"canonical_name": "eggs", "quantity": 2.0, "unit": "unit"},
+        {"canonical_name": "butter", "quantity": 1.0, "unit": "tbsp"},
+    ]
+
+
+@pytest.mark.asyncio
 async def test_api_endpoint_recommendations_empty_inventory(
     client: httpx.AsyncClient,
     test_headers: dict[str, str],

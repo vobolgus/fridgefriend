@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,6 +10,7 @@ from app.modules.recommendations.interfaces import RecipeSourceInterface
 from app.modules.recommendations.mock_recipe_source import MockRecipeSource
 from app.modules.recommendations.schemas import RecommendationRequest
 from app.modules.recommendations.service import RecommendationService
+from app.modules.recommendations.spoonacular import QueryParamValue
 from app.modules.recommendations.spoonacular import SpoonacularClient
 
 
@@ -32,7 +35,7 @@ class _Client:
     def __init__(self, payload: list[dict[str, object]]) -> None:
         self._payload: list[dict[str, object]] = payload
 
-    async def get(self, url: str, params: dict[str, object]) -> _Response:
+    async def get(self, url: str, params: Mapping[str, QueryParamValue]) -> _Response:
         assert "recipes/findByIngredients" in url
         assert params["number"] == 2
         return _Response(self._payload)
@@ -49,6 +52,9 @@ async def test_mock_recipe_source_returns_recipes() -> None:
 
     assert len(recipes) == 3
     assert recipes[0]["title"] == "Scrambled Eggs"
+    assert recipes[0]["image_url"] == "https://img.spoonacular.com/recipes/641803-556x370.jpg"
+    assert recipes[0]["instructions"]
+    assert recipes[0]["dietary_tags"] == ["gluten-free", "high-protein"]
 
 
 @pytest.mark.asyncio
@@ -79,6 +85,7 @@ async def test_spoonacular_maps_response_payload() -> None:
                     "id": 42,
                     "title": "Veggie Pasta",
                     "readyInMinutes": 18,
+                    "image": "https://img.spoonacular.com/recipes/42-556x370.jpg",
                     "usedIngredients": [{"name": "pasta", "amount": 200, "unit": "g"}],
                     "missedIngredients": [{"name": "tomatoes", "amount": 2, "unit": "piece"}],
                 }
@@ -93,6 +100,13 @@ async def test_spoonacular_maps_response_payload() -> None:
             "id": "42",
             "title": "Veggie Pasta",
             "prep_minutes": 18,
+            "image_url": "https://img.spoonacular.com/recipes/42-556x370.jpg",
+            "source_url": None,
+            "summary": None,
+            "instructions": [],
+            "cuisines": [],
+            "servings": None,
+            "nutrition": None,
             "dietary_tags": [],
             "ingredients": [
                 {"canonical_name": "pasta", "quantity": 200.0, "unit": "g"},

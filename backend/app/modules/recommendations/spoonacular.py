@@ -59,7 +59,11 @@ class SpoonacularClient:
             if not isinstance(payload, list):
                 result = []
             else:
-                result = [self._map_recipe(cast(JSONDict, item)) for item in payload if isinstance(item, dict)]
+                normalized_payload: list[JSONDict] = []
+                for raw_item in cast(list[object], payload):
+                    if isinstance(raw_item, dict):
+                        normalized_payload.append(cast(JSONDict, raw_item))
+                result = [self._map_recipe(item) for item in normalized_payload]
         except Exception as exc:
             status = "error"
             error_detail = str(exc)[:500]
@@ -103,9 +107,9 @@ class SpoonacularClient:
         ingredients: list[dict[str, object]] = []
         combined_ingredients: list[object] = []
         if isinstance(used_ingredients, list):
-            combined_ingredients.extend(used_ingredients)
+            combined_ingredients.extend(cast(list[object], used_ingredients))
         if isinstance(missed_ingredients, list):
-            combined_ingredients.extend(missed_ingredients)
+            combined_ingredients.extend(cast(list[object], missed_ingredients))
         for ingredient in combined_ingredients:
             if not isinstance(ingredient, Mapping):
                 continue
@@ -125,6 +129,13 @@ class SpoonacularClient:
             "id": str(payload_dict.get("id", "")),
             "title": str(payload_dict.get("title", "")),
             "prep_minutes": int(_to_float(payload_dict.get("readyInMinutes"), default=0.0)),
+            "image_url": str(payload_dict.get("image")) if payload_dict.get("image") else None,
+            "source_url": None,
+            "summary": None,
+            "instructions": [],
+            "cuisines": [],
+            "servings": None,
+            "nutrition": None,
             "dietary_tags": [],
             "ingredients": ingredients,
         }

@@ -15,6 +15,46 @@ import 'package:fridgefriend_mobile/features/inventory/presentation/providers.da
 class RecommendationsScreen extends ConsumerWidget {
   const RecommendationsScreen({super.key});
 
+  Widget _buildPlaceholder() {
+    return Container(
+      height: 160,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primaryLight, AppColors.primary],
+        ),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.restaurant_menu,
+          size: 48,
+          color: Colors.white54,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChip(
+      BuildContext context, String label, Color bgColor, Color textColor) {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.bold,
+            ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final recommendations = ref.watch(recommendationsProvider);
@@ -52,6 +92,7 @@ class RecommendationsScreen extends ConsumerWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
                   ),
+                  clipBehavior: Clip.antiAlias,
                   elevation: 2,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
@@ -59,106 +100,153 @@ class RecommendationsScreen extends ConsumerWidget {
                       HapticFeedback.lightImpact();
                       context.push('/recipes/${recipe.id}', extra: recipe);
                     },
-                    child: Padding(
-                      padding: AppSpacing.cardPadding,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            recipe.title,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Row(
-                            children: [
-                              Text(
-                                'Coverage: ${(recipe.coveragePct * 100).toStringAsFixed(0)}%',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: progressColor,
-                                    ),
-                              ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: LinearProgressIndicator(
-                                    value: recipe.coveragePct,
-                                    backgroundColor: AppColors.surfaceVariant,
-                                    color: progressColor,
-                                    minHeight: 8,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Stack(
+                          children: [
+                            if (recipe.imageUrl != null)
+                              Image.network(
+                                recipe.imageUrl!,
+                                height: 160,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildPlaceholder(),
+                              )
+                            else
+                              _buildPlaceholder(),
+                            Positioned(
+                              bottom: 0,
+                              left: 0,
+                              right: 0,
+                              child: Container(
+                                height: 80,
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Colors.black87
+                                    ],
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          Row(
+                            ),
+                            Positioned(
+                              bottom: AppSpacing.md,
+                              left: AppSpacing.md,
+                              right: AppSpacing.md,
+                              child: Text(
+                                recipe.title,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.timer_outlined,
-                                  size: 16, color: AppColors.textSecondary),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${recipe.prepMinutes} min',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: AppColors.textSecondary,
+                              if (recipe.cuisines.isNotEmpty ||
+                                  recipe.dietaryTags.isNotEmpty) ...[
+                                Wrap(
+                                  spacing: AppSpacing.xs,
+                                  runSpacing: AppSpacing.xs,
+                                  children: [
+                                    ...recipe.cuisines.map((c) => _buildChip(
+                                        context,
+                                        c,
+                                        AppColors.secondaryLight,
+                                        AppColors.secondary)),
+                                    ...recipe.dietaryTags.map((d) => _buildChip(
+                                        context,
+                                        d,
+                                        AppColors.accentLight,
+                                        AppColors.accent)),
+                                  ],
+                                ),
+                                const SizedBox(height: AppSpacing.md),
+                              ],
+                              Row(
+                                children: [
+                                  const Icon(Icons.timer_outlined,
+                                      size: 16, color: AppColors.textSecondary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${recipe.prepMinutes} min',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                  ),
+                                  if (recipe.servings != null) ...[
+                                    const SizedBox(width: AppSpacing.md),
+                                    const Icon(Icons.restaurant_outlined,
+                                        size: 16,
+                                        color: AppColors.textSecondary),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${recipe.servings} servings',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
                                     ),
-                              ),
-                              const SizedBox(width: AppSpacing.xl),
-                              const Icon(Icons.inventory_2_outlined,
-                                  size: 16, color: AppColors.textSecondary),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${recipe.missingItems.length} missing',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(
-                                      color: AppColors.textSecondary,
+                                  ],
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.sm, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: progressColor.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(
+                                          AppSpacing.chipRadius),
                                     ),
+                                    child: Text(
+                                      '${(recipe.coveragePct * 100).toStringAsFixed(0)}% Match',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            color: progressColor,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          if (recipe.missingItems.isNotEmpty) ...[
-                            const SizedBox(height: AppSpacing.md),
-                            Wrap(
-                              spacing: AppSpacing.xs,
-                              runSpacing: AppSpacing.xs,
-                              children: recipe.missingItems.map((item) {
-                                return Chip(
-                                  label: Text(item),
-                                  labelStyle: Theme.of(context)
+                              if (recipe.missingItems.isNotEmpty) ...[
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  'Missing ${recipe.missingItems.length} items',
+                                  style: Theme.of(context)
                                       .textTheme
                                       .bodySmall
                                       ?.copyWith(
                                         color: AppColors.error,
                                         fontWeight: FontWeight.w600,
                                       ),
-                                  backgroundColor: AppColors.errorLight,
-                                  side: BorderSide.none,
-                                  padding: EdgeInsets.zero,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        AppSpacing.chipRadius),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ],
-                      ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

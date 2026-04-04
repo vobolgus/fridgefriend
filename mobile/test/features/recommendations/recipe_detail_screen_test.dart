@@ -13,7 +13,20 @@ void main() {
       score: 0.9,
       prepMinutes: 30,
       missingItems: ['Cheese'],
-      substitutions: const [],
+      substitutions: [],
+      instructions: [
+        {'number': 1, 'step': 'Boil pasta'},
+      ],
+      nutrition: {
+        'calories': 500,
+        'protein': 20,
+        'fat': 15,
+        'carbs': 70,
+      },
+      cuisines: ['Italian'],
+      dietaryTags: ['Vegetarian'],
+      servings: 4,
+      summary: 'A delicious pasta bake',
     );
 
     await tester.pumpWidget(
@@ -29,5 +42,16 @@ void main() {
     expect(find.text('Cheese'), findsOneWidget);
     expect(find.text('Substitutions'), findsOneWidget);
     expect(find.text('No substitutions suggested'), findsOneWidget);
+
+    // New fields
+    expect(find.text('Instructions'), findsOneWidget);
+    expect(find.text('Boil pasta'), findsOneWidget);
+    expect(find.text('Nutrition'), findsOneWidget);
+    expect(find.text('500'), findsOneWidget);
+    expect(find.text('20g'), findsOneWidget);
+    expect(find.text('Italian'), findsOneWidget);
+    expect(find.text('Vegetarian'), findsOneWidget);
+    expect(find.text('4 servings'), findsOneWidget);
+    expect(find.text('A delicious pasta bake'), findsOneWidget);
   });
 }
