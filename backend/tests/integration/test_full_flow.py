@@ -193,7 +193,7 @@ async def test_full_user_journey(
     assert shopping_response.status_code == 200
     shopping_items = shopping_response.json()["items"]
     assert shopping_items
-    shopping_ingredient_names = {item["ingredient_name"] for item in shopping_items}
+    shopping_ingredient_names = {item["ingredientName"] for item in shopping_items}
     assert any(name not in {"milk", "eggs", "pasta"} for name in shopping_ingredient_names)
     assert shopping_ingredient_names & {"bread", "cheese", "rice"}
 
@@ -392,7 +392,7 @@ async def test_shopping_list_after_plan(
     assert shopping_list_response.status_code == 200
     items = shopping_list_response.json()["items"]
     assert items
-    assert any(item["ingredient_name"] in {"tomatoes", "bread", "eggs", "rice"} for item in items)
+    assert any(item["ingredientName"] in {"tomatoes", "bread", "eggs", "rice"} for item in items)
 
 
 @pytest.mark.asyncio

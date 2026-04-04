@@ -19,6 +19,13 @@ class MockAuthService implements AuthService {
   }
 
   @override
+  Future<void> signInWithEmail(String email, String password) async {
+    await Future.delayed(const Duration(milliseconds: 500));
+    _currentToken = 'test-token';
+    _authStateController.add(_currentToken);
+  }
+
+  @override
   Future<void> signOut() async {
     await Future.delayed(const Duration(milliseconds: 500));
     _currentToken = null;

@@ -42,7 +42,13 @@ class HouseholdScreen extends ConsumerWidget {
               Text('Invite Code: ${household.inviteCode}'),
               const SizedBox(height: 16),
               Text('Members:', style: Theme.of(context).textTheme.titleMedium),
-              ...household.members.map((m) => ListTile(title: Text(m))),
+              ...household.members.map(
+                (m) => ListTile(
+                  leading: const Icon(Icons.person),
+                  title: Text(m.email),
+                  subtitle: Text(m.role),
+                ),
+              ),
             ],
           );
         },
@@ -53,15 +59,36 @@ class HouseholdScreen extends ConsumerWidget {
   }
 
   void _showCreateDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Create'),
-        content: const TextField(decoration: InputDecoration(hintText: 'Name')),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Household name'),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              Navigator.pop(dialogContext);
+              try {
+                await ref.read(householdRepositoryProvider).createHousehold(name);
+                ref.invalidate(householdsProvider);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to create: $e')),
+                  );
+                }
+              }
+            },
             child: const Text('Create'),
           ),
         ],
@@ -70,15 +97,36 @@ class HouseholdScreen extends ConsumerWidget {
   }
 
   void _showJoinDialog(BuildContext context, WidgetRef ref) {
+    final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Join'),
-        content: const TextField(decoration: InputDecoration(hintText: 'Invite Code')),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Invite Code'),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final code = controller.text.trim();
+              if (code.isEmpty) return;
+              Navigator.pop(dialogContext);
+              try {
+                await ref.read(householdRepositoryProvider).joinHousehold(code);
+                ref.invalidate(householdsProvider);
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to join: $e')),
+                  );
+                }
+              }
+            },
             child: const Text('Join'),
           ),
         ],

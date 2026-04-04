@@ -19,6 +19,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+firebase = [
+  "firebase-admin>=6.5.0",
+]
 worker = [
   "celery>=5.3.0",
 ]

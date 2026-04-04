@@ -35,7 +35,9 @@ class PlanDay(BaseModel):
 
 
 class ShoppingItem(BaseModel):
-    ingredient_name: str
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
+
+    ingredient_name: str = Field(alias="ingredientName")
     quantity: float
     unit: str
     reason: str

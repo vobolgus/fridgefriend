@@ -33,11 +33,14 @@ void main() {
       ProviderScope(
         overrides: [
           householdsProvider.overrideWith((ref) => Future.value([
-            const Household(
+            Household(
               id: '1',
               name: 'My House',
               inviteCode: 'XYZ123',
-              members: ['Alice', 'Bob'],
+              members: [
+                const HouseholdMember(id: '1', userId: 'u1', email: 'alice@test.com', role: 'owner'),
+                const HouseholdMember(id: '2', userId: 'u2', email: 'bob@test.com', role: 'member'),
+              ],
             ),
           ])),
         ],
@@ -51,7 +54,7 @@ void main() {
 
     expect(find.text('Name: My House'), findsOneWidget);
     expect(find.text('Invite Code: XYZ123'), findsOneWidget);
-    expect(find.text('Alice'), findsOneWidget);
-    expect(find.text('Bob'), findsOneWidget);
+    expect(find.text('alice@test.com'), findsOneWidget);
+    expect(find.text('bob@test.com'), findsOneWidget);
   });
 }

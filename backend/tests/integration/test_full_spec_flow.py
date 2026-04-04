@@ -257,7 +257,7 @@ async def test_shopping_list_shows_only_gaps(
     payload = cast(dict[str, object], response.json())
     items = cast(list[dict[str, object]], payload["items"])
     assert items
-    assert all(item["ingredient_name"] != "pasta" for item in items)
+    assert all(item["ingredientName"] != "pasta" for item in items)
 
 
 @pytest.mark.asyncio

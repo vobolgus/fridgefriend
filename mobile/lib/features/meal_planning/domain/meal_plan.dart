@@ -82,7 +82,7 @@ class ShoppingItem {
 
   factory ShoppingItem.fromJson(Map<String, dynamic> json) {
     return ShoppingItem(
-      ingredientName: (json['ingredientName'] ?? json['name'] ?? '').toString(),
+      ingredientName: (json['ingredientName'] ?? json['ingredient_name'] ?? json['name'] ?? '').toString(),
       quantity: _asDouble(json['quantity']),
       unit: (json['unit'] ?? '').toString(),
     );

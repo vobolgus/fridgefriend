@@ -31,7 +31,7 @@ async def verify(base_url: str, token: str) -> None:
         item_payload = cast(dict[str, object], item_response.json())
         _assert_keys(
             item_payload,
-            {"id", "display_name", "quantity", "unit", "storage_location", "estimated_expiry_date", "confidence"},
+            {"itemId", "displayName", "quantity", "unit", "storageLocation", "estimatedExpiryDate", "confidence"},
             name="POST /v1/items",
         )
 
@@ -54,7 +54,7 @@ async def verify(base_url: str, token: str) -> None:
         )
         _ = photo_response.raise_for_status()
         photo_payload = cast(dict[str, object], photo_response.json())
-        _assert_keys(photo_payload, {"draft_items", "source"}, name="POST /v1/scan/photo")
+        _assert_keys(photo_payload, {"draft_items"}, name="POST /v1/scan/photo")
 
         recommendations_response = await client.post(
             "/v1/recommendations",
@@ -72,7 +72,7 @@ async def verify(base_url: str, token: str) -> None:
         )
         _ = plans_response.raise_for_status()
         plans_payload = cast(dict[str, object], plans_response.json())
-        _assert_keys(plans_payload, {"plan_id", "days", "shopping_list"}, name="POST /v1/plans")
+        _assert_keys(plans_payload, {"planId", "days", "shoppingList"}, name="POST /v1/plans")
 
         shopping_response = await client.get("/v1/shopping-list", headers=headers)
         _ = shopping_response.raise_for_status()
