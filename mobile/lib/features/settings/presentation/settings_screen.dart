@@ -100,6 +100,21 @@ class SettingsScreen extends ConsumerWidget {
             leading: const Icon(Icons.logout, color: Colors.red),
             textColor: Colors.red,
             onTap: () async {
+              final syncManager = ref.read(syncManagerProvider);
+              final pending = await syncManager.pendingMutations();
+              if (pending.isNotEmpty) {
+                try {
+                  await syncManager.flushPendingMutations();
+                } catch (_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Sync pending changes before signing out')),
+                    );
+                  }
+                  return;
+                }
+              }
+
               final pushService = ref.read(pushNotificationServiceProvider);
               final apiClient = ref.read(apiClientProvider);
               await pushService.unregisterToken(apiClient);
@@ -108,8 +123,6 @@ class SettingsScreen extends ConsumerWidget {
               await db.inventoryDao.clearAll();
               await db.recipeDao.clear();
               await db.mealPlanDao.clear();
-              final syncManager = ref.read(syncManagerProvider);
-              await syncManager.clearPendingMutations();
 
               await ref.read(authServiceProvider).signOut();
             },
