@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,7 @@ import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
+import 'package:fridgefriend_mobile/core/presentation/providers/theme_provider.dart';
 import 'providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -14,20 +16,22 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prefsAsync = ref.watch(notificationPreferencesProvider);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title: Text(
           'Settings',
           style: TextStyle(
             fontFamily: 'Inter',
             fontWeight: FontWeight.w900,
             fontSize: 24,
-            color: AppColors.textPrimary,
+            color: colorScheme.onSurface,
           ),
         ),
-        backgroundColor: AppColors.navBarBackground,
+        backgroundColor: theme.appBarTheme.backgroundColor,
         elevation: 0,
         centerTitle: false,
       ),
@@ -39,9 +43,9 @@ class SettingsScreen extends ConsumerWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-              side: const BorderSide(color: AppColors.divider, width: 1),
+              side: BorderSide(color: theme.dividerColor, width: 1),
             ),
-            color: AppColors.surface,
+            color: theme.cardTheme.color,
             margin: const EdgeInsets.only(bottom: AppSpacing.xl),
             child: prefsAsync.when(
               data: (prefs) => Column(
@@ -49,44 +53,45 @@ class SettingsScreen extends ConsumerWidget {
                   SwitchListTile(
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                    title: const Text(
+                    title: Text(
                       'Push Notifications',
                       style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary),
+                          color: colorScheme.onSurface),
                     ),
                     subtitle: Text(
                       'Reminders for expiring items',
                       style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary.withOpacity(0.8),
+                          color: AppColors.textSecondary,
                           fontSize: 13),
                     ),
                     value: prefs.enabled,
                     activeColor: AppColors.primary,
                     onChanged: (val) {
+                      HapticFeedback.selectionClick();
                       ref
                           .read(notificationPreferencesProvider.notifier)
                           .toggleEnabled(val);
                     },
                   ),
-                  const Divider(height: 1, color: AppColors.divider),
+                  Divider(height: 1, color: theme.dividerColor),
                   ListTile(
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-                    title: const Text(
+                    title: Text(
                       'Remind days before expiry',
                       style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary),
+                          color: colorScheme.onSurface),
                     ),
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceVariant,
+                        color: theme.inputDecorationTheme.fillColor,
                         borderRadius:
                             BorderRadius.circular(AppSpacing.buttonRadius),
                       ),
@@ -95,10 +100,11 @@ class SettingsScreen extends ConsumerWidget {
                           value: prefs.reminderDaysBefore,
                           icon: const Icon(Icons.keyboard_arrow_down_rounded,
                               color: AppColors.textSecondary),
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary),
+                              color: colorScheme.onSurface),
+                          dropdownColor: theme.cardTheme.color,
                           items: List.generate(8, (i) => i).map((days) {
                             return DropdownMenuItem(
                               value: days,
@@ -121,23 +127,23 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const Divider(height: 1, color: AppColors.divider),
+                  Divider(height: 1, color: theme.dividerColor),
                   ListTile(
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
-                    title: const Text(
+                    title: Text(
                       'Quiet hours',
                       style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary),
+                          color: colorScheme.onSurface),
                     ),
                     subtitle: Text(
                       'Do not disturb during these times',
                       style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary.withOpacity(0.8),
+                          color: AppColors.textSecondary,
                           fontSize: 13),
                     ),
                     trailing: Container(
@@ -146,7 +152,7 @@ class SettingsScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: prefs.enabled
                             ? AppColors.thisWeekSurface
-                            : AppColors.surfaceVariant,
+                            : theme.inputDecorationTheme.fillColor,
                         borderRadius:
                             BorderRadius.circular(AppSpacing.buttonRadius),
                         border: Border.all(
@@ -205,24 +211,86 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          _buildSectionHeader('THEME'),
+          Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+              side: BorderSide(color: theme.dividerColor, width: 1),
+            ),
+            color: theme.cardTheme.color,
+            margin: const EdgeInsets.only(bottom: AppSpacing.xl),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Appearance',
+                    style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w800,
+                        color: colorScheme.onSurface),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment(
+                        value: ThemeMode.system,
+                        label: Text('System'),
+                        icon: Icon(Icons.settings_system_daydream),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.light,
+                        label: Text('Light'),
+                        icon: Icon(Icons.light_mode),
+                      ),
+                      ButtonSegment(
+                        value: ThemeMode.dark,
+                        label: Text('Dark'),
+                        icon: Icon(Icons.dark_mode),
+                      ),
+                    ],
+                    selected: <ThemeMode>{ref.watch(themeModeProvider)},
+                    onSelectionChanged: (Set<ThemeMode> newSelection) {
+                      ref.read(themeModeProvider.notifier).state =
+                          newSelection.first;
+                    },
+                    style: SegmentedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.surface,
+                      selectedBackgroundColor: AppColors.primarySurface,
+                      selectedForegroundColor: AppColors.primaryDark,
+                      side: BorderSide(color: theme.dividerColor),
+                      textStyle: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           _buildSectionHeader('ACCOUNT'),
           Card(
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-              side: const BorderSide(color: AppColors.divider, width: 1),
+              side: BorderSide(color: theme.dividerColor, width: 1),
             ),
-            color: AppColors.surface,
+            color: theme.cardTheme.color,
             margin: const EdgeInsets.only(bottom: AppSpacing.xl),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-              title: const Text(
+              title: Text(
                 'Household Management',
                 style: TextStyle(
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary),
+                    color: colorScheme.onSurface),
               ),
               leading: Container(
                 padding: const EdgeInsets.all(8),
@@ -242,6 +310,7 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xxl),
           OutlinedButton.icon(
             onPressed: () async {
+              HapticFeedback.heavyImpact();
               final syncManager = ref.read(syncManagerProvider);
               final pending = await syncManager.pendingMutations();
               if (pending.isNotEmpty) {

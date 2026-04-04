@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -33,6 +34,7 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
     if (barcodes.isNotEmpty) {
       final barcode = barcodes.first.rawValue;
       if (barcode != null && mounted && !_isLoading) {
+        HapticFeedback.heavyImpact();
         _submitBarcode(barcode);
       }
     }

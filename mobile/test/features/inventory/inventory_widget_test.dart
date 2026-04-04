@@ -276,13 +276,15 @@ void main() {
         child: MaterialApp.router(routerConfig: router),
       ),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('1 item expiring soon'), findsOneWidget);
     expect(find.text('Tap to see what to use first'), findsOneWidget);
 
     await tester.tap(find.text('1 item expiring soon'));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Use Soon Page'), findsOneWidget);
   });

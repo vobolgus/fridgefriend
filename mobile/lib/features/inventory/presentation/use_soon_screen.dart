@@ -7,6 +7,7 @@ import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/empty_state.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/error_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/animated_list_item.dart';
 
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
@@ -90,34 +91,38 @@ class UseSoonScreen extends ConsumerWidget {
             ),
           ),
         ),
-        ...items.map(
-          (item) => Card(
-            color: backgroundColor,
-            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-            ),
-            elevation: 0,
-            child: ListTile(
-              contentPadding: AppSpacing.listItemPadding,
-              leading: Icon(Icons.inventory_2_outlined, color: accentColor),
-              title: Text(
-                item.displayName,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              trailing: Text(
-                '${item.quantity} ${item.unit}',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w600,
+        ...items.asMap().entries.map(
+              (entry) => AnimatedListItem(
+                index: entry.key,
+                child: Card(
+                  color: backgroundColor,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                  ),
+                  elevation: 0,
+                  child: ListTile(
+                    contentPadding: AppSpacing.listItemPadding,
+                    leading:
+                        Icon(Icons.inventory_2_outlined, color: accentColor),
+                    title: Text(
+                      entry.value.displayName,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    trailing: Text(
+                      '${entry.value.quantity} ${entry.value.unit}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    onTap: () {
+                      context.push('/recipes');
+                    },
+                  ),
                 ),
               ),
-              onTap: () {
-                context.push('/recipes');
-              },
             ),
-          ),
-        ),
         const SizedBox(height: AppSpacing.lg),
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -45,13 +46,13 @@ class AppShell extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(Icons.kitchen_rounded,
-                  size: 18, color: Colors.white),
+                  size: 18, color: AppColors.textOnPrimary),
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
               'FridgeFriend',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
             ),
           ],
@@ -61,7 +62,9 @@ class AppShell extends ConsumerWidget {
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.surfaceVariantDark
+                    : AppColors.surfaceVariant,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.settings_outlined, size: 20),
@@ -73,14 +76,17 @@ class AppShell extends ConsumerWidget {
       ),
       body: child,
       floatingActionButton: currentIndex == 0
-          ? FloatingActionButton(
-              onPressed: () => _showAddOptions(context),
-              child: const Icon(Icons.add_rounded, size: 28),
+          ? _AnimatedFab(
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                _showAddOptions(context);
+              },
             )
           : null,
       bottomNavigationBar: NavigationBar(
         selectedIndex: currentIndex,
         onDestinationSelected: (index) {
+          HapticFeedback.selectionClick();
           context.go(_destinations[index]);
         },
         destinations: const [
@@ -150,6 +156,7 @@ class AppShell extends ConsumerWidget {
                 title: const Text('Scan Barcode'),
                 subtitle: const Text('Quick add with camera'),
                 onTap: () {
+                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/scan/barcode');
                 },
@@ -167,6 +174,7 @@ class AppShell extends ConsumerWidget {
                 title: const Text('Take Photo'),
                 subtitle: const Text('AI-powered fridge scan'),
                 onTap: () {
+                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/scan/photo');
                 },
@@ -184,6 +192,7 @@ class AppShell extends ConsumerWidget {
                 title: const Text('Manual Entry'),
                 subtitle: const Text('Type in item details'),
                 onTap: () {
+                  HapticFeedback.lightImpact();
                   Navigator.pop(context);
                   context.push('/add-item');
                 },
@@ -191,6 +200,52 @@ class AppShell extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AnimatedFab extends StatefulWidget {
+  final VoidCallback onPressed;
+
+  const _AnimatedFab({required this.onPressed});
+
+  @override
+  State<_AnimatedFab> createState() => _AnimatedFabState();
+}
+
+class _AnimatedFabState extends State<_AnimatedFab>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _scaleAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutBack,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: FloatingActionButton(
+        onPressed: widget.onPressed,
+        child: const Icon(Icons.add_rounded, size: 28),
       ),
     );
   }

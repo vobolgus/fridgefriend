@@ -25,16 +25,23 @@ abstract final class AppColors {
   static const safeLaterSurface = Color(0xFFC8E6C9);
 
   static const textPrimary = Color(0xFF1A1A2E);
+  static const textPrimaryDark = Color(0xFFF0F0F5);
   static const textSecondary = Color(0xFF6B7280);
+  static const textSecondaryDark = Color(0xFF9CA3AF);
   static const textOnPrimary = Colors.white;
   static const textOnDark = Colors.white;
 
   static const surface = Colors.white;
+  static const surfaceDark = Color(0xFF1A1A2E);
   static const surfaceVariant = Color(0xFFF5F5F7);
+  static const surfaceVariantDark = Color(0xFF252540);
   static const background = Color(0xFFFAFAFC);
+  static const backgroundDark = Color(0xFF121220);
   static const divider = Color(0xFFE5E7EB);
+  static const dividerDark = Color(0xFF2D2D4A);
 
   static const navBarBackground = Colors.white;
+  static const navBarBackgroundDark = Color(0xFF1A1A2E);
   static const shimmerBase = Color(0xFFE0E0E0);
   static const shimmerHighlight = Color(0xFFF5F5F5);
 }

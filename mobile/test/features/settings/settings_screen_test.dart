@@ -28,6 +28,11 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     expect(find.text('Push Notifications'), findsOneWidget);
     expect(find.text('Remind days before expiry'), findsOneWidget);
+
+    // Scroll down to find the remaining elements
+    await tester.drag(find.byType(ListView), const Offset(0, -1000));
+    await tester.pumpAndSettle();
+
     expect(find.text('Sign Out'), findsOneWidget);
     expect(find.text('v1.0.0'), findsOneWidget);
   });

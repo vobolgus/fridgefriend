@@ -63,7 +63,10 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       ElevatedButton.icon(
-                        onPressed: () => _showCreateDialog(context, ref),
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          _showCreateDialog(context, ref);
+                        },
                         icon: const Icon(Icons.add_home_rounded),
                         label: const Text('Create'),
                         style: ElevatedButton.styleFrom(
@@ -83,7 +86,10 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                       ),
                       const SizedBox(width: AppSpacing.md),
                       ElevatedButton.icon(
-                        onPressed: () => _showJoinDialog(context, ref),
+                        onPressed: () {
+                          HapticFeedback.mediumImpact();
+                          _showJoinDialog(context, ref);
+                        },
                         icon: const Icon(Icons.group_add_rounded),
                         label: const Text('Join'),
                         style: ElevatedButton.styleFrom(
@@ -115,7 +121,10 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _showCreateDialog(context, ref),
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        _showCreateDialog(context, ref);
+                      },
                       icon: const Icon(Icons.add_home_rounded, size: 20),
                       label: const Text('Create'),
                       style: ElevatedButton.styleFrom(
@@ -137,7 +146,10 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _showJoinDialog(context, ref),
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        _showJoinDialog(context, ref);
+                      },
                       icon: const Icon(Icons.group_add_rounded, size: 20),
                       label: const Text('Join'),
                       style: ElevatedButton.styleFrom(
@@ -263,7 +275,10 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                   ElevatedButton(
                     onPressed: _switchingHouseholdId == household.id
                         ? null
-                        : () => _setActiveHousehold(household),
+                        : () {
+                            HapticFeedback.mediumImpact();
+                            _setActiveHousehold(household);
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.textPrimary,
                       foregroundColor: AppColors.surface,
@@ -543,6 +558,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              HapticFeedback.mediumImpact();
               final name = controller.text.trim();
               if (name.isEmpty) return;
               Navigator.pop(dialogContext);
@@ -618,6 +634,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
+              HapticFeedback.mediumImpact();
               final code = controller.text.trim();
               if (code.isEmpty) return;
               Navigator.pop(dialogContext);

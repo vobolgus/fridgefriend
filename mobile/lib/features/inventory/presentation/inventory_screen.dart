@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,6 +9,7 @@ import 'package:fridgefriend_mobile/core/presentation/widgets/empty_state.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/error_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/urgency_badge.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/animated_list_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
@@ -51,7 +53,10 @@ class InventoryScreen extends ConsumerWidget {
 
                 final item =
                     inventoryItems[index - (expiringCount > 0 ? 1 : 0)];
-                return _InventoryTile(item: item);
+                return AnimatedListItem(
+                  index: index,
+                  child: _InventoryTile(item: item),
+                );
               },
             ),
           );
@@ -81,7 +86,10 @@ class _ExpiringBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          onTap: () => context.push('/use-soon'),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.push('/use-soon');
+          },
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
@@ -199,6 +207,9 @@ class _InventoryTile extends ConsumerWidget {
     return PopupMenuButton<String>(
       icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
       onSelected: (value) async {
+        if (value != 'edit') {
+          HapticFeedback.mediumImpact();
+        }
         final notifier = ref.read(inventoryProvider.notifier);
         if (value == 'edit') {
           context.push('/add-item', extra: item);

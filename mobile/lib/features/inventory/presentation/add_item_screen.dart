@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fridgefriend_mobile/core/design/colors.dart';
@@ -200,6 +201,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                   borderRadius: BorderRadius.circular(AppSpacing.buttonRadius)),
             ),
             onPressed: () async {
+              HapticFeedback.mediumImpact();
               if (!_formKey.currentState!.validate()) {
                 return;
               }
