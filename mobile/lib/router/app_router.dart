@@ -105,7 +105,8 @@ class AppRouter {
           path: '/activity-log',
           name: 'activity-log',
           builder: (context, state) {
-            final householdId = state.extra as String? ?? '';
+            final extra = state.extra;
+            final householdId = extra is String ? extra : '';
             return ActivityLogScreen(householdId: householdId);
           },
         ),
@@ -126,10 +127,11 @@ class AppRouter {
             final extra = state.extra;
             final rawItems = switch (extra) {
               final List<dynamic> value => value,
-              final Map<String, dynamic> value =>
-                (value['draft_items'] ?? value['draftItems'] ?? value['items'])
-                        as List<dynamic>? ??
-                    const [],
+              final Map<String, dynamic> value => () {
+                  final candidate =
+                      value['draft_items'] ?? value['draftItems'] ?? value['items'];
+                  return candidate is List ? candidate : const <dynamic>[];
+                }(),
               _ => const <dynamic>[],
             };
             final items = rawItems
