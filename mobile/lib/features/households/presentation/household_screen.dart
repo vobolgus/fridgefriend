@@ -70,6 +70,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                         icon: const Icon(Icons.add_home_rounded),
                         label: const Text('Create'),
                         style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(0, 52),
                           backgroundColor: AppColors.textPrimary,
                           foregroundColor: AppColors.surface,
                           textStyle: const TextStyle(
@@ -93,6 +94,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                         icon: const Icon(Icons.group_add_rounded),
                         label: const Text('Join'),
                         style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(0, 52),
                           backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.textOnPrimary,
                           textStyle: const TextStyle(

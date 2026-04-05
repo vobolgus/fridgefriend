@@ -134,13 +134,14 @@ class AppShell extends ConsumerWidget {
         households.where((h) => h.isActive).firstOrNull ?? households.first;
     final householdId = activeHousehold.id;
 
-    final eventsAsync = ref.watch(householdEventsProvider(householdId));
-    eventsAsync.whenData((_) {
-      ref.invalidate(inventoryProvider);
-      ref.invalidate(activityLogProvider(householdId));
-      ref.invalidate(recommendationsProvider);
-      ref.invalidate(mealPlanProvider);
-      ref.invalidate(shoppingListProvider);
+    ref.listen(householdEventsProvider(householdId), (previous, next) {
+      next.whenData((_) {
+        ref.invalidate(inventoryProvider);
+        ref.invalidate(activityLogProvider(householdId));
+        ref.invalidate(recommendationsProvider);
+        ref.invalidate(mealPlanProvider);
+        ref.invalidate(shoppingListProvider);
+      });
     });
   }
 

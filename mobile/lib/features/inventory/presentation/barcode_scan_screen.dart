@@ -199,6 +199,7 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
                     const SizedBox(width: AppSpacing.md),
                     FilledButton(
                       style: FilledButton.styleFrom(
+                        minimumSize: const Size(52, 52),
                         padding: const EdgeInsets.all(16),
                         shape: RoundedRectangleBorder(
                             borderRadius:
