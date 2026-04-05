@@ -47,14 +47,14 @@ class RedisHealthClient(Protocol):
 
 
 @runtime_checkable
-class EngineHealthClient(Protocol):
-    def connect(self) -> AsyncContextManager[ConnectionHealthClient]:
+class ConnectionHealthClient(Protocol):
+    def execute(self, statement: object) -> Awaitable[object] | object:
         ...
 
 
 @runtime_checkable
-class ConnectionHealthClient(Protocol):
-    def execute(self, statement: object) -> Awaitable[object] | object:
+class EngineHealthClient(Protocol):
+    def connect(self) -> AsyncContextManager[ConnectionHealthClient]:
         ...
 
 

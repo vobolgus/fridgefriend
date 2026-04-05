@@ -15,15 +15,28 @@ locals {
   default_s3_bucket_arn = try(module.s3_cdn.bucket_arn, null)
 
   backend_base_environment = {
-    APP_ENV       = var.environment
-    AWS_REGION    = var.aws_region
-    DATABASE_HOST = module.rds.endpoint
-    DATABASE_NAME = var.db_name
-    DATABASE_USER = var.db_username
-    REDIS_HOST    = module.elasticache.primary_endpoint
-    S3_BUCKET     = module.s3_cdn.bucket_name
-    SQS_QUEUE_URL = module.sqs.queue_url
-    CDN_DOMAIN    = module.s3_cdn.cloudfront_domain
+    APP_ENV              = var.environment
+    AWS_REGION           = var.aws_region
+    DEBUG                = "false"
+    AUTH_MOCK            = "true"
+    BARCODE_API_SOURCE   = "openfoodfacts"
+    RECIPE_SOURCE        = "mock"
+    STORAGE_BACKEND      = "s3"
+    S3_BUCKET            = module.s3_cdn.bucket_name
+    S3_ENDPOINT_URL      = ""
+    SQS_QUEUE_URL        = module.sqs.queue_url
+    CDN_DOMAIN           = module.s3_cdn.cloudfront_domain
+    FCM_ENABLED          = "false"
+    SENTRY_ENVIRONMENT   = var.environment
+    IDEMPOTENCY_BACKEND  = "redis"
+    PHOTO_PARSER_BACKEND = "mock"
+    OPENSEARCH_URL       = ""
+    OPENSEARCH_INDEX     = "recipes"
+  }
+
+  backend_secret_arns = {
+    DATABASE_URL = module.secrets.secret_arns["database-url"]
+    REDIS_URL    = module.secrets.secret_arns["redis-url"]
   }
 
   dashboard_base_environment = {
@@ -117,7 +130,7 @@ module "ecs_backend" {
   ingress_security_group_ids = [module.alb.security_group_id]
   target_group_arn           = module.alb.backend_target_group_arn
   environment_variables      = merge(local.backend_base_environment, { SERVICE_NAME = "backend", SERVICE_PORT = "8000" }, var.backend_environment_variables)
-  secret_arns                = var.backend_secret_arns
+  secret_arns                = merge(local.backend_secret_arns, var.backend_secret_arns)
   s3_resource_arns           = local.shared_s3_resource_arns
   sqs_resource_arns          = local.shared_sqs_resource_arns
   healthcheck_command        = ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
@@ -171,7 +184,7 @@ module "ecs_worker" {
   vpc_id                = module.vpc.vpc_id
   subnet_ids            = module.vpc.private_subnet_ids
   environment_variables = merge(local.backend_base_environment, { SERVICE_NAME = "worker" }, var.worker_environment_variables)
-  secret_arns           = var.worker_secret_arns
+  secret_arns           = merge(local.backend_secret_arns, var.worker_secret_arns)
   command               = ["celery", "-A", "app.worker", "worker", "--loglevel=INFO"]
   s3_resource_arns      = local.shared_s3_resource_arns
   sqs_resource_arns     = local.shared_sqs_resource_arns
@@ -192,7 +205,7 @@ module "ecs_beat" {
   vpc_id                = module.vpc.vpc_id
   subnet_ids            = module.vpc.private_subnet_ids
   environment_variables = merge(local.backend_base_environment, { SERVICE_NAME = "beat" }, var.beat_environment_variables)
-  secret_arns           = var.beat_secret_arns
+  secret_arns           = merge(local.backend_secret_arns, var.beat_secret_arns)
   command               = ["celery", "-A", "app.worker", "beat", "--loglevel=INFO"]
   s3_resource_arns      = local.shared_s3_resource_arns
   sqs_resource_arns     = local.shared_sqs_resource_arns
