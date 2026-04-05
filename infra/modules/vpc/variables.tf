@@ -35,7 +35,7 @@ variable "use_fck_nat" {
 variable "fck_nat_instance_type" {
   description = "Instance type for fck-nat NAT instance."
   type        = string
-  default     = "t4g.nano"
+  default     = "t4g.micro"
 }
 
 variable "enable_s3_endpoint" {
