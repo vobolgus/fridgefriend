@@ -7,6 +7,8 @@ locals {
   nat_count = var.enable_multi_az_nat ? length(var.availability_zones) : 1
 }
 
+data "aws_region" "current" {}
+
 resource "aws_vpc" "main" {
   cidr_block           = var.vpc_cidr
   enable_dns_support   = true
@@ -55,14 +57,14 @@ resource "aws_internet_gateway" "main" {
 # --- NAT Gateway ---
 
 resource "aws_eip" "nat" {
-  count  = local.nat_count
+  count  = var.use_fck_nat ? 0 : local.nat_count
   domain = "vpc"
 
   tags = merge(local.common_tags, { Name = "${var.project_name}-${var.environment}-nat-eip-${count.index}" })
 }
 
 resource "aws_nat_gateway" "main" {
-  count         = local.nat_count
+  count         = var.use_fck_nat ? 0 : local.nat_count
   allocation_id = aws_eip.nat[count.index].id
   subnet_id     = aws_subnet.public[count.index].id
 
@@ -88,13 +90,45 @@ resource "aws_route_table" "private" {
   count  = length(var.availability_zones)
   vpc_id = aws_vpc.main.id
 
-  route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.main[var.enable_multi_az_nat ? count.index : 0].id
-  }
-
   tags = merge(local.common_tags, {
     Name = "${var.project_name}-${var.environment}-private-rt-${count.index}"
+  })
+}
+
+resource "aws_route" "private_nat_gateway" {
+  count                  = var.use_fck_nat ? 0 : length(var.availability_zones)
+  route_table_id         = aws_route_table.private[count.index].id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.main[var.enable_multi_az_nat ? count.index : 0].id
+}
+
+module "fck_nat" {
+  count   = var.use_fck_nat ? 1 : 0
+  source  = "RaJiska/fck-nat/aws"
+  version = "1.3.0"
+
+  name                = "${var.project_name}-${var.environment}-fck-nat"
+  vpc_id              = aws_vpc.main.id
+  subnet_id           = aws_subnet.public[0].id
+  instance_type       = var.fck_nat_instance_type
+  ha_mode             = true
+  update_route_tables = true
+  route_tables_ids    = { for idx, rt in aws_route_table.private : "private-${idx}" => rt.id }
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-${var.environment}-fck-nat"
+  })
+}
+
+resource "aws_vpc_endpoint" "s3" {
+  count             = var.enable_s3_endpoint ? 1 : 0
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${data.aws_region.current.name}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = aws_route_table.private[*].id
+
+  tags = merge(local.common_tags, {
+    Name = "${var.project_name}-${var.environment}-s3-endpoint"
   })
 }
 

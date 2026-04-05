@@ -2,6 +2,8 @@ project_name                     = "fridgefriend"
 environment                      = "production"
 aws_region                       = "us-east-1"
 vpc_cidr                         = "10.0.0.0/16"
+use_fck_nat                      = true
+enable_s3_endpoint               = true
 db_instance_class                = "db.t3.micro"
 rds_backup_retention_period      = 0
 rds_deletion_protection          = false
@@ -13,7 +15,10 @@ backend_container_image          = "490346182218.dkr.ecr.us-east-1.amazonaws.com
 dashboard_container_image        = "490346182218.dkr.ecr.us-east-1.amazonaws.com/fridgefriend-dashboard:latest"
 backend_cpu                      = 512
 backend_memory                   = 1024
-worker_cpu                       = 256
-worker_memory                    = 512
-dashboard_cpu                    = 256
-dashboard_memory                 = 512
+# Existing backend service uses ignore_changes for desired_count; run:
+# aws ecs update-service --cluster fridgefriend-production-cluster --service fridgefriend-production-backend --desired-count 1
+backend_desired_count = 1
+worker_cpu            = 256
+worker_memory         = 512
+dashboard_cpu         = 256
+dashboard_memory      = 512

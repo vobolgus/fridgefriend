@@ -74,6 +74,13 @@ resource "aws_ecs_cluster" "this" {
   })
 }
 
+resource "aws_ecs_cluster_capacity_providers" "this" {
+  count = var.create_cluster ? 1 : 0
+
+  cluster_name       = aws_ecs_cluster.this[0].name
+  capacity_providers = ["FARGATE", "FARGATE_SPOT"]
+}
+
 resource "aws_cloudwatch_log_group" "service" {
   count = var.create_log_group ? 1 : 0
 
@@ -144,7 +151,7 @@ resource "aws_ecs_service" "this" {
   cluster                = local.cluster_id
   task_definition        = aws_ecs_task_definition.this.arn
   desired_count          = var.desired_count
-  launch_type            = "FARGATE"
+  launch_type            = length(var.capacity_provider_strategy) > 0 ? null : "FARGATE"
   platform_version       = "LATEST"
   enable_execute_command = var.enable_execute_command
 
@@ -165,6 +172,16 @@ resource "aws_ecs_service" "this" {
       target_group_arn = load_balancer.value
       container_name   = var.service_name
       container_port   = var.container_port
+    }
+  }
+
+  dynamic "capacity_provider_strategy" {
+    for_each = var.capacity_provider_strategy
+
+    content {
+      capacity_provider = capacity_provider_strategy.value.capacity_provider
+      weight            = capacity_provider_strategy.value.weight
+      base              = capacity_provider_strategy.value.base
     }
   }
 

@@ -58,6 +58,16 @@ variable "desired_count" {
   default     = 1
 }
 
+variable "capacity_provider_strategy" {
+  description = "Capacity provider strategy for the ECS service. When set, launch_type is not used."
+  type = list(object({
+    capacity_provider = string
+    weight            = number
+    base              = optional(number, 0)
+  }))
+  default = []
+}
+
 variable "subnet_ids" {
   description = "Subnet IDs for ECS service ENIs."
   type        = list(string)

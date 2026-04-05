@@ -24,6 +24,18 @@ variable "availability_zones" {
   default     = []
 }
 
+variable "use_fck_nat" {
+  description = "Use fck-nat instead of managed NAT Gateway."
+  type        = bool
+  default     = false
+}
+
+variable "enable_s3_endpoint" {
+  description = "Enable S3 Gateway VPC endpoint."
+  type        = bool
+  default     = true
+}
+
 variable "db_instance_class" {
   description = "RDS instance class for PostgreSQL."
   type        = string
@@ -102,12 +114,12 @@ variable "backend_memory" {
 }
 
 variable "worker_cpu" {
-  description = "Worker and beat ECS task CPU units."
+  description = "Worker ECS task CPU units."
   type        = number
 }
 
 variable "worker_memory" {
-  description = "Worker and beat ECS task memory in MiB."
+  description = "Worker ECS task memory in MiB."
   type        = number
 }
 
@@ -129,12 +141,6 @@ variable "backend_desired_count" {
 
 variable "worker_desired_count" {
   description = "Desired count for the worker ECS service."
-  type        = number
-  default     = 1
-}
-
-variable "beat_desired_count" {
-  description = "Desired count for the beat ECS service."
   type        = number
   default     = 1
 }
@@ -169,12 +175,6 @@ variable "worker_environment_variables" {
   default     = {}
 }
 
-variable "beat_environment_variables" {
-  description = "Additional plaintext environment variables for the beat service."
-  type        = map(string)
-  default     = {}
-}
-
 variable "dashboard_environment_variables" {
   description = "Additional plaintext environment variables for the dashboard service."
   type        = map(string)
@@ -189,12 +189,6 @@ variable "backend_secret_arns" {
 
 variable "worker_secret_arns" {
   description = "Container secret ARNs for the worker service."
-  type        = map(string)
-  default     = {}
-}
-
-variable "beat_secret_arns" {
-  description = "Container secret ARNs for the beat service."
   type        = map(string)
   default     = {}
 }

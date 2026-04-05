@@ -67,6 +67,8 @@ module "vpc" {
   environment        = var.environment
   vpc_cidr           = var.vpc_cidr
   availability_zones = local.azs
+  use_fck_nat        = var.use_fck_nat
+  enable_s3_endpoint = var.enable_s3_endpoint
   tags               = local.common_tags
 }
 
@@ -173,40 +175,22 @@ module "elasticache" {
 module "ecs_worker" {
   source = "../../modules/ecs"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  service_name          = "worker"
-  cluster_name          = module.ecs_backend.cluster_name
-  image                 = var.backend_container_image
-  cpu                   = var.worker_cpu
-  memory                = var.worker_memory
-  desired_count         = var.worker_desired_count
+  project_name  = var.project_name
+  environment   = var.environment
+  service_name  = "worker"
+  cluster_name  = module.ecs_backend.cluster_name
+  image         = var.backend_container_image
+  cpu           = var.worker_cpu
+  memory        = var.worker_memory
+  desired_count = var.worker_desired_count
+  capacity_provider_strategy = [
+    { capacity_provider = "FARGATE_SPOT", weight = 1, base = 1 }
+  ]
   vpc_id                = module.vpc.vpc_id
   subnet_ids            = module.vpc.private_subnet_ids
   environment_variables = merge(local.backend_base_environment, { SERVICE_NAME = "worker" }, var.worker_environment_variables)
   secret_arns           = merge(local.backend_secret_arns, var.worker_secret_arns)
-  command               = ["celery", "-A", "app.worker", "worker", "--loglevel=INFO"]
-  s3_resource_arns      = local.shared_s3_resource_arns
-  sqs_resource_arns     = local.shared_sqs_resource_arns
-  tags                  = local.common_tags
-}
-
-module "ecs_beat" {
-  source = "../../modules/ecs"
-
-  project_name          = var.project_name
-  environment           = var.environment
-  service_name          = "beat"
-  cluster_name          = module.ecs_backend.cluster_name
-  image                 = var.backend_container_image
-  cpu                   = var.worker_cpu
-  memory                = var.worker_memory
-  desired_count         = var.beat_desired_count
-  vpc_id                = module.vpc.vpc_id
-  subnet_ids            = module.vpc.private_subnet_ids
-  environment_variables = merge(local.backend_base_environment, { SERVICE_NAME = "beat" }, var.beat_environment_variables)
-  secret_arns           = merge(local.backend_secret_arns, var.beat_secret_arns)
-  command               = ["celery", "-A", "app.worker", "beat", "--loglevel=INFO"]
+  command               = ["celery", "-A", "app.worker", "worker", "-B", "--loglevel=INFO"]
   s3_resource_arns      = local.shared_s3_resource_arns
   sqs_resource_arns     = local.shared_sqs_resource_arns
   tags                  = local.common_tags
@@ -241,12 +225,11 @@ module "cloudwatch" {
 
   project_name      = var.project_name
   environment       = var.environment
-  service_names     = ["backend", "worker", "beat", "dashboard"]
+  service_names     = ["backend", "worker", "dashboard"]
   create_log_groups = false
   log_group_names = {
     backend   = module.ecs_backend.log_group_name
     worker    = module.ecs_worker.log_group_name
-    beat      = module.ecs_beat.log_group_name
     dashboard = module.ecs_dashboard.log_group_name
   }
   alert_email_endpoints = var.alert_email_endpoints
@@ -259,7 +242,6 @@ module "cloudwatch" {
   ecs_service_names = [
     "${local.name_prefix}-backend",
     "${local.name_prefix}-worker",
-    "${local.name_prefix}-beat",
     "${local.name_prefix}-dashboard"
   ]
   tags = local.common_tags

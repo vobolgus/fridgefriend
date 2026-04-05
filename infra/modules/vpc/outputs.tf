@@ -17,3 +17,8 @@ output "vpc_cidr_block" {
   description = "CIDR block of the VPC"
   value       = aws_vpc.main.cidr_block
 }
+
+output "s3_endpoint_id" {
+  description = "ID of the S3 Gateway VPC endpoint."
+  value       = try(aws_vpc_endpoint.s3[0].id, null)
+}

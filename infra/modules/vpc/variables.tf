@@ -26,6 +26,24 @@ variable "enable_multi_az_nat" {
   default     = false
 }
 
+variable "use_fck_nat" {
+  description = "Replace managed NAT Gateway with fck-nat instance for cost savings (~$32/mo → ~$3/mo)."
+  type        = bool
+  default     = false
+}
+
+variable "fck_nat_instance_type" {
+  description = "Instance type for fck-nat NAT instance."
+  type        = string
+  default     = "t4g.nano"
+}
+
+variable "enable_s3_endpoint" {
+  description = "Create an S3 Gateway VPC endpoint to avoid NAT charges for S3 traffic."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Additional tags for all resources"
   type        = map(string)
