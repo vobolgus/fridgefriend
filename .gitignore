@@ -48,5 +48,8 @@ override.tf.json
 *_override.tf.json
 .terraform.lock.hcl
 
+# Firebase service account keys
+*-firebase-adminsdk-*.json
+
 # Misc
 *.log

@@ -18,7 +18,8 @@ locals {
     APP_ENV              = var.environment
     AWS_REGION           = var.aws_region
     DEBUG                = "false"
-    AUTH_MOCK            = "true"
+    AUTH_MOCK            = "false"
+    FIREBASE_PROJECT_ID  = "fridge-friend-c5a88"
     BARCODE_API_SOURCE   = "openfoodfacts"
     RECIPE_SOURCE        = "mock"
     STORAGE_BACKEND      = "s3"
