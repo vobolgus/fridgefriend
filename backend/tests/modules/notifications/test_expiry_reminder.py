@@ -78,7 +78,7 @@ async def test_reminder_task_finds_items_expiring_within_threshold(db_session: A
     sent_count = await send_expiry_reminders(
         session=db_session,
         push_service=push_service,
-        now=datetime(2026, 4, 4, 9, 0, tzinfo=UTC),
+        now=datetime.now(UTC).replace(hour=9, minute=0, second=0, microsecond=0),
     )
 
     assert sent_count == 1
@@ -98,7 +98,7 @@ async def test_reminder_respects_quiet_hours(db_session: AsyncSession) -> None:
     sent_count = await send_expiry_reminders(
         session=db_session,
         push_service=push_service,
-        now=datetime(2026, 4, 4, 23, 0, tzinfo=UTC),
+        now=datetime.now(UTC).replace(hour=23, minute=0, second=0, microsecond=0),
     )
 
     assert sent_count == 0
@@ -117,7 +117,7 @@ async def test_reminder_skips_users_with_disabled_notifications(db_session: Asyn
     sent_count = await send_expiry_reminders(
         session=db_session,
         push_service=push_service,
-        now=datetime(2026, 4, 4, 9, 0, tzinfo=UTC),
+        now=datetime.now(UTC).replace(hour=9, minute=0, second=0, microsecond=0),
     )
 
     assert sent_count == 0

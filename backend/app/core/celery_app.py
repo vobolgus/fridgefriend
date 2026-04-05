@@ -19,8 +19,8 @@ def create_celery_app() -> object | None:
         return None
 
     app = Celery("fridgefriend", broker=settings.REDIS_URL)
-    app.conf.task_always_eager = True
-    app.conf.task_eager_propagates = True
+    app.conf.task_always_eager = settings.DATABASE_URL.startswith("sqlite")
+    app.conf.task_eager_propagates = settings.DATABASE_URL.startswith("sqlite")
     app.conf.beat_schedule = {
         "expiry-reminders-daily": {
             "task": EXPIRY_REMINDER_TASK_NAME,

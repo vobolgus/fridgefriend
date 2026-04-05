@@ -358,7 +358,7 @@ async def test_notification_preferences_and_reminder_task(
     sent = await send_expiry_reminders(
         session=db_session,
         push_service=push,
-        now=datetime(2026, 4, 4, 9, 0, tzinfo=UTC),
+        now=datetime.now(UTC).replace(hour=9, minute=0, second=0, microsecond=0),
     )
     assert sent >= 1
     assert push.calls
