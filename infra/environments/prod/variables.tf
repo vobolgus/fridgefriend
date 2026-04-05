@@ -47,6 +47,30 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "rds_backup_retention_period" {
+  description = "Days to retain RDS automated backups. Set to 0 for free-tier."
+  type        = number
+  default     = 7
+}
+
+variable "rds_deletion_protection" {
+  description = "Enable RDS deletion protection."
+  type        = bool
+  default     = true
+}
+
+variable "rds_skip_final_snapshot" {
+  description = "Skip final snapshot on RDS deletion."
+  type        = bool
+  default     = false
+}
+
+variable "rds_performance_insights_enabled" {
+  description = "Enable RDS Performance Insights."
+  type        = bool
+  default     = true
+}
+
 variable "redis_node_type" {
   description = "ElastiCache Redis node type."
   type        = string

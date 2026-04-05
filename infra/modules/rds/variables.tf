@@ -65,6 +65,30 @@ variable "multi_az" {
   default     = false
 }
 
+variable "backup_retention_period" {
+  description = "Days to retain automated backups. Set to 0 for free-tier accounts."
+  type        = number
+  default     = 7
+}
+
+variable "deletion_protection" {
+  description = "Enable deletion protection on the RDS instance."
+  type        = bool
+  default     = true
+}
+
+variable "skip_final_snapshot" {
+  description = "Skip final snapshot on deletion. Set true for dev/free-tier."
+  type        = bool
+  default     = false
+}
+
+variable "performance_insights_enabled" {
+  description = "Enable Performance Insights. Not available on all free-tier instances."
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Additional tags"
   type        = map(string)

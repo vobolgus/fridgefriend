@@ -136,7 +136,13 @@ module "rds" {
   db_username           = var.db_username
   db_password           = var.db_password
   instance_class        = var.db_instance_class
-  tags                  = local.common_tags
+
+  backup_retention_period      = var.rds_backup_retention_period
+  deletion_protection          = var.rds_deletion_protection
+  skip_final_snapshot          = var.rds_skip_final_snapshot
+  performance_insights_enabled = var.rds_performance_insights_enabled
+
+  tags = local.common_tags
 }
 
 module "elasticache" {
