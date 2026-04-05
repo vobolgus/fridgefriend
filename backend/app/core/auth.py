@@ -84,10 +84,21 @@ async def _firebase_auth(authorization: str | None, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalars().first()
     if user is None:
-        user = User(email=email)
-        db.add(user)
-        await db.commit()
-        await db.refresh(user)
+        try:
+            user = User(email=email)
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+        except Exception:
+            # Race condition: another request created the user concurrently.
+            await db.rollback()
+            result = await db.execute(select(User).where(User.email == email))
+            user = result.scalars().first()
+            if user is None:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to create or find user",
+                )
     await _ensure_default_household(user, db)
     return user
 

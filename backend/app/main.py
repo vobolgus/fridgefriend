@@ -75,10 +75,44 @@ if settings.SENTRY_DSN and sentry_sdk is not None and FastApiIntegration is not 
         )
 
 
+async def _seed_fixture_recipes() -> None:
+    from uuid import UUID
+
+    from sqlalchemy import func, select
+    from sqlalchemy.ext.asyncio import AsyncSession
+
+    from .models.recipe import Recipe
+    from .modules.recommendations.fixture_recipes import FIXTURE_RECIPES
+
+    async with AsyncSession(engine) as session:
+        count = (await session.execute(select(func.count()).select_from(Recipe))).scalar() or 0
+        if count > 0:
+            return
+
+        for data in FIXTURE_RECIPES:
+            recipe = Recipe(
+                id=UUID(str(data["id"])),
+                title=str(data["title"]),
+                prep_minutes=int(data.get("prep_minutes", 0)),
+                image_url=str(data.get("image_url", "")) or None,
+                source_url=str(data.get("source_url", "")) or None,
+                summary=str(data.get("summary", "")) or None,
+                instructions=data.get("instructions"),
+                cuisines=data.get("cuisines"),
+                servings=int(data.get("servings", 2)),
+                nutrition=data.get("nutrition"),
+                dietary_tags=data.get("dietary_tags", []),
+                ingredients=data.get("ingredients", []),
+            )
+            session.add(recipe)
+        await session.commit()
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await _seed_fixture_recipes()
     yield
 
 
