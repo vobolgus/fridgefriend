@@ -24,24 +24,6 @@ variable "availability_zones" {
   default     = []
 }
 
-variable "public_subnet_cidrs" {
-  description = "CIDR blocks for public subnets."
-  type        = list(string)
-  default     = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
-}
-
-variable "private_subnet_cidrs" {
-  description = "CIDR blocks for private application subnets."
-  type        = list(string)
-  default     = ["10.0.10.0/24", "10.0.11.0/24", "10.0.12.0/24"]
-}
-
-variable "database_subnet_cidrs" {
-  description = "CIDR blocks for private database subnets."
-  type        = list(string)
-  default     = ["10.0.20.0/24", "10.0.21.0/24", "10.0.22.0/24"]
-}
-
 variable "db_instance_class" {
   description = "RDS instance class for PostgreSQL."
   type        = string
@@ -57,6 +39,12 @@ variable "db_username" {
   description = "Master username for PostgreSQL."
   type        = string
   default     = "fridgefriend"
+}
+
+variable "db_password" {
+  description = "Master password for PostgreSQL. Pass via TF_VAR_db_password or -var flag. Never commit."
+  type        = string
+  sensitive   = true
 }
 
 variable "redis_node_type" {

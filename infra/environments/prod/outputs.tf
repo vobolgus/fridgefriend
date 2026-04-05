@@ -5,22 +5,22 @@ output "alb_dns_name" {
 
 output "rds_endpoint" {
   description = "Production PostgreSQL endpoint."
-  value       = try(module.rds.endpoint, try(module.rds.address, null))
+  value       = module.rds.endpoint
 }
 
 output "redis_endpoint" {
   description = "Production Redis endpoint."
-  value       = try(module.elasticache.primary_endpoint_address, try(module.elasticache.endpoint, null))
+  value       = module.elasticache.primary_endpoint
 }
 
 output "s3_bucket" {
   description = "Primary S3 bucket name for assets or uploads."
-  value       = try(module.s3_cdn.bucket_name, try(module.s3_cdn.s3_bucket_name, null))
+  value       = module.s3_cdn.bucket_name
 }
 
 output "cloudfront_domain" {
   description = "CloudFront distribution domain name."
-  value       = try(module.s3_cdn.cloudfront_domain_name, try(module.s3_cdn.domain_name, null))
+  value       = module.s3_cdn.cloudfront_domain
 }
 
 output "backend_ecr_url" {

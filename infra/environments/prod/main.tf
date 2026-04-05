@@ -15,22 +15,22 @@ locals {
   default_s3_bucket_arn = try(module.s3_cdn.bucket_arn, null)
 
   backend_base_environment = {
-    APP_ENV         = var.environment
-    AWS_REGION      = var.aws_region
-    DATABASE_HOST   = try(module.rds.endpoint, try(module.rds.address, ""))
-    DATABASE_NAME   = var.db_name
-    DATABASE_USER   = var.db_username
-    REDIS_HOST      = try(module.elasticache.primary_endpoint_address, try(module.elasticache.endpoint, ""))
-    S3_BUCKET       = try(module.s3_cdn.bucket_name, try(module.s3_cdn.s3_bucket_name, ""))
-    SQS_QUEUE_URL   = try(module.sqs.inventory_events_queue_url, try(module.sqs.queue_url, ""))
-    CDN_DOMAIN      = try(module.s3_cdn.cloudfront_domain_name, try(module.s3_cdn.domain_name, ""))
+    APP_ENV       = var.environment
+    AWS_REGION    = var.aws_region
+    DATABASE_HOST = module.rds.endpoint
+    DATABASE_NAME = var.db_name
+    DATABASE_USER = var.db_username
+    REDIS_HOST    = module.elasticache.primary_endpoint
+    S3_BUCKET     = module.s3_cdn.bucket_name
+    SQS_QUEUE_URL = module.sqs.queue_url
+    CDN_DOMAIN    = module.s3_cdn.cloudfront_domain
   }
 
   dashboard_base_environment = {
     APP_ENV        = var.environment
     AWS_REGION     = var.aws_region
     API_BASE_URL   = "https://${module.alb.dns_name}"
-    CDN_DOMAIN     = try(module.s3_cdn.cloudfront_domain_name, try(module.s3_cdn.domain_name, ""))
+    CDN_DOMAIN     = module.s3_cdn.cloudfront_domain
     DASHBOARD_PORT = "8501"
   }
 
@@ -41,24 +41,20 @@ locals {
     ]
   )
 
-  shared_sqs_resource_arns = length(var.task_role_sqs_arns) > 0 ? var.task_role_sqs_arns : compact([
-    try(module.sqs.queue_arn, null),
-    try(module.sqs.inventory_events_queue_arn, null),
-    try(module.sqs.dead_letter_queue_arn, null)
-  ])
+  shared_sqs_resource_arns = length(var.task_role_sqs_arns) > 0 ? var.task_role_sqs_arns : [
+    module.sqs.queue_arn,
+    module.sqs.dlq_arn
+  ]
 }
 
 module "vpc" {
   source = "../../modules/vpc"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  vpc_cidr              = var.vpc_cidr
-  availability_zones    = local.azs
-  public_subnet_cidrs   = var.public_subnet_cidrs
-  private_subnet_cidrs  = var.private_subnet_cidrs
-  database_subnet_cidrs = var.database_subnet_cidrs
-  tags                  = local.common_tags
+  project_name       = var.project_name
+  environment        = var.environment
+  vpc_cidr           = var.vpc_cidr
+  availability_zones = local.azs
+  tags               = local.common_tags
 }
 
 module "secrets" {
@@ -106,52 +102,53 @@ module "alb" {
 module "ecs_backend" {
   source = "../../modules/ecs"
 
-  project_name                = var.project_name
-  environment                 = var.environment
-  service_name                = "backend"
-  cluster_name                = "${local.name_prefix}-cluster"
-  create_cluster              = true
-  image                       = var.backend_container_image
-  cpu                         = var.backend_cpu
-  memory                      = var.backend_memory
-  container_port              = 8000
-  desired_count               = var.backend_desired_count
-  vpc_id                      = module.vpc.vpc_id
-  subnet_ids                  = module.vpc.private_subnet_ids
-  ingress_security_group_ids  = [module.alb.security_group_id]
-  target_group_arn            = module.alb.backend_target_group_arn
-  environment_variables       = merge(local.backend_base_environment, { SERVICE_NAME = "backend", SERVICE_PORT = "8000" }, var.backend_environment_variables)
-  secret_arns                 = var.backend_secret_arns
-  s3_resource_arns            = local.shared_s3_resource_arns
-  sqs_resource_arns           = local.shared_sqs_resource_arns
-  healthcheck_command         = ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
-  tags                        = local.common_tags
+  project_name               = var.project_name
+  environment                = var.environment
+  service_name               = "backend"
+  cluster_name               = "${local.name_prefix}-cluster"
+  create_cluster             = true
+  image                      = var.backend_container_image
+  cpu                        = var.backend_cpu
+  memory                     = var.backend_memory
+  container_port             = 8000
+  desired_count              = var.backend_desired_count
+  vpc_id                     = module.vpc.vpc_id
+  subnet_ids                 = module.vpc.private_subnet_ids
+  ingress_security_group_ids = [module.alb.security_group_id]
+  target_group_arn           = module.alb.backend_target_group_arn
+  environment_variables      = merge(local.backend_base_environment, { SERVICE_NAME = "backend", SERVICE_PORT = "8000" }, var.backend_environment_variables)
+  secret_arns                = var.backend_secret_arns
+  s3_resource_arns           = local.shared_s3_resource_arns
+  sqs_resource_arns          = local.shared_sqs_resource_arns
+  healthcheck_command        = ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+  tags                       = local.common_tags
 }
 
 module "rds" {
   source = "../../modules/rds"
 
-  project_name               = var.project_name
-  environment                = var.environment
-  vpc_id                     = module.vpc.vpc_id
-  subnet_ids                 = try(module.vpc.database_subnet_ids, module.vpc.private_subnet_ids)
-  allowed_security_group_ids = [module.ecs_backend.security_group_id]
-  db_name                    = var.db_name
-  db_username                = var.db_username
-  instance_class             = var.db_instance_class
-  tags                       = local.common_tags
+  project_name          = var.project_name
+  environment           = var.environment
+  vpc_id                = module.vpc.vpc_id
+  private_subnet_ids    = module.vpc.private_subnet_ids
+  app_security_group_id = module.ecs_backend.security_group_id
+  db_name               = var.db_name
+  db_username           = var.db_username
+  db_password           = var.db_password
+  instance_class        = var.db_instance_class
+  tags                  = local.common_tags
 }
 
 module "elasticache" {
   source = "../../modules/elasticache"
 
-  project_name               = var.project_name
-  environment                = var.environment
-  vpc_id                     = module.vpc.vpc_id
-  subnet_ids                 = module.vpc.private_subnet_ids
-  allowed_security_group_ids = [module.ecs_backend.security_group_id]
-  node_type                  = var.redis_node_type
-  tags                       = local.common_tags
+  project_name          = var.project_name
+  environment           = var.environment
+  vpc_id                = module.vpc.vpc_id
+  private_subnet_ids    = module.vpc.private_subnet_ids
+  app_security_group_id = module.ecs_backend.security_group_id
+  node_type             = var.redis_node_type
+  tags                  = local.common_tags
 }
 
 module "ecs_worker" {
@@ -199,42 +196,42 @@ module "ecs_beat" {
 module "ecs_dashboard" {
   source = "../../modules/ecs"
 
-  project_name                = var.project_name
-  environment                 = var.environment
-  service_name                = "dashboard"
-  cluster_name                = module.ecs_backend.cluster_name
-  image                       = var.dashboard_container_image
-  cpu                         = var.dashboard_cpu
-  memory                      = var.dashboard_memory
-  container_port              = 8501
-  desired_count               = var.dashboard_desired_count
-  vpc_id                      = module.vpc.vpc_id
-  subnet_ids                  = module.vpc.private_subnet_ids
-  ingress_security_group_ids  = [module.alb.security_group_id]
-  target_group_arn            = module.alb.dashboard_target_group_arn
-  environment_variables       = merge(local.dashboard_base_environment, var.dashboard_environment_variables)
-  secret_arns                 = var.dashboard_secret_arns
-  healthcheck_command         = ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
-  s3_resource_arns            = local.shared_s3_resource_arns
-  sqs_resource_arns           = local.shared_sqs_resource_arns
-  tags                        = local.common_tags
+  project_name               = var.project_name
+  environment                = var.environment
+  service_name               = "dashboard"
+  cluster_name               = module.ecs_backend.cluster_name
+  image                      = var.dashboard_container_image
+  cpu                        = var.dashboard_cpu
+  memory                     = var.dashboard_memory
+  container_port             = 8501
+  desired_count              = var.dashboard_desired_count
+  vpc_id                     = module.vpc.vpc_id
+  subnet_ids                 = module.vpc.private_subnet_ids
+  ingress_security_group_ids = [module.alb.security_group_id]
+  target_group_arn           = module.alb.dashboard_target_group_arn
+  environment_variables      = merge(local.dashboard_base_environment, var.dashboard_environment_variables)
+  secret_arns                = var.dashboard_secret_arns
+  healthcheck_command        = ["CMD-SHELL", "curl -f http://localhost:8501/_stcore/health || exit 1"]
+  s3_resource_arns           = local.shared_s3_resource_arns
+  sqs_resource_arns          = local.shared_sqs_resource_arns
+  tags                       = local.common_tags
 }
 
 module "cloudwatch" {
   source = "../../modules/cloudwatch"
 
-  project_name                  = var.project_name
-  environment                   = var.environment
-  service_names                 = ["backend", "worker", "beat", "dashboard"]
-  create_log_groups             = false
-  log_group_names               = {
+  project_name      = var.project_name
+  environment       = var.environment
+  service_names     = ["backend", "worker", "beat", "dashboard"]
+  create_log_groups = false
+  log_group_names = {
     backend   = module.ecs_backend.log_group_name
     worker    = module.ecs_worker.log_group_name
     beat      = module.ecs_beat.log_group_name
     dashboard = module.ecs_dashboard.log_group_name
   }
-  alert_email_endpoints         = var.alert_email_endpoints
-  alb_arn_suffix                = module.alb.alb_arn_suffix
+  alert_email_endpoints = var.alert_email_endpoints
+  alb_arn_suffix        = module.alb.alb_arn_suffix
   alb_target_group_arn_suffixes = {
     backend   = module.alb.backend_target_group_arn_suffix
     dashboard = module.alb.dashboard_target_group_arn_suffix

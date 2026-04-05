@@ -39,11 +39,11 @@ resource "aws_elasticache_replication_group" "main" {
   replication_group_id = "${var.project_name}-${var.environment}-redis"
   description          = "Redis for ${var.project_name} ${var.environment}"
 
-  engine               = "redis"
-  engine_version       = "7.1"
-  node_type            = var.node_type
-  port                 = 6379
-  num_cache_clusters   = 1
+  engine             = "redis"
+  engine_version     = "7.1"
+  node_type          = var.node_type
+  port               = 6379
+  num_cache_clusters = 1
 
   automatic_failover_enabled = false
   multi_az_enabled           = false

@@ -1,6 +1,6 @@
 locals {
   repositories = {
-    backend = var.backend_repository_name
+    backend   = var.backend_repository_name
     dashboard = var.dashboard_repository_name
   }
 }
