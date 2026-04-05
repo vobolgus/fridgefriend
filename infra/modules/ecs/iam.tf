@@ -101,8 +101,6 @@ resource "aws_iam_role" "task" {
 }
 
 resource "aws_iam_role_policy" "task_access" {
-  count = length(var.s3_resource_arns) + length(var.sqs_resource_arns) > 0 ? 1 : 0
-
   name   = "${var.project_name}-${var.environment}-${var.service_name}-task-access"
   role   = aws_iam_role.task.id
   policy = data.aws_iam_policy_document.task_access.json

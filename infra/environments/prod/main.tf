@@ -236,12 +236,12 @@ module "cloudwatch" {
     backend   = module.alb.backend_target_group_arn_suffix
     dashboard = module.alb.dashboard_target_group_arn_suffix
   }
-  ecs_cluster_name = module.ecs_backend.cluster_name
+  ecs_cluster_name = "${local.name_prefix}-cluster"
   ecs_service_names = [
-    module.ecs_backend.service_name,
-    module.ecs_worker.service_name,
-    module.ecs_beat.service_name,
-    module.ecs_dashboard.service_name
+    "${local.name_prefix}-backend",
+    "${local.name_prefix}-worker",
+    "${local.name_prefix}-beat",
+    "${local.name_prefix}-dashboard"
   ]
   tags = local.common_tags
 }

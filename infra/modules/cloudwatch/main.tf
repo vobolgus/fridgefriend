@@ -4,8 +4,8 @@ locals {
     service => lookup(var.log_group_names, service, "/ecs/${var.project_name}/${var.environment}/${service}")
   }
 
-  alb_target_groups_for_alarms = var.alb_arn_suffix == "" ? {} : var.alb_target_group_arn_suffixes
-  ecs_services_for_alarms      = var.ecs_cluster_name == "" ? toset([]) : toset(var.ecs_service_names)
+  alb_target_groups_for_alarms = var.enable_alb_alarms ? var.alb_target_group_arn_suffixes : {}
+  ecs_services_for_alarms      = var.enable_ecs_alarms ? toset(var.ecs_service_names) : toset([])
 }
 
 resource "aws_cloudwatch_log_group" "ecs" {

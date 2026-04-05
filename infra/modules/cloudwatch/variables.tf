@@ -38,6 +38,12 @@ variable "alert_email_endpoints" {
   default     = []
 }
 
+variable "enable_alb_alarms" {
+  description = "Whether to create ALB latency and error rate alarms."
+  type        = bool
+  default     = true
+}
+
 variable "alb_arn_suffix" {
   description = "ALB ARN suffix used in Application Load Balancer metrics."
   type        = string
@@ -50,6 +56,12 @@ variable "alb_target_group_arn_suffixes" {
   default     = {}
 }
 
+variable "enable_ecs_alarms" {
+  description = "Whether to create ECS CPU alarms."
+  type        = bool
+  default     = true
+}
+
 variable "ecs_cluster_name" {
   description = "ECS cluster name used in ECS service alarms."
   type        = string
@@ -57,7 +69,7 @@ variable "ecs_cluster_name" {
 }
 
 variable "ecs_service_names" {
-  description = "ECS service names used for CPU alarms."
+  description = "ECS service names used for CPU alarms. Must be known at plan time (use static names, not module outputs)."
   type        = list(string)
   default     = []
 }

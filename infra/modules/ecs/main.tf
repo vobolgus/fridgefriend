@@ -103,10 +103,10 @@ resource "aws_vpc_security_group_egress_rule" "all" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "from_security_groups" {
-  for_each = var.container_port == null ? toset([]) : toset(var.ingress_security_group_ids)
+  count = var.container_port == null ? 0 : length(var.ingress_security_group_ids)
 
   security_group_id            = aws_security_group.service.id
-  referenced_security_group_id = each.value
+  referenced_security_group_id = var.ingress_security_group_ids[count.index]
   from_port                    = var.container_port
   to_port                      = var.container_port
   ip_protocol                  = "tcp"
