@@ -263,7 +263,7 @@ def sample_recommendation_sessions(db_conn, sample_household):
                 "hh": sample_household,
                 "params": "{}",
                 "recipes": str(recipes).replace("'", '"'),
-                "ts": datetime.now(UTC) - timedelta(days=i),
+                "ts": datetime.now(UTC) - timedelta(hours=i),
             },
         )
         sessions.append(session_id)

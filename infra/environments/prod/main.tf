@@ -15,32 +15,32 @@ locals {
   default_s3_bucket_arn = try(module.s3_cdn.bucket_arn, null)
 
   backend_base_environment = {
-    APP_ENV              = var.environment
-    AWS_REGION           = var.aws_region
-    DEBUG                = "false"
-    AUTH_MOCK            = "false"
-    FIREBASE_PROJECT_ID  = "fridge-friend-c5a88"
-    BARCODE_API_SOURCE   = "openfoodfacts"
-    RECIPE_SOURCE        = "mock"
-    STORAGE_BACKEND      = "s3"
-    S3_BUCKET            = module.s3_cdn.bucket_name
-    S3_ENDPOINT_URL      = ""
-    SQS_QUEUE_URL        = module.sqs.queue_url
-    CDN_DOMAIN           = module.s3_cdn.cloudfront_domain
-    FCM_ENABLED          = "true"
-    SENTRY_ENVIRONMENT   = var.environment
-    IDEMPOTENCY_BACKEND  = "redis"
+    APP_ENV                   = var.environment
+    AWS_REGION                = var.aws_region
+    DEBUG                     = "false"
+    AUTH_MOCK                 = "false"
+    FIREBASE_PROJECT_ID       = "fridge-friend-c5a88"
+    BARCODE_API_SOURCE        = "openfoodfacts"
+    RECIPE_SOURCE             = "mock"
+    STORAGE_BACKEND           = "s3"
+    S3_BUCKET                 = module.s3_cdn.bucket_name
+    S3_ENDPOINT_URL           = ""
+    SQS_QUEUE_URL             = module.sqs.queue_url
+    CDN_DOMAIN                = module.s3_cdn.cloudfront_domain
+    FCM_ENABLED               = "true"
+    SENTRY_ENVIRONMENT        = var.environment
+    IDEMPOTENCY_BACKEND       = "redis"
     PHOTO_PARSER_BACKEND      = "llm"
     PHOTO_PARSER_ALLOWED_UIDS = "TLizIBIqc4OgADKKHXNJR6zEkVg2"
-    OPENSEARCH_URL       = ""
-    OPENSEARCH_INDEX     = "recipes"
+    OPENSEARCH_URL            = ""
+    OPENSEARCH_INDEX          = "recipes"
   }
 
   backend_secret_arns = {
-    DATABASE_URL               = module.secrets.secret_arns["database-url"]
-    REDIS_URL                  = module.secrets.secret_arns["redis-url"]
-    LLM_API_KEY                = module.secrets.secret_arns["llm-api-key"]
-    FIREBASE_CREDENTIALS_JSON  = module.secrets.secret_arns["firebase-credentials"]
+    DATABASE_URL              = module.secrets.secret_arns["database-url"]
+    REDIS_URL                 = module.secrets.secret_arns["redis-url"]
+    LLM_API_KEY               = module.secrets.secret_arns["llm-api-key"]
+    FIREBASE_CREDENTIALS_JSON = module.secrets.secret_arns["firebase-credentials"]
   }
 
   dashboard_base_environment = {
