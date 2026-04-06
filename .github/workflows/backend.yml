@@ -53,5 +53,5 @@ jobs:
           PYTHONPATH=dashboard python -m pytest dashboard/tests/ -v --tb=short
 
       - name: Build backend image
-        working-directory: .
-        run: docker build -f backend/Dockerfile -t fridgefriend-backend:test .
+        working-directory: backend
+        run: docker build -t fridgefriend-backend:test .
