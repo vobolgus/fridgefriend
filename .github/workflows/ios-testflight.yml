@@ -1,0 +1,71 @@
+name: iOS TestFlight Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/ios-testflight.yml'
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.41.6'
+
+jobs:
+  build-and-deploy:
+    name: Build and upload to TestFlight
+    runs-on: macos-latest
+    timeout-minutes: 45
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: mobile/ios
+
+      - name: Set up SSH for Match certs repo
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.MATCH_DEPLOY_KEY }}
+
+      - name: Flutter dependencies
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Generate code
+        working-directory: mobile
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Run Flutter tests
+        working-directory: mobile
+        run: flutter test --reporter expanded
+
+      - name: Build and upload to TestFlight
+        working-directory: mobile/ios
+        env:
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+        run: bundle exec fastlane beta
+
+      - name: Upload dSYMs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dsyms
+          path: mobile/build/ios/archive/Runner.xcarchive/dSYMs/
+          retention-days: 90
+          if-no-files-found: warn

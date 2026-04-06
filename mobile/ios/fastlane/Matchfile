@@ -1,0 +1,9 @@
+git_url("git@github.com:vobolgus/fridgefriend-certs.git")
+storage_mode("git")
+
+type("appstore")
+
+app_identifier("com.suglobov.fridgefriend")
+team_id("SMV4M77P8S")
+
+api_key_path(ENV["ASC_KEY_FILEPATH"]) if ENV["ASC_KEY_FILEPATH"]

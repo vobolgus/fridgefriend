@@ -51,5 +51,9 @@ override.tf.json
 # Firebase service account keys
 *-firebase-adminsdk-*.json
 
+# Apple credentials
+AuthKey_*.p8
+asc_api_key.json
+
 # Misc
 *.log

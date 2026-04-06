@@ -1,0 +1,50 @@
+default_platform(:ios)
+
+FLUTTER_ROOT = File.expand_path("../..", __dir__)
+
+platform :ios do
+  desc "Sync signing certificates and provisioning profiles"
+  lane :sync_certs do
+    match(type: "appstore", readonly: is_ci)
+  end
+
+  desc "Build Flutter app and create IPA"
+  lane :build do
+    sync_certs
+
+    # Flutter build
+    Dir.chdir(FLUTTER_ROOT) do
+      sh("flutter", "build", "ipa",
+        "--release",
+        "--export-options-plist=ios/ExportOptions.plist",
+        "--dart-define=API_BASE_URL=https://api.fridgefriend.lat")
+    end
+  end
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    build
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("ASC_KEY_ID"),
+      issuer_id: ENV.fetch("ASC_ISSUER_ID"),
+      key_content: ENV.fetch("ASC_KEY_CONTENT"),
+      is_key_content_base64: true,
+      in_house: false,
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: File.join(FLUTTER_ROOT, "build/ios/ipa/fridgefriend_mobile.ipa"),
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+    )
+  end
+
+  desc "Run Flutter tests"
+  lane :test do
+    Dir.chdir(FLUTTER_ROOT) do
+      sh("flutter", "test", "--reporter", "expanded")
+    end
+  end
+end
