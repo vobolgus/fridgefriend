@@ -26,6 +26,33 @@ Future<void> main() async {
       await Firebase.initializeApp();
       FirebaseMessaging.onBackgroundMessage(
           _firebaseMessagingBackgroundHandler);
+
+      // Show notifications when app is in the foreground (banner + badge + sound).
+      await FirebaseMessaging.instance
+          .setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+
+      // Handle notification taps when app is already running (background → foreground).
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        debugPrint('Notification tapped (bg): ${message.messageId}');
+      });
+
+      // Handle notification taps that launched the app from a terminated state.
+      final initialMessage =
+          await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        debugPrint(
+            'App launched from notification: ${initialMessage.messageId}');
+      }
+
+      // Log foreground messages for debugging (iOS shows the banner via
+      // setForegroundNotificationPresentationOptions above).
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        debugPrint('Foreground message: ${message.messageId}');
+      });
     } catch (e) {
       debugPrint('Firebase initialization failed: $e');
       debugPrint(

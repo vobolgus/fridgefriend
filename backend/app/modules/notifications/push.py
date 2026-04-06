@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import json
 import logging
+import os
 from collections.abc import Callable
 from typing import Protocol, cast
 
@@ -71,15 +73,21 @@ class FCMPushService:
         if firebase_admin is None or credentials is None or messaging is None:
             logger.warning("firebase_admin is unavailable; push notifications disabled")
             return False
-        if not settings.FIREBASE_CREDENTIALS_PATH:
-            logger.warning("Firebase credentials path missing; push notifications disabled")
+        # Support JSON string credentials (ECS/Fargate) or file path (local dev).
+        creds_json = os.environ.get("FIREBASE_CREDENTIALS_JSON", "")
+        creds_path = settings.FIREBASE_CREDENTIALS_PATH
+        if not creds_json and not creds_path:
+            logger.warning("Firebase credentials missing; push notifications disabled")
             return False
 
         try:
             _ = firebase_admin.get_app()
         except ValueError:
             try:
-                credential = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+                if creds_json:
+                    credential = credentials.Certificate(json.loads(creds_json))
+                else:
+                    credential = credentials.Certificate(creds_path)
                 _ = firebase_admin.initialize_app(credential)
             except Exception:
                 logger.exception("Failed to initialize Firebase app")

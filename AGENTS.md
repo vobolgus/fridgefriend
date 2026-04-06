@@ -156,6 +156,33 @@ Sign In → Home Inventory → Add Item → Barcode Scan → Photo Upload → OC
 - **Auth boundary:** Household-level authorization on all data; Firebase JWT on every request
 - **Image privacy:** No training on user photos by default; S3 signed upload URLs
 
+### Version Naming Policy
+
+The app version lives in `mobile/pubspec.yaml` as `version: <MAJOR>.<MINOR>.<PATCH>+<BUILD>`.
+
+**Version string (`MAJOR.MINOR.PATCH`)** — follows [Semantic Versioning](https://semver.org/):
+- **MAJOR** — breaking changes, major redesigns, or backward-incompatible API changes (e.g., `1.0.0` for first public release)
+- **MINOR** — new features, new screens, significant enhancements (e.g., `0.2.0` for adding meal planning)
+- **PATCH** — bug fixes, small UI tweaks, copy changes (e.g., `0.1.1` for a crash fix)
+
+**Build number (`+N`)** — auto-incremented by CI on every TestFlight upload. Never set manually. The Fastlane `beta` lane fetches the latest build number from TestFlight and increments it.
+
+**When to bump the version string:**
+- Before a release with new user-facing features → bump MINOR (e.g., `0.1.0` → `0.2.0`)
+- Before a release with only bug fixes → bump PATCH (e.g., `0.2.0` → `0.2.1`)
+- For the first App Store public release → set to `1.0.0`
+- Multiple CI builds within the same version are fine — the build number distinguishes them
+
+**Current version:** `0.1.0` (pre-release/pilot phase)
+
+**Examples:**
+| pubspec.yaml | TestFlight shows | Meaning |
+|---|---|---|
+| `0.1.0+N` | 0.1.0 (N) | Initial pilot builds |
+| `0.2.0+N` | 0.2.0 (N) | Added meal planning feature |
+| `0.2.1+N` | 0.2.1 (N) | Fixed crash in meal planner |
+| `1.0.0+N` | 1.0.0 (N) | First public App Store release |
+
 ---
 
 ## ANTI-PATTERNS (DO NOT DO)
