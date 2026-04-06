@@ -1,7 +1,7 @@
 from typing import Annotated, cast
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -42,7 +42,7 @@ async def get_catalog_service(
 
 def get_photo_parser() -> PhotoParserInterface:
     if settings.PHOTO_PARSER_BACKEND == "llm":
-        return LLMPhotoParser(settings.LLM_API_URL, settings.LLM_MODEL)
+        return LLMPhotoParser(settings.LLM_API_URL, settings.LLM_MODEL, api_key=settings.LLM_API_KEY)
     return MockPhotoParser()
 
 
@@ -99,6 +99,20 @@ async def scan_barcode(
     return response
 
 
+def _check_photo_scan_allowlist(user: User) -> None:
+    """Block non-allowlisted users from triggering LLM-backed photo parsing."""
+    allowed_csv = settings.PHOTO_PARSER_ALLOWED_UIDS.strip()
+    if not allowed_csv:
+        return  # no allowlist configured → allow everyone (dev mode)
+    if settings.PHOTO_PARSER_BACKEND != "llm":
+        return  # mock parser has no cost → no restriction needed
+
+    firebase_uid: str | None = getattr(user, "_firebase_uid", None)
+    allowed_uids = {uid.strip() for uid in allowed_csv.split(",") if uid.strip()}
+    if firebase_uid not in allowed_uids:
+        raise HTTPException(status_code=403, detail="Photo scanning is not available for your account")
+
+
 @router.post("/photo", response_model=PhotoScanResponse)
 async def scan_photo(
     payload: PhotoScanRequest,
@@ -107,13 +121,19 @@ async def scan_photo(
     request: Request,
     idempotency_key: Annotated[str, Depends(require_idempotency_key)],
 ) -> PhotoScanResponse:
+    _check_photo_scan_allowlist(current_user)
+
     cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
     if cached:
         return PhotoScanResponse.model_validate(cached)
 
+    import logging as _logging
+    _log = _logging.getLogger("app.modules.catalog.router")
+
     try:
         raw_items = await parser.parse_image(payload.image_url)
-    except Exception:
+    except Exception as exc:
+        _log.exception("Photo parse failed: %s", exc)
         raw_items = []
 
     draft_items: list[DraftItem] = []

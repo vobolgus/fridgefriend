@@ -4,9 +4,13 @@ import time
 from collections.abc import Mapping
 from typing import Protocol, cast
 
+import logging
+
 import httpx
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 from app.core.database import AsyncSessionLocal
 from app.models.ai_inference_log import AiInferenceLog
 
@@ -41,10 +45,12 @@ class LLMPhotoParser:
         api_url: str,
         model: str,
         *,
+        api_key: str = "",
         client: PhotoParserHTTPClient | None = None,
     ) -> None:
         self._api_url: str = api_url.rstrip("/")
         self._model: str = model
+        self._api_key: str = api_key
         self._client: PhotoParserHTTPClient | None = client
 
     async def parse_image(self, image_url: str) -> list[dict[str, object]]:
@@ -101,13 +107,21 @@ class LLMPhotoParser:
         response_payload: object = {}
         result: list[dict[str, object]] = []
 
+        headers: dict[str, str] = {}
+        if self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+
         try:
             if self._client is not None:
                 response = await self._client.post(self._api_url, json=payload)
             else:
-                async with httpx.AsyncClient(timeout=15.0) as client:
+                async with httpx.AsyncClient(timeout=45.0, headers=headers) as client:
                     response = await client.post(self._api_url, json=payload)
 
+            status_code = getattr(response, "status_code", None)
+            if isinstance(status_code, int) and status_code >= 400:
+                resp_text = getattr(response, "text", "")
+                logger.error("LLM API error %s: %s", status_code, resp_text[:500] if isinstance(resp_text, str) else "")
             raise_for_status = getattr(response, "raise_for_status", None)
             if callable(raise_for_status):
                 _ = raise_for_status()
@@ -186,6 +200,8 @@ class LLMPhotoParser:
 
     @staticmethod
     def _extract_content(payload: object) -> dict[str, object]:
+        import json as _json
+
         if not isinstance(payload, Mapping):
             return {}
         payload_dict = cast(JSONDict, payload)
@@ -200,17 +216,25 @@ class LLMPhotoParser:
         if not isinstance(message, Mapping):
             return {}
         message_dict = cast(JSONDict, message)
-        parsed = message_dict.get("parsed", {})
-        if isinstance(parsed, dict):
+
+        parsed = message_dict.get("parsed")
+        if isinstance(parsed, dict) and parsed:
             return cast(dict[str, object], parsed)
-        content = message_dict.get("content", [])
-        if not isinstance(content, list):
-            return {}
-        for item in content:
-            if not isinstance(item, Mapping):
-                continue
-            item_dict = cast(JSONDict, item)
-            parsed_item = item_dict.get("parsed")
-            if isinstance(parsed_item, dict):
-                return cast(dict[str, object], parsed_item)
+
+        content = message_dict.get("content")
+        if isinstance(content, str):
+            try:
+                obj = _json.loads(content)
+                if isinstance(obj, dict):
+                    return cast(dict[str, object], obj)
+            except (ValueError, TypeError):
+                pass
+        if isinstance(content, list):
+            for item in content:
+                if not isinstance(item, Mapping):
+                    continue
+                item_dict = cast(JSONDict, item)
+                parsed_item = item_dict.get("parsed")
+                if isinstance(parsed_item, dict):
+                    return cast(dict[str, object], parsed_item)
         return {}

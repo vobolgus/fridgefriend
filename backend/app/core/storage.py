@@ -101,9 +101,15 @@ class LocalStorage:
 
 class S3Storage:
     def __init__(self, endpoint_url: str, bucket: str, region: str) -> None:
-        self._endpoint_url: str = endpoint_url
+        self._endpoint_url: str | None = endpoint_url or None
         self._bucket: str = bucket
         self._region: str = region
+
+    def _client_kwargs(self) -> dict[str, str]:
+        kwargs: dict[str, str] = {"region_name": self._region}
+        if self._endpoint_url:
+            kwargs["endpoint_url"] = self._endpoint_url
+        return kwargs
 
     async def upload(
         self,
@@ -113,11 +119,7 @@ class S3Storage:
     ) -> str:
         session_module = _get_aiobotocore_session_module()
         session = session_module.get_session()
-        async with session.create_client(
-            "s3",
-            endpoint_url=self._endpoint_url,
-            region_name=self._region,
-        ) as client:
+        async with session.create_client("s3", **self._client_kwargs()) as client:
             _ = await client.put_object(
                 Bucket=self._bucket,
                 Key=key,
@@ -129,11 +131,7 @@ class S3Storage:
     async def download(self, key: str) -> bytes:
         session_module = _get_aiobotocore_session_module()
         session = session_module.get_session()
-        async with session.create_client(
-            "s3",
-            endpoint_url=self._endpoint_url,
-            region_name=self._region,
-        ) as client:
+        async with session.create_client("s3", **self._client_kwargs()) as client:
             response = await client.get_object(Bucket=self._bucket, Key=key)
             async with response["Body"] as stream:
                 return await stream.read()
@@ -141,11 +139,7 @@ class S3Storage:
     async def generate_signed_url(self, key: str, expires_in: int = 3600) -> str:
         session_module = _get_aiobotocore_session_module()
         session = session_module.get_session()
-        async with session.create_client(
-            "s3",
-            endpoint_url=self._endpoint_url,
-            region_name=self._region,
-        ) as client:
+        async with session.create_client("s3", **self._client_kwargs()) as client:
             return await client.generate_presigned_url(
                 "get_object",
                 Params={"Bucket": self._bucket, "Key": key},

@@ -21,8 +21,9 @@ class Settings(BaseSettings):
     RECIPE_SOURCE: str = "mock"
     OPENSEARCH_URL: str = "http://localhost:9200"
     OPENSEARCH_INDEX: str = "recipes"
-    LLM_API_URL: str = "https://litellm.labs.jb.gg"
+    LLM_API_URL: str = "https://api.openai.com/v1/chat/completions"
     LLM_MODEL: str = "gpt-4.1-mini"
+    LLM_API_KEY: str = ""
     PHOTO_PARSER_BACKEND: str = "mock"
     BARCODE_API_SOURCE: str = "mock"
     SENTRY_DSN: str = ""
@@ -34,6 +35,7 @@ class Settings(BaseSettings):
     SPOONACULAR_POINT_COST: float = 0.005
     FIREBASE_CREDENTIALS_PATH: str = ""
     FCM_ENABLED: bool = False
+    PHOTO_PARSER_ALLOWED_UIDS: str = ""
 
     model_config: ClassVar[SettingsConfigDict] = SettingsConfigDict(
         env_file=".env",

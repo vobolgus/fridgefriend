@@ -30,7 +30,8 @@ locals {
     FCM_ENABLED          = "false"
     SENTRY_ENVIRONMENT   = var.environment
     IDEMPOTENCY_BACKEND  = "redis"
-    PHOTO_PARSER_BACKEND = "mock"
+    PHOTO_PARSER_BACKEND      = "llm"
+    PHOTO_PARSER_ALLOWED_UIDS = "TLizIBIqc4OgADKKHXNJR6zEkVg2"
     OPENSEARCH_URL       = ""
     OPENSEARCH_INDEX     = "recipes"
   }
@@ -38,6 +39,7 @@ locals {
   backend_secret_arns = {
     DATABASE_URL = module.secrets.secret_arns["database-url"]
     REDIS_URL    = module.secrets.secret_arns["redis-url"]
+    LLM_API_KEY  = module.secrets.secret_arns["llm-api-key"]
   }
 
   dashboard_base_environment = {

@@ -12,6 +12,7 @@ locals {
     "spoonacular-api-key",
     "sentry-dsn",
     "amplitude-api-key",
+    "llm-api-key",
   ]
 }
 

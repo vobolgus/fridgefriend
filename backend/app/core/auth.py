@@ -99,6 +99,7 @@ async def _firebase_auth(authorization: str | None, db: AsyncSession) -> User:
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to create or find user",
                 )
+    user._firebase_uid = uid  # type: ignore[attr-defined]  # transient attr for request-scoped UID check
     await _ensure_default_household(user, db)
     return user
 

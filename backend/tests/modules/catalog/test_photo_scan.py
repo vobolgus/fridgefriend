@@ -8,6 +8,7 @@ import pytest
 import pytest_asyncio
 from fastapi import FastAPI
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models import Base
 from app.modules.inventory.dependencies import get_current_user
@@ -184,6 +185,44 @@ async def test_photo_scan_failure_returns_manual_entry_editable_draft(
     }
 
 
+class _LLMContentStringResponse:
+    """LiteLLM returns content as a JSON string, not a parsed object."""
+
+    def raise_for_status(self) -> None:
+        return None
+
+    def json(self) -> dict[str, object]:
+        import json
+
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "draft_items": [
+                                    {
+                                        "display_name": "Apple",
+                                        "quantity": 3.0,
+                                        "unit": "piece",
+                                        "confidence": 0.92,
+                                        "canonical_name": "apple",
+                                    }
+                                ]
+                            }
+                        ),
+                        "role": "assistant",
+                    }
+                }
+            ],
+        }
+
+
+class _LLMContentStringClient:
+    async def post(self, url: str, json: dict[str, object] | object) -> _LLMContentStringResponse:
+        return _LLMContentStringResponse()
+
+
 @pytest.mark.asyncio
 async def test_photo_scan_with_mock_llm() -> None:
     parser: PhotoParserInterface = LLMPhotoParser(
@@ -203,3 +242,139 @@ async def test_photo_scan_with_mock_llm() -> None:
             "canonical_name": "milk",
         }
     ]
+
+
+@pytest.mark.asyncio
+async def test_photo_scan_with_llm_content_string_response() -> None:
+    parser: PhotoParserInterface = LLMPhotoParser(
+        "https://litellm.example",
+        "gpt-4.1-mini",
+        client=_LLMContentStringClient(),
+    )
+
+    items = await parser.parse_image("https://example.com/content-string.jpg")
+
+    assert items == [
+        {
+            "display_name": "Apple",
+            "quantity": 3.0,
+            "unit": "piece",
+            "confidence": 0.92,
+            "canonical_name": "apple",
+        }
+    ]
+
+
+@pytest_asyncio.fixture
+async def allowlist_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async_session = AsyncSession(bind=engine, expire_on_commit=False)
+    user = User(email="allowlist-test@example.com")
+    async_session.add(user)
+    await async_session.commit()
+    await async_session.refresh(user)
+    user._firebase_uid = "allowed-uid-123"  # type: ignore[attr-defined]
+
+    async def override_get_db() -> AsyncIterator[AsyncSession]:
+        yield async_session
+
+    async def override_get_current_user() -> User:
+        return user
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    app.dependency_overrides[get_photo_parser] = lambda: _StaticPhotoParser(
+        [{"display_name": "Milk", "quantity": 1.0, "unit": "gallon", "confidence": 0.85}]
+    )
+
+    async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as async_client:
+        yield async_client
+
+    await async_session.close()
+    await engine.dispose()
+    app.dependency_overrides.clear()
+
+
+@pytest.mark.asyncio
+async def test_allowlist_blocks_unauthorized_uid(
+    allowlist_client: httpx.AsyncClient,
+) -> None:
+    prev_uids = settings.PHOTO_PARSER_ALLOWED_UIDS
+    prev_backend = settings.PHOTO_PARSER_BACKEND
+    settings.PHOTO_PARSER_ALLOWED_UIDS = "some-other-uid"
+    settings.PHOTO_PARSER_BACKEND = "llm"
+    try:
+        response = await allowlist_client.post(
+            "/v1/scan/photo",
+            headers=_headers("allowlist-block-1"),
+            json={"image_url": "https://example.com/fridge.jpg"},
+        )
+        assert response.status_code == 403
+        assert "not available" in response.json()["detail"]
+    finally:
+        settings.PHOTO_PARSER_ALLOWED_UIDS = prev_uids
+        settings.PHOTO_PARSER_BACKEND = prev_backend
+
+
+@pytest.mark.asyncio
+async def test_allowlist_allows_authorized_uid(
+    allowlist_client: httpx.AsyncClient,
+) -> None:
+    prev_uids = settings.PHOTO_PARSER_ALLOWED_UIDS
+    prev_backend = settings.PHOTO_PARSER_BACKEND
+    settings.PHOTO_PARSER_ALLOWED_UIDS = "allowed-uid-123,other-uid"
+    settings.PHOTO_PARSER_BACKEND = "llm"
+    try:
+        response = await allowlist_client.post(
+            "/v1/scan/photo",
+            headers=_headers("allowlist-allow-1"),
+            json={"image_url": "https://example.com/fridge.jpg"},
+        )
+        assert response.status_code == 200
+    finally:
+        settings.PHOTO_PARSER_ALLOWED_UIDS = prev_uids
+        settings.PHOTO_PARSER_BACKEND = prev_backend
+
+
+@pytest.mark.asyncio
+async def test_allowlist_skipped_when_empty(
+    allowlist_client: httpx.AsyncClient,
+) -> None:
+    prev_uids = settings.PHOTO_PARSER_ALLOWED_UIDS
+    prev_backend = settings.PHOTO_PARSER_BACKEND
+    settings.PHOTO_PARSER_ALLOWED_UIDS = ""
+    settings.PHOTO_PARSER_BACKEND = "llm"
+    try:
+        response = await allowlist_client.post(
+            "/v1/scan/photo",
+            headers=_headers("allowlist-empty-1"),
+            json={"image_url": "https://example.com/fridge.jpg"},
+        )
+        assert response.status_code == 200
+    finally:
+        settings.PHOTO_PARSER_ALLOWED_UIDS = prev_uids
+        settings.PHOTO_PARSER_BACKEND = prev_backend
+
+
+@pytest.mark.asyncio
+async def test_allowlist_skipped_for_mock_backend(
+    allowlist_client: httpx.AsyncClient,
+) -> None:
+    prev_uids = settings.PHOTO_PARSER_ALLOWED_UIDS
+    prev_backend = settings.PHOTO_PARSER_BACKEND
+    settings.PHOTO_PARSER_ALLOWED_UIDS = "some-other-uid"
+    settings.PHOTO_PARSER_BACKEND = "mock"
+    try:
+        response = await allowlist_client.post(
+            "/v1/scan/photo",
+            headers=_headers("allowlist-mock-1"),
+            json={"image_url": "https://example.com/fridge.jpg"},
+        )
+        assert response.status_code == 200
+    finally:
+        settings.PHOTO_PARSER_ALLOWED_UIDS = prev_uids
+        settings.PHOTO_PARSER_BACKEND = prev_backend
