@@ -1,6 +1,7 @@
 default_platform(:ios)
 
 FLUTTER_ROOT = File.expand_path("../..", __dir__)
+XCODEPROJ = File.join(FLUTTER_ROOT, "ios", "Runner.xcodeproj")
 
 platform :ios do
   desc "Sync signing certificates and provisioning profiles"
@@ -11,6 +12,16 @@ platform :ios do
   desc "Build Flutter app and create IPA"
   lane :build do
     sync_certs
+
+    # Switch to manual signing for CI builds
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: XCODEPROJ,
+      team_id: "SMV4M77P8S",
+      bundle_identifier: "com.suglobov.fridgefriend",
+      code_sign_identity: "Apple Distribution",
+      profile_name: "match AppStore com.suglobov.fridgefriend",
+    )
 
     # Flutter build
     Dir.chdir(FLUTTER_ROOT) do
