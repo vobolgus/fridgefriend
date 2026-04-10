@@ -6,6 +6,7 @@ import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/empty_state.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/error_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
 import 'package:fridgefriend_mobile/features/households/presentation/providers.dart';
 
 class ActivityLogScreen extends ConsumerWidget {
@@ -19,20 +20,7 @@ class ActivityLogScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Activity Log',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w900,
-            fontSize: 24,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        backgroundColor: AppColors.navBarBackground,
-        elevation: 0,
-        centerTitle: false,
-      ),
+      appBar: const FridgeFriendAppBar(title: 'Activity Log'),
       body: activityAsync.when(
         data: (events) {
           if (events.isEmpty) {

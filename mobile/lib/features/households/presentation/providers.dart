@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fridgefriend_mobile/features/households/data/sse_client.dart';
@@ -24,9 +26,27 @@ final activityLogProvider =
 });
 
 final householdEventsProvider =
-    StreamProvider.family<HouseholdSseEvent, String>(
+    StreamProvider.autoDispose.family<HouseholdSseEvent, String>(
   (ref, householdId) {
-    // Reconnection is handled inside HouseholdSseClient.connect.
-    return ref.watch(householdSseClientProvider).connect(householdId);
+    final stream = ref.watch(householdSseClientProvider).connect(householdId);
+    final controller = StreamController<HouseholdSseEvent>();
+    final subscription = stream.listen(
+      controller.add,
+      onError: controller.addError,
+      onDone: () {
+        if (!controller.isClosed) {
+          controller.close();
+        }
+      },
+    );
+
+    ref.onDispose(() {
+      subscription.cancel();
+      if (!controller.isClosed) {
+        controller.close();
+      }
+    });
+
+    return controller.stream;
   },
 );

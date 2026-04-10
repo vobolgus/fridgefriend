@@ -7,6 +7,7 @@ import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/error_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
 class PhotoUploadScreen extends ConsumerStatefulWidget {
@@ -59,12 +60,7 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Scan Photo',
-            style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800)),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-      ),
+      appBar: const FridgeFriendAppBar(title: 'Scan Photo'),
       body: _isUploading
           ? const LoadingView(message: 'Analyzing fridge contents...')
           : _error != null

@@ -86,6 +86,45 @@ class RecipeDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Recipe Details'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bookmark_border),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Recipe saved!')),
+              );
+            },
+          ),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          child: SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Recipe added to plan!')),
+                );
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                textStyle: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              child: const Text('Add to Meal Plan'),
+            ),
+          ),
+        ),
       ),
       body: ListView(
         padding: EdgeInsets.zero,

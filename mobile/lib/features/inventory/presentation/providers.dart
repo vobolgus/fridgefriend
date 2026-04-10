@@ -58,6 +58,7 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
 
   final InventoryRepository _repository;
   final Ref? _ref;
+  Timer? _debounceTimer;
 
   Future<void> loadItems() async {
     if (!mounted) return;
@@ -78,7 +79,15 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
       final items = await _repository.syncInventoryItems();
       if (!mounted) return;
       state = AsyncValue.data(items);
-    } catch (_) {}
+    } catch (_) {
+      try {
+        final localItems = await _repository.getInventoryItems();
+        if (!mounted) return;
+        state = AsyncValue.data(localItems);
+      } catch (_) {
+        // Already showing data from initial load, keep it.
+      }
+    }
   }
 
   Future<void> addItem({
@@ -150,7 +159,8 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
 
   Future<void> markUsed(String itemId) => _updateStatus(itemId, 'used');
 
-  Future<void> markDiscarded(String itemId) => _updateStatus(itemId, 'discarded');
+  Future<void> markDiscarded(String itemId) =>
+      _updateStatus(itemId, 'discarded');
 
   Future<void> markFrozen(String itemId) => _updateStatus(itemId, 'frozen');
 
@@ -174,11 +184,14 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
         .fold<int?>(null, (previous, current) => previous ?? current);
     const terminalStatuses = {'used', 'discarded'};
     try {
-      final updated = await _repository.updateItemStatus(itemId, status, version: itemVersion);
+      final updated = await _repository.updateItemStatus(itemId, status,
+          version: itemVersion);
       if (!mounted) return;
       if (terminalStatuses.contains(updated.status)) {
         state = AsyncValue.data(
-          currentItems.where((item) => item.id != itemId).toList(growable: false),
+          currentItems
+              .where((item) => item.id != itemId)
+              .toList(growable: false),
         );
       } else {
         state = AsyncValue.data(
@@ -199,22 +212,42 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
   }
 
   void _invalidateRecommendations() {
-    _ref?.invalidate(recommendationsProvider);
-    _ref?.invalidate(shoppingListProvider);
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(seconds: 2), () {
+      _ref?.invalidate(recommendationsProvider);
+      _ref?.invalidate(shoppingListProvider);
+    });
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }
 
 final inventoryProvider =
     StateNotifierProvider<InventoryNotifier, AsyncValue<List<InventoryItem>>>(
-      (ref) => InventoryNotifier(
-        ref.watch(inventoryRepositoryProvider),
-        ref: ref,
-      ),
-    );
+  (ref) => InventoryNotifier(
+    ref.watch(inventoryRepositoryProvider),
+    ref: ref,
+  ),
+);
 
 final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
   final apiClient = ref.watch(apiClientProvider);
   final recipeDao = ref.watch(appDatabaseProvider).recipeDao;
+  final cached = await recipeDao.getAllRecipes();
+
+  if (cached.isNotEmpty) {
+    final newest = cached
+        .map((recipe) => recipe.syncedAt)
+        .reduce((a, b) => a.isAfter(b) ? a : b);
+    final cacheAge = DateTime.now().difference(newest);
+    if (cacheAge < const Duration(hours: 24)) {
+      return cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+    }
+  }
 
   try {
     final recipes = await apiClient.getRecommendations();
@@ -229,7 +262,8 @@ final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
   }
 });
 
-final mealPlanProvider = StateNotifierProvider<MealPlanNotifier, AsyncValue<MealPlan?>>((ref) {
+final mealPlanProvider =
+    StateNotifierProvider<MealPlanNotifier, AsyncValue<MealPlan?>>((ref) {
   return MealPlanNotifier(
     ref.watch(apiClientProvider),
     ref.watch(appDatabaseProvider).mealPlanDao,
@@ -237,7 +271,8 @@ final mealPlanProvider = StateNotifierProvider<MealPlanNotifier, AsyncValue<Meal
 });
 
 class MealPlanNotifier extends StateNotifier<AsyncValue<MealPlan?>> {
-  MealPlanNotifier(this._apiClient, this._mealPlanDao) : super(const AsyncValue.data(null)) {
+  MealPlanNotifier(this._apiClient, this._mealPlanDao)
+      : super(const AsyncValue.data(null)) {
     loadLatest();
   }
 
@@ -330,7 +365,8 @@ class _NoopRepository implements InventoryRepository {
   }
 
   @override
-  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+  Future<InventoryItem> updateItemStatus(String id, String status,
+      {int? version}) async {
     return InventoryItem(
       id: id,
       displayName: '',

@@ -6,7 +6,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     APP_NAME: str = "FridgeFriend"
     VERSION: str = "0.1.0"
-    DEBUG: bool = True
+    DEBUG: bool = False
+    ENVIRONMENT: str = "development"
     DATABASE_URL: str = "sqlite+aiosqlite:///:memory:"
     REDIS_URL: str = "redis://localhost:6379/0"
     IDEMPOTENCY_BACKEND: str = "memory"

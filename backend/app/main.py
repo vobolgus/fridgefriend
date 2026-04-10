@@ -110,6 +110,8 @@ async def _seed_fixture_recipes() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+    if settings.ENVIRONMENT == "production" and "sqlite" in settings.DATABASE_URL:
+        raise RuntimeError("Production must use PostgreSQL, not SQLite")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     await _seed_fixture_recipes()

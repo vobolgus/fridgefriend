@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:fridgefriend_mobile/core/network/api_config.dart';
 import 'package:fridgefriend_mobile/features/households/domain/household.dart';
@@ -6,13 +8,113 @@ import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dar
 import 'package:fridgefriend_mobile/features/meal_planning/domain/meal_plan.dart';
 import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
 
+typedef TokenProvider = Future<String?> Function();
+
+TokenProvider forceRefreshAuthToken = _defaultForceRefreshAuthToken;
+
+Future<String?> _defaultForceRefreshAuthToken() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    return null;
+  }
+
+  return user.getIdToken(true);
+}
+
+class _AuthInterceptor extends QueuedInterceptor {
+  _AuthInterceptor({
+    required Dio dio,
+    required String? token,
+    required String? fallbackToken,
+    required TokenProvider? tokenProvider,
+  })  : _dio = dio,
+        _token = token,
+        _fallbackToken = fallbackToken,
+        _tokenProvider = tokenProvider;
+
+  static const String _retriedRequestKey = 'auth_token_refreshed';
+
+  final Dio _dio;
+  final String? _token;
+  final String? _fallbackToken;
+  final TokenProvider? _tokenProvider;
+
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    final isRetriedRequest = options.extra[_retriedRequestKey] == true;
+    if (isRetriedRequest && options.headers['Authorization'] != null) {
+      handler.next(options);
+      return;
+    }
+
+    final authorizationToken = await _resolveAuthorizationToken();
+
+    if (authorizationToken != null && authorizationToken.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $authorizationToken';
+    } else {
+      options.headers.remove('Authorization');
+    }
+
+    handler.next(options);
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final statusCode = err.response?.statusCode;
+    final requestOptions = err.requestOptions;
+    final alreadyRetried = requestOptions.extra[_retriedRequestKey] == true;
+
+    if (statusCode != 401 || alreadyRetried) {
+      handler.next(err);
+      return;
+    }
+
+    try {
+      final refreshedToken = await forceRefreshAuthToken();
+      if (refreshedToken == null || refreshedToken.isEmpty) {
+        handler.next(err);
+        return;
+      }
+
+      final response = await _dio.fetch<dynamic>(
+        requestOptions.copyWith(
+          headers: {
+            ...requestOptions.headers,
+            'Authorization': 'Bearer $refreshedToken',
+          },
+          extra: {
+            ...requestOptions.extra,
+            _retriedRequestKey: true,
+          },
+        ),
+      );
+
+      handler.resolve(response);
+    } catch (_) {
+      handler.next(err);
+    }
+  }
+
+  Future<String?> _resolveAuthorizationToken() async {
+    final resolvedToken =
+        await (_tokenProvider?.call() ?? Future.value(_token));
+    return resolvedToken ?? _fallbackToken;
+  }
+}
+
 class ApiClient {
   ApiClient({
     String? baseUrl,
     String? token,
     String? fallbackToken,
     Future<String?> Function()? tokenProvider,
-  }) : _token = token,
+  })  : _token = token,
         _fallbackToken = fallbackToken,
         _tokenProvider = tokenProvider,
         _dio = Dio(
@@ -21,19 +123,11 @@ class ApiClient {
           ),
         ) {
     _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          final resolvedToken = await (_tokenProvider?.call() ?? Future.value(_token));
-          final authorizationToken = resolvedToken ?? _fallbackToken;
-
-          if (authorizationToken != null && authorizationToken.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $authorizationToken';
-          } else {
-            options.headers.remove('Authorization');
-          }
-
-          handler.next(options);
-        },
+      _AuthInterceptor(
+        dio: _dio,
+        token: _token,
+        fallbackToken: _fallbackToken,
+        tokenProvider: _tokenProvider,
       ),
     );
   }
@@ -51,6 +145,12 @@ class ApiClient {
     return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
   }
 
+  void _logUnexpectedResponse(String methodName, Object? payload) {
+    debugPrint(
+      'WARNING: Unexpected response format for $methodName: ${payload.runtimeType}',
+    );
+  }
+
   Future<List<InventoryItem>> getInventoryItems() async {
     final response = await _dio.get('${ApiConfig.apiVersionPath}/items');
     final payload = response.data;
@@ -60,16 +160,16 @@ class ApiClient {
           .whereType<Map<String, dynamic>>()
           .map(InventoryItem.fromJson)
           .toList(growable: false);
-    }
-
-    if (payload is Map<String, dynamic>) {
-      final items = payload['items'] as List<dynamic>? ?? const [];
+    } else if (payload is Map && payload.containsKey('items')) {
+      final normalizedPayload = Map<String, dynamic>.from(payload);
+      final items = normalizedPayload['items'] as List<dynamic>? ?? const [];
       return items
           .whereType<Map<String, dynamic>>()
           .map(InventoryItem.fromJson)
           .toList(growable: false);
     }
 
+    _logUnexpectedResponse('getInventoryItems', payload);
     return const [];
   }
 
@@ -104,7 +204,8 @@ class ApiClient {
       data: data,
       options: Options(
         headers: {
-          'Idempotency-Key': idempotencyKey ?? _uniqueIdempotencyKey('create_item'),
+          'Idempotency-Key':
+              idempotencyKey ?? _uniqueIdempotencyKey('create_item'),
         },
       ),
     );
@@ -153,12 +254,15 @@ class ApiClient {
     throw const FormatException('Invalid inventory item response');
   }
 
-  Future<InventoryItem> updateItemStatus(String id, String status, {int? version}) async {
+  Future<InventoryItem> updateItemStatus(String id, String status,
+      {int? version}) async {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/items/$id/status',
       data: {'status': status, if (version != null) 'version': version},
       options: Options(
-        headers: {'Idempotency-Key': _uniqueIdempotencyKey('${id}_status_$status')},
+        headers: {
+          'Idempotency-Key': _uniqueIdempotencyKey('${id}_status_$status')
+        },
       ),
     );
 
@@ -179,15 +283,21 @@ class ApiClient {
   }
 
   Future<List<Map<String, dynamic>>> getActivityLog(String householdId) async {
-    final response = await _dio.get('${ApiConfig.apiVersionPath}/households/$householdId/activity');
+    final response = await _dio
+        .get('${ApiConfig.apiVersionPath}/households/$householdId/activity');
     final payload = response.data;
     if (payload is List) {
       return payload.whereType<Map<String, dynamic>>().toList(growable: false);
     }
-    if (payload is Map<String, dynamic>) {
-      final items = payload['events'] as List<dynamic>? ?? payload['activity'] as List<dynamic>? ?? const [];
+    if (payload is Map &&
+        (payload.containsKey('events') || payload.containsKey('activity'))) {
+      final normalizedPayload = Map<String, dynamic>.from(payload);
+      final items = normalizedPayload['events'] as List<dynamic>? ??
+          normalizedPayload['activity'] as List<dynamic>? ??
+          const [];
       return items.whereType<Map<String, dynamic>>().toList(growable: false);
     }
+    _logUnexpectedResponse('getActivityLog', payload);
     return const [];
   }
 
@@ -201,21 +311,22 @@ class ApiClient {
     );
 
     final payload = response.data;
-    if (payload is Map<String, dynamic>) {
-      final recipes = payload['recipes'] as List<dynamic>? ?? const [];
+    if (payload is Map && payload.containsKey('recipes')) {
+      final normalizedPayload = Map<String, dynamic>.from(payload);
+      final recipes =
+          normalizedPayload['recipes'] as List<dynamic>? ?? const [];
       return recipes
           .whereType<Map<String, dynamic>>()
           .map(Recipe.fromJson)
           .toList(growable: false);
-    }
-
-    if (payload is List) {
+    } else if (payload is List) {
       return payload
           .whereType<Map<String, dynamic>>()
           .map(Recipe.fromJson)
           .toList(growable: false);
     }
 
+    _logUnexpectedResponse('getRecommendations', payload);
     return const [];
   }
 
@@ -245,6 +356,7 @@ class ApiClient {
       if (payload is Map<String, dynamic>) {
         return MealPlan.fromJson(payload);
       }
+      _logUnexpectedResponse('getLatestPlan', payload);
       return null;
     } on DioException catch (e) {
       if (e.response?.statusCode == 404) {
@@ -255,26 +367,28 @@ class ApiClient {
   }
 
   Future<List<ShoppingItem>> getShoppingList() async {
-    final response = await _dio.get('${ApiConfig.apiVersionPath}/shopping-list');
+    final response =
+        await _dio.get('${ApiConfig.apiVersionPath}/shopping-list');
     final payload = response.data;
 
-    if (payload is Map<String, dynamic>) {
-      final items = payload['shoppingList'] as List<dynamic>? ??
-          payload['items'] as List<dynamic>? ??
+    if (payload is Map &&
+        (payload.containsKey('shoppingList') || payload.containsKey('items'))) {
+      final normalizedPayload = Map<String, dynamic>.from(payload);
+      final items = normalizedPayload['shoppingList'] as List<dynamic>? ??
+          normalizedPayload['items'] as List<dynamic>? ??
           const [];
       return items
           .whereType<Map<String, dynamic>>()
           .map(ShoppingItem.fromJson)
           .toList(growable: false);
-    }
-
-    if (payload is List) {
+    } else if (payload is List) {
       return payload
           .whereType<Map<String, dynamic>>()
           .map(ShoppingItem.fromJson)
           .toList(growable: false);
     }
 
+    _logUnexpectedResponse('getShoppingList', payload);
     return const [];
   }
 
@@ -282,21 +396,32 @@ class ApiClient {
     final response = await _dio.get('${ApiConfig.apiVersionPath}/households');
     final payload = response.data;
     if (payload is List) {
-      return payload.whereType<Map<String, dynamic>>().map(Household.fromJson).toList(growable: false);
+      return payload
+          .whereType<Map<String, dynamic>>()
+          .map(Household.fromJson)
+          .toList(growable: false);
     }
-    if (payload is Map<String, dynamic>) {
-      final items = payload['households'] as List<dynamic>? ?? const [];
-      return items.whereType<Map<String, dynamic>>().map(Household.fromJson).toList(growable: false);
+    if (payload is Map && payload.containsKey('households')) {
+      final normalizedPayload = Map<String, dynamic>.from(payload);
+      final items =
+          normalizedPayload['households'] as List<dynamic>? ?? const [];
+      return items
+          .whereType<Map<String, dynamic>>()
+          .map(Household.fromJson)
+          .toList(growable: false);
     }
+    _logUnexpectedResponse('getHouseholds', payload);
     return const [];
   }
 
   Future<Map<String, dynamic>> getNotificationPreferences() async {
-    final response = await _dio.get('${ApiConfig.apiVersionPath}/notifications');
+    final response =
+        await _dio.get('${ApiConfig.apiVersionPath}/notifications');
     final payload = response.data;
     if (payload is Map<String, dynamic>) {
       return payload;
     }
+    _logUnexpectedResponse('getNotificationPreferences', payload);
     return {};
   }
 
@@ -311,10 +436,8 @@ class ApiClient {
         'expiry_reminder_enabled': expiryReminderEnabled,
       if (reminderDaysBefore != null)
         'reminder_days_before': reminderDaysBefore,
-      if (quietHoursStart != null)
-        'quiet_hours_start': quietHoursStart,
-      if (quietHoursEnd != null)
-        'quiet_hours_end': quietHoursEnd,
+      if (quietHoursStart != null) 'quiet_hours_start': quietHoursStart,
+      if (quietHoursEnd != null) 'quiet_hours_end': quietHoursEnd,
     };
     final response = await _dio.patch(
       '${ApiConfig.apiVersionPath}/notifications',
@@ -329,6 +452,7 @@ class ApiClient {
     if (payload is Map<String, dynamic>) {
       return payload;
     }
+    _logUnexpectedResponse('updateNotificationPreferences', payload);
     return {};
   }
 
@@ -347,6 +471,7 @@ class ApiClient {
     if (payload is Map<String, dynamic>) {
       return payload;
     }
+    _logUnexpectedResponse('registerDeviceToken', payload);
     return {};
   }
 
@@ -354,7 +479,9 @@ class ApiClient {
     await _dio.delete(
       '${ApiConfig.apiVersionPath}/notifications/devices/$tokenId',
       options: Options(
-        headers: {'Idempotency-Key': _uniqueIdempotencyKey('unregister_device')},
+        headers: {
+          'Idempotency-Key': _uniqueIdempotencyKey('unregister_device')
+        },
       ),
     );
   }
@@ -423,13 +550,17 @@ class ApiClient {
     throw const FormatException('Invalid barcode scan response');
   }
 
-  Future<String> uploadPhoto(String localFilePath) async {
+  Future<String> uploadPhoto(
+    String localFilePath, {
+    void Function(int sent, int total)? onSendProgress,
+  }) async {
     final formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(localFilePath),
     });
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/scan/photo/upload',
       data: formData,
+      onSendProgress: onSendProgress,
       options: Options(
         headers: {
           'Idempotency-Key': _uniqueIdempotencyKey('upload_photo'),
@@ -457,8 +588,9 @@ class ApiClient {
 
     final payload = response.data;
     if (payload is Map<String, dynamic>) {
-      final items = (payload['draft_items'] ?? payload['draftItems'] ?? payload['items'])
-              as List<dynamic>? ??
+      final items = (payload['draft_items'] ??
+              payload['draftItems'] ??
+              payload['items']) as List<dynamic>? ??
           const [];
       return items
           .whereType<Map<String, dynamic>>()
@@ -466,6 +598,7 @@ class ApiClient {
           .map(InventoryItem.fromJson)
           .toList(growable: false);
     }
+    _logUnexpectedResponse('scanPhoto', payload);
     return const [];
   }
 

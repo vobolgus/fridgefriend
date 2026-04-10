@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
@@ -37,10 +38,12 @@ class ShoppingListScreen extends ConsumerWidget {
       body: shoppingItems.when(
         data: (items) {
           if (items.isEmpty) {
-            return const EmptyState(
+            return EmptyState(
               icon: Icons.shopping_cart_outlined,
               title: 'All stocked up!',
               subtitle: 'Your shopping list is empty. Time to plan some meals!',
+              actionLabel: 'Create Meal Plan',
+              onAction: () => context.go('/meal-plan'),
             );
           }
           return _ShoppingListContent(items: items);
@@ -159,6 +162,19 @@ class _ShoppingListContentState extends State<_ShoppingListContent> {
                                     : null,
                               ),
                             ),
+                            if ((item.reason ?? '').trim().isNotEmpty) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'For: ${item.reason}',
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
+                                  color: AppColors.textSecondary
+                                      .withOpacity(isChecked ? 0.5 : 0.9),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: AppSpacing.xs),
                             Text(
                               '${item.quantity} ${item.unit}',

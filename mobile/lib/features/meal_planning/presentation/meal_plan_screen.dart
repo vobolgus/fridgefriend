@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
@@ -9,6 +10,7 @@ import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart'
 
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/meal_planning/domain/meal_plan.dart';
+import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
 
 class MealPlanScreen extends ConsumerStatefulWidget {
   const MealPlanScreen({super.key});
@@ -149,49 +151,67 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                       borderRadius:
                           BorderRadius.circular(AppSpacing.cardRadius),
                     ),
-                    child: Padding(
-                      padding: AppSpacing.cardPadding,
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(AppSpacing.md),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primarySurface,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.calendar_today_outlined,
-                                color: AppColors.primary),
+                    child: InkWell(
+                      borderRadius:
+                          BorderRadius.circular(AppSpacing.cardRadius),
+                      onTap: () {
+                        context.push(
+                          '/recipes/${day.recipeId}',
+                          extra: Recipe(
+                            id: day.recipeId,
+                            title: day.recipeTitle,
+                            coveragePct: 0.0,
+                            score: 0.0,
+                            prepMinutes: 0,
+                            missingItems: const [],
+                            substitutions: const [],
                           ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _formatDate(day.date),
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: AppColors.textSecondary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  day.recipeTitle,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleMedium
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                ),
-                              ],
+                        );
+                      },
+                      child: Padding(
+                        padding: AppSpacing.cardPadding,
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.md),
+                              decoration: const BoxDecoration(
+                                color: AppColors.primarySurface,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.calendar_today_outlined,
+                                  color: AppColors.primary),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _formatDate(day.date),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                          color: AppColors.textSecondary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    day.recipeTitle,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );

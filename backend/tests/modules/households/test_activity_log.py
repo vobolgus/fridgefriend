@@ -151,3 +151,33 @@ async def test_activity_log_filtered_by_household(
     payload = response.json()
     assert len(payload) == 1
     assert payload[0]["new_state"]["display_name"] == "Milk"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("query_string", "error_field", "invalid_value"),
+    [
+        ("limit=0", "limit", 0),
+        ("limit=101", "limit", 101),
+        ("offset=-1", "offset", -1),
+    ],
+)
+async def test_activity_log_rejects_out_of_bounds_pagination(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    activity_test_context: tuple[User, Household, Household],
+    query_string: str,
+    error_field: str,
+    invalid_value: int,
+) -> None:
+    _, household, _ = activity_test_context
+
+    response = await client.get(
+        f"/v1/households/{household.id}/activity?{query_string}",
+        headers=test_headers,
+    )
+
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload["detail"][0]["loc"][-1] == error_field
+    assert payload["detail"][0]["input"] == str(invalid_value)

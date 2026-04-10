@@ -6,6 +6,7 @@ import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
 
 class AddItemScreen extends ConsumerStatefulWidget {
   const AddItemScreen({this.initialItem, super.key});
@@ -21,6 +22,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   late final TextEditingController _quantityController;
   late final TextEditingController _unitController;
   late final TextEditingController _storageController;
+  DateTime? _expiryDate;
   final _formKey = GlobalKey<FormState>();
 
   bool get _isEditing {
@@ -45,6 +47,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
     _storageController = TextEditingController(
       text: initialItem?.storageLocation ?? 'fridge',
     );
+    _expiryDate = initialItem?.estimatedExpiryDate;
   }
 
   @override
@@ -60,18 +63,13 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(
-          _isEditing ? 'Edit Item' : 'Add Item',
-          style:
-              const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w800),
-        ),
-        backgroundColor: AppColors.surface,
-        elevation: 0,
+      appBar: FridgeFriendAppBar(
+        title: _isEditing ? 'Edit Item' : 'Add Item',
       ),
       body: SafeArea(
         child: Form(
           key: _formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: ListView(
             padding: AppSpacing.screenPadding,
             children: [
@@ -186,6 +184,82 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                   );
                 }).toList(),
               ),
+              const SizedBox(height: AppSpacing.xl),
+              const Text(
+                'EXPIRY DATE',
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textSecondary,
+                  letterSpacing: 1.2,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+              InkWell(
+                borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+                onTap: () async {
+                  final now = DateTime.now();
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _expiryDate ?? now,
+                    firstDate: now,
+                    lastDate: now.add(const Duration(days: 365 * 2)),
+                    builder: (context, child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          colorScheme: const ColorScheme.light(
+                            primary: AppColors.primary,
+                            onPrimary: Colors.white,
+                            surface: AppColors.surface,
+                            onSurface: AppColors.textPrimary,
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _expiryDate = picked;
+                    });
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+                    border: Border.all(color: AppColors.divider),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today_outlined,
+                          color: AppColors.primary),
+                      const SizedBox(width: AppSpacing.md),
+                      const Text(
+                        'Expiry Date',
+                        style: TextStyle(
+                            fontFamily: 'Inter', fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _expiryDate != null
+                            ? '${_expiryDate!.year}-${_expiryDate!.month.toString().padLeft(2, '0')}-${_expiryDate!.day.toString().padLeft(2, '0')}'
+                            : 'Not set',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: _expiryDate != null
+                              ? AppColors.textPrimary
+                              : AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               const SizedBox(height: AppSpacing.xxxl),
             ],
           ),
@@ -247,8 +321,7 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                         canonicalIngredientId:
                             widget.initialItem?.canonicalIngredientId,
                         confidence: widget.initialItem?.confidence,
-                        estimatedExpiryDate:
-                            widget.initialItem?.estimatedExpiryDate,
+                        estimatedExpiryDate: _expiryDate,
                       );
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

@@ -31,7 +31,7 @@ class PlanningService:
         self._reservation_service: ReservationService = ReservationService(session)
 
     async def generate_plan(self, user: User, household_id: UUID, request: PlanRequest) -> PlanResult:
-        inventory_items = await self._list_active_inventory(household_id)
+        inventory_items = await self._list_active_inventory(household_id, for_update=True)
         recipes = await self._list_recipes()
         planner_input: list[dict[str, object]] = [
             {
@@ -187,14 +187,18 @@ class PlanningService:
     def _get_recipe_ingredient_name(ingredient: Mapping[str, object]) -> str:
         return str(ingredient.get("canonical_name") or ingredient.get("name") or "")
 
-    async def _list_active_inventory(self, household_id: UUID | None = None) -> list[InventoryItem]:
-        statement = (
-            select(InventoryItem)
-            .where(
-                InventoryItem.status.notin_([InventoryStatus.USED, InventoryStatus.DISCARDED]),
-            )
-            .order_by(InventoryItem.estimated_expiry_date.asc(), InventoryItem.created_at.asc())
+    async def _list_active_inventory(
+        self,
+        household_id: UUID | None = None,
+        *,
+        for_update: bool = False,
+    ) -> list[InventoryItem]:
+        statement = select(InventoryItem).where(
+            InventoryItem.status.notin_([InventoryStatus.USED, InventoryStatus.DISCARDED]),
         )
+        if for_update:
+            statement = statement.with_for_update()
+        statement = statement.order_by(InventoryItem.estimated_expiry_date.asc(), InventoryItem.created_at.asc())
         if household_id is not None:
             statement = statement.where(InventoryItem.household_id == household_id)
         result = await self._session.execute(statement)

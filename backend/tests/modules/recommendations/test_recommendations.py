@@ -26,6 +26,12 @@ def _headers(test_headers: dict[str, str], key: str) -> dict[str, str]:
     return {**test_headers, "Idempotency-Key": key}
 
 
+class FailingRecipeSource:
+    async def search_recipes(self, ingredients: list[str], count: int = 10) -> list[dict[str, object]]:
+        _ = (ingredients, count)
+        raise RuntimeError("recipe provider unavailable")
+
+
 def get_recipe(title: str) -> dict[str, object]:
     return next(recipe for recipe in FIXTURE_RECIPES if recipe["title"] == title)
 
@@ -343,6 +349,7 @@ async def test_api_endpoint_recommendations(
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["source"] == "live"
     assert len(payload["recipes"]) >= 1
     assert payload["recipes"][0]["title"] == "Scrambled Eggs"
 
@@ -412,8 +419,23 @@ async def test_api_endpoint_recommendations_empty_inventory(
     assert response.status_code == 200
     payload = response.json()
     assert "recipes" in payload
+    assert payload["source"] == "live"
     if payload["recipes"]:
         assert all(recipe["coveragePct"] == pytest.approx(0.0) for recipe in payload["recipes"])
+
+
+@pytest.mark.asyncio
+async def test_service_returns_mock_source_on_recipe_fallback(test_user: User, db_session: AsyncSession) -> None:
+    recommendations, source = await RecommendationService(
+        db_session,
+        recipe_source=FailingRecipeSource(),
+    ).get_recommendations_with_source(
+        test_user.id,
+        RecommendationRequest(),
+    )
+
+    assert recommendations
+    assert source == "mock"
 
 
 @pytest.mark.asyncio

@@ -59,3 +59,4 @@ class RecipeRecommendation(BaseModel):
 
 class RecommendationResponse(BaseModel):
     recipes: list[RecipeRecommendation]
+    source: str | None = None

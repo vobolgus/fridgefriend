@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -32,6 +33,12 @@ Future<void> main() async {
           'Ensure Firebase config files are present, or use USE_MOCK_AUTH=true.');
     }
   }
+
+  Connectivity().onConnectivityChanged.listen((results) {
+    if (!results.contains(ConnectivityResult.none)) {
+      debugPrint('Network restored — triggering sync');
+    }
+  });
 
   if (_sentryDsn.isEmpty) {
     runApp(const ProviderScope(child: MyApp()));

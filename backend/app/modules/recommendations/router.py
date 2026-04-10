@@ -48,8 +48,12 @@ async def get_recommendations(
     if cached:
         return RecommendationResponse(**cached)
 
-    recipes = await recommendation_service.get_recommendations(current_user.id, payload, household_id=household_id)
-    response = RecommendationResponse(recipes=recipes)
+    recipes, source = await recommendation_service.get_recommendations_with_source(
+        current_user.id,
+        payload,
+        household_id=household_id,
+    )
+    response = RecommendationResponse(recipes=recipes, source=source)
 
     store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 

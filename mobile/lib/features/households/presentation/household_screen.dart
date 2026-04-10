@@ -7,6 +7,7 @@ import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/empty_state.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/error_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart'
     as inventory_providers;
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart'
@@ -31,20 +32,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text(
-          'Households',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w900,
-            fontSize: 24,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        backgroundColor: AppColors.navBarBackground,
-        elevation: 0,
-        centerTitle: false,
-      ),
+      appBar: const FridgeFriendAppBar(title: 'Households'),
       body: householdsAsync.when(
         data: (households) {
           if (households.isEmpty) {
@@ -520,6 +508,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
 
   void _showCreateDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -532,22 +521,29 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               fontWeight: FontWeight.w900,
               color: AppColors.textPrimary),
         ),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'Household name',
-            hintStyle: TextStyle(
-                fontFamily: 'Inter',
-                color: AppColors.textSecondary.withOpacity(0.5)),
-            filled: true,
-            fillColor: AppColors.surfaceVariant,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-              borderSide: BorderSide.none,
+        content: Form(
+          key: formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: TextFormField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: 'Household name',
+              hintStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  color: AppColors.textSecondary.withOpacity(0.5)),
+              filled: true,
+              fillColor: AppColors.surfaceVariant,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                borderSide: BorderSide.none,
+              ),
             ),
+            style: const TextStyle(
+                fontFamily: 'Inter', fontWeight: FontWeight.w600),
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? 'Household name is required'
+                : null,
           ),
-          style:
-              const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
         ),
         actions: [
           TextButton(
@@ -561,6 +557,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
           ElevatedButton(
             onPressed: () async {
               HapticFeedback.mediumImpact();
+              if (!formKey.currentState!.validate()) return;
               final name = controller.text.trim();
               if (name.isEmpty) return;
               Navigator.pop(dialogContext);
@@ -596,6 +593,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
 
   void _showJoinDialog(BuildContext context, WidgetRef ref) {
     final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -608,22 +606,29 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               fontWeight: FontWeight.w900,
               color: AppColors.textPrimary),
         ),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: 'Invite Code',
-            hintStyle: TextStyle(
-                fontFamily: 'Inter',
-                color: AppColors.textSecondary.withOpacity(0.5)),
-            filled: true,
-            fillColor: AppColors.surfaceVariant,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-              borderSide: BorderSide.none,
+        content: Form(
+          key: formKey,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          child: TextFormField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: 'Invite Code',
+              hintStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  color: AppColors.textSecondary.withOpacity(0.5)),
+              filled: true,
+              fillColor: AppColors.surfaceVariant,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                borderSide: BorderSide.none,
+              ),
             ),
+            style: const TextStyle(
+                fontFamily: 'Inter', fontWeight: FontWeight.w600),
+            validator: (value) => (value == null || value.trim().isEmpty)
+                ? 'Invite code is required'
+                : null,
           ),
-          style:
-              const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600),
         ),
         actions: [
           TextButton(
@@ -637,6 +642,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
           ElevatedButton(
             onPressed: () async {
               HapticFeedback.mediumImpact();
+              if (!formKey.currentState!.validate()) return;
               final code = controller.text.trim();
               if (code.isEmpty) return;
               Navigator.pop(dialogContext);

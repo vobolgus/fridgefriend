@@ -10,7 +10,8 @@ import 'package:fridgefriend_mobile/core/network/api_client.dart';
 
 void main() {
   group('ApiClient', () {
-    test('createInventoryItem sends scan metadata fields when provided', () async {
+    test('createInventoryItem sends scan metadata fields when provided',
+        () async {
       late RequestOptions capturedOptions;
       final adapter = _RecordingAdapter((options) {
         capturedOptions = options;
@@ -140,8 +141,60 @@ void main() {
       expect(items.first.storageLocation, 'fridge');
     });
 
+    test('refreshes Firebase token and retries once on 401', () async {
+      final capturedAuthorizationHeaders = <String?>[];
+      var requestCount = 0;
+
+      final adapter = _SequenceAdapter((options) async {
+        capturedAuthorizationHeaders.add(
+          options.headers['Authorization']?.toString(),
+        );
+        requestCount += 1;
+
+        if (requestCount == 1) {
+          return ResponseBody.fromString(
+            '{"message":"expired"}',
+            401,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        }
+
+        return ResponseBody.fromString(
+          '[{"id":"item-1","displayName":"Milk","quantity":1,"unit":"bottle","storageLocation":"fridge","estimatedExpiryDate":"2026-04-10T00:00:00.000","confidence":0.91,"status":"active","source":"manual"}]',
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+
+      final originalForceRefreshAuthToken = forceRefreshAuthToken;
+      forceRefreshAuthToken = () async => 'refreshed-token';
+      addTearDown(() {
+        forceRefreshAuthToken = originalForceRefreshAuthToken;
+      });
+
+      final client = ApiClient(
+        baseUrl: 'https://example.test',
+        tokenProvider: () async => 'expired-token',
+      );
+      client.rawClient.httpClientAdapter = adapter;
+
+      final items = await client.getInventoryItems();
+
+      expect(items, hasLength(1));
+      expect(requestCount, 2);
+      expect(
+        capturedAuthorizationHeaders,
+        ['Bearer expired-token', 'Bearer refreshed-token'],
+      );
+    });
+
     test('uploadPhoto sends idempotency key header', () async {
-      final tmpFile = File('${Directory.systemTemp.path}/upload_test_${DateTime.now().millisecondsSinceEpoch}.txt');
+      final tmpFile = File(
+          '${Directory.systemTemp.path}/upload_test_${DateTime.now().millisecondsSinceEpoch}.txt');
       tmpFile.writeAsStringSync('test');
 
       late RequestOptions capturedOptions;
@@ -158,7 +211,8 @@ void main() {
 
         expect(capturedOptions.path, '/v1/scan/photo/upload');
         expect(
-          (capturedOptions.headers['Idempotency-Key'] as String).startsWith('upload_'),
+          (capturedOptions.headers['Idempotency-Key'] as String)
+              .startsWith('upload_'),
           isTrue,
         );
         expect(imageUrl, 'https://cdn.example.test/image.jpg');
@@ -191,5 +245,23 @@ class _RecordingAdapter implements HttpClientAdapter {
         Headers.contentTypeHeader: [Headers.jsonContentType],
       },
     );
+  }
+}
+
+class _SequenceAdapter implements HttpClientAdapter {
+  _SequenceAdapter(this._handler);
+
+  final Future<ResponseBody> Function(RequestOptions options) _handler;
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    return _handler(options);
   }
 }

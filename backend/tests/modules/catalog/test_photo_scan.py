@@ -122,13 +122,13 @@ async def test_photo_scan_returns_draft_items(photo_client: httpx.AsyncClient, a
 
     assert response.status_code == 200
     assert response.json() == {
-        "draft_items": [
+        "draftItems": [
             {
-                "display_name": "Milk",
+                "displayName": "Milk",
                 "quantity": 1.0,
                 "unit": "gallon",
                 "confidence": 0.85,
-                "canonical_name": "milk",
+                "canonicalName": "milk",
             }
         ],
         "source": "photo",
@@ -152,13 +152,13 @@ async def test_photo_scan_low_confidence_returns_editable_draft(
 
     assert response.status_code == 200
     payload = cast(dict[str, object], response.json())
-    draft_items = cast(list[dict[str, object]], payload["draft_items"])
-    assert draft_items[0]["display_name"] == "Mystery Dairy"
+    draft_items = cast(list[dict[str, object]], payload["draftItems"])
+    assert draft_items[0]["displayName"] == "Mystery Dairy"
     assert draft_items[0]["confidence"] == 0.12
 
 
 @pytest.mark.asyncio
-async def test_photo_scan_failure_returns_manual_entry_editable_draft(
+async def test_photo_scan_failure_returns_422(
     photo_client: httpx.AsyncClient,
     app: FastAPI,
 ) -> None:
@@ -170,18 +170,9 @@ async def test_photo_scan_failure_returns_manual_entry_editable_draft(
         json={"image_url": "https://example.com/fail.jpg"},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 422
     assert response.json() == {
-        "draft_items": [
-            {
-                "display_name": "",
-                "quantity": 0.0,
-                "unit": "unit",
-                "confidence": 0.0,
-                "canonical_name": None,
-            }
-        ],
-        "source": "photo",
+        "detail": "Could not parse photo. Please try again or add items manually.",
     }
 
 
@@ -220,6 +211,7 @@ class _LLMContentStringResponse:
 
 class _LLMContentStringClient:
     async def post(self, url: str, json: dict[str, object] | object) -> _LLMContentStringResponse:
+        _ = (url, json)
         return _LLMContentStringResponse()
 
 
@@ -277,7 +269,7 @@ async def allowlist_client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     async_session.add(user)
     await async_session.commit()
     await async_session.refresh(user)
-    user._firebase_uid = "allowed-uid-123"  # type: ignore[attr-defined]
+    setattr(user, "_firebase_uid", "allowed-uid-123")
 
     async def override_get_db() -> AsyncIterator[AsyncSession]:
         yield async_session
@@ -378,3 +370,27 @@ async def test_allowlist_skipped_for_mock_backend(
     finally:
         settings.PHOTO_PARSER_ALLOWED_UIDS = prev_uids
         settings.PHOTO_PARSER_BACKEND = prev_backend
+
+
+@pytest.mark.asyncio
+async def test_upload_photo_rejects_oversized_file(client: httpx.AsyncClient) -> None:
+    response = await client.post(
+        "/v1/scan/photo/upload",
+        headers={"Authorization": "Bearer test-token", "Idempotency-Key": "upload-big-1"},
+        files={"file": ("big.jpg", b"x" * (10 * 1024 * 1024 + 1), "image/jpeg")},
+    )
+
+    assert response.status_code == 413
+    assert response.json()["detail"] == "File too large (max 10MB)"
+
+
+@pytest.mark.asyncio
+async def test_upload_photo_rejects_unsupported_mime_type(client: httpx.AsyncClient) -> None:
+    response = await client.post(
+        "/v1/scan/photo/upload",
+        headers={"Authorization": "Bearer test-token", "Idempotency-Key": "upload-mime-1"},
+        files={"file": ("notes.txt", b"hello", "text/plain")},
+    )
+
+    assert response.status_code == 415
+    assert response.json()["detail"] == "Unsupported file type. Use JPEG, PNG, or WebP."

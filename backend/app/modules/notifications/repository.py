@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.notification import DeviceToken, NotificationPreference
@@ -56,10 +57,23 @@ class NotificationRepository:
         result = await self._session.execute(select(DeviceToken).where(DeviceToken.token == token))
         return result.scalar_one_or_none()
 
-    async def create_device_token(self, user_id: uuid.UUID, payload: DeviceTokenCreate) -> DeviceToken:
-        device_token = DeviceToken(user_id=user_id, token=payload.token, platform=payload.platform)
-        self._session.add(device_token)
+    async def upsert_device_token(self, user_id: uuid.UUID, payload: DeviceTokenCreate) -> DeviceToken:
+        statement = sqlite_insert(DeviceToken).values(
+            user_id=user_id,
+            token=payload.token,
+            platform=payload.platform,
+        )
+        statement = statement.on_conflict_do_update(
+            index_elements=[DeviceToken.token],
+            set_={
+                "user_id": user_id,
+                "platform": payload.platform,
+            },
+        )
+        _ = await self._session.execute(statement)
         await self._session.commit()
+        result = await self._session.execute(select(DeviceToken).where(DeviceToken.token == payload.token))
+        device_token = result.scalar_one()
         await self._session.refresh(device_token)
         return device_token
 

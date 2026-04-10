@@ -1,4 +1,4 @@
-# pyright: reportAny=false, reportExplicitAny=false
+# pyright: reportAny=false, reportExplicitAny=false, reportCallInDefaultInitializer=false
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from collections.abc import AsyncIterator
 from typing import Annotated, NoReturn
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import StreamingResponse
 
 from app.core.idempotency import get_cached, require_idempotency_key, store_cached
@@ -248,9 +248,9 @@ async def get_household_activity(
     household_service: Annotated[HouseholdService, Depends(get_household_service)],
     activity_service: Annotated[ActivityService, Depends(get_activity_service)],
     current_user: Annotated[User, Depends(get_current_user)],
-    limit: int = 20,
-    offset: int = 0,
- ) -> list[dict[str, object]]:
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+) -> list[dict[str, object]]:
     try:
         household = await household_service.get_household(current_user, household_id)
     except HouseholdNotFoundError:

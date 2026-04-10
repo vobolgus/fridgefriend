@@ -46,6 +46,14 @@ def test_sentry_config_from_env(monkeypatch: MonkeyPatch) -> None:
     assert settings.SENTRY_ENVIRONMENT == "production"
 
 
+def test_environment_default(monkeypatch: MonkeyPatch) -> None:
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+
+    settings = Settings()
+
+    assert settings.ENVIRONMENT == "development"
+
+
 def test_amplitude_api_key_default(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.delenv("AMPLITUDE_API_KEY", raising=False)
 

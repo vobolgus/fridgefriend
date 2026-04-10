@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' as widgets;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -54,8 +55,7 @@ class RecipesTable extends Table {
 
   TextColumn get missingItemsJson => text().withDefault(const Constant('[]'))();
 
-  DateTimeColumn get syncedAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get syncedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -68,8 +68,7 @@ class MealPlansTable extends Table {
 
   TextColumn get shoppingListJson => text().withDefault(const Constant('[]'))();
 
-  DateTimeColumn get syncedAt =>
-      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get syncedAt => dateTime().withDefault(currentDateAndTime)();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -89,37 +88,41 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-    onCreate: (Migrator migrator) async {
-      await migrator.createAll();
-      await _ensureAuxiliaryTables();
-    },
-    onUpgrade: (Migrator migrator, int from, int to) async {
-      if (from < 2) {
-        await _ensureAuxiliaryTables();
-      }
-      if (from < 3) {
-        await customStatement(
-          'ALTER TABLE inventory_items_table ADD COLUMN version INTEGER NOT NULL DEFAULT 1',
-        );
-        await _ensureAuxiliaryTables();
-      }
-      if (from < 4) {
-        try {
-          await customStatement(
-            'ALTER TABLE inventory_items_table ADD COLUMN canonical_name TEXT',
-          );
-        } catch (_) {}
-        try {
-          await customStatement(
-            'ALTER TABLE inventory_items_table ADD COLUMN canonical_ingredient_id TEXT',
-          );
-        } catch (_) {}
-      }
-    },
-    beforeOpen: (details) async {
-      await _ensureAuxiliaryTables();
-    },
-  );
+        onCreate: (Migrator migrator) async {
+          await migrator.createAll();
+          await _ensureAuxiliaryTables();
+        },
+        onUpgrade: (Migrator migrator, int from, int to) async {
+          if (from < 2) {
+            await _ensureAuxiliaryTables();
+          }
+          if (from < 3) {
+            await customStatement(
+              'ALTER TABLE inventory_items_table ADD COLUMN version INTEGER NOT NULL DEFAULT 1',
+            );
+            await _ensureAuxiliaryTables();
+          }
+          if (from < 4) {
+            try {
+              await customStatement(
+                'ALTER TABLE inventory_items_table ADD COLUMN canonical_name TEXT',
+              );
+            } catch (e) {
+              debugPrint('Migration: column may already exist: $e');
+            }
+            try {
+              await customStatement(
+                'ALTER TABLE inventory_items_table ADD COLUMN canonical_ingredient_id TEXT',
+              );
+            } catch (e) {
+              debugPrint('Migration: column may already exist: $e');
+            }
+          }
+        },
+        beforeOpen: (details) async {
+          await _ensureAuxiliaryTables();
+        },
+      );
 
   Future<void> _ensureAuxiliaryTables() async {
     await customStatement('''
@@ -139,8 +142,8 @@ class AppDatabase extends _$AppDatabase {
       await customStatement(
         "ALTER TABLE recipes_cache ADD COLUMN substitutions_json TEXT NOT NULL DEFAULT '[]'",
       );
-    } catch (_) {
-      // Column already exists.
+    } catch (e) {
+      debugPrint('Migration: column may already exist: $e');
     }
 
     await customStatement('''

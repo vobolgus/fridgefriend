@@ -24,57 +24,98 @@ class HouseholdSseClient {
   static const Duration _initialReconnectDelay = Duration(seconds: 1);
   static const Duration _maxReconnectDelay = Duration(seconds: 30);
 
-  Stream<HouseholdSseEvent> connect(String householdId) async* {
-    Duration reconnectDelay = _initialReconnectDelay;
-    String? lastEventId;
+  Stream<HouseholdSseEvent> connect(String householdId) {
+    late final StreamController<HouseholdSseEvent> controller;
+    CancelToken? cancelToken;
+    var isDisposed = false;
 
-    while (true) {
-      try {
-        final response = await _apiClient.rawClient.get<ResponseBody>(
-          '${ApiConfig.apiVersionPath}/households/$householdId/events',
-          options: Options(
-            responseType: ResponseType.stream,
-            headers: {
-              if (lastEventId != null) 'Last-Event-ID': lastEventId,
-            },
-          ),
-        );
+    Future<void> pumpEvents() async {
+      Duration reconnectDelay = _initialReconnectDelay;
+      String? lastEventId;
 
-        reconnectDelay = _initialReconnectDelay;
+      while (!isDisposed) {
+        cancelToken = CancelToken();
+        try {
+          final response = await _apiClient.rawClient.get<ResponseBody>(
+            '${ApiConfig.apiVersionPath}/households/$householdId/events',
+            cancelToken: cancelToken,
+            options: Options(
+              responseType: ResponseType.stream,
+              headers: {
+                if (lastEventId != null) 'Last-Event-ID': lastEventId,
+              },
+            ),
+          );
 
-        final body = response.data;
-        if (body == null) {
-          return;
-        }
+          reconnectDelay = _initialReconnectDelay;
 
-        final buffer = StringBuffer();
-        await for (final chunk
-            in body.stream.cast<List<int>>().transform(utf8.decoder)) {
-          buffer.write(chunk);
-          final payload = buffer.toString();
-          final frames = payload.split('\n\n');
-
-          if (frames.length < 2) {
-            continue;
+          final body = response.data;
+          if (body == null) {
+            break;
           }
 
-          buffer
-            ..clear()
-            ..write(frames.removeLast());
+          final buffer = StringBuffer();
+          await for (final chunk
+              in body.stream.cast<List<int>>().transform(utf8.decoder)) {
+            if (isDisposed) {
+              break;
+            }
 
-          for (final frame in frames) {
-            final event = parseFrame(frame);
-            if (event != null) {
-              lastEventId = event.eventId ?? lastEventId;
-              yield event;
+            buffer.write(chunk);
+            final payload = buffer.toString();
+            final frames = payload.split('\n\n');
+
+            if (frames.length < 2) {
+              continue;
+            }
+
+            buffer
+              ..clear()
+              ..write(frames.removeLast());
+
+            for (final frame in frames) {
+              final event = parseFrame(frame);
+              if (event != null && !controller.isClosed) {
+                lastEventId = event.eventId ?? lastEventId;
+                controller.add(event);
+              }
             }
           }
+        } on DioException catch (error) {
+          if (isDisposed || CancelToken.isCancel(error)) {
+            break;
+          }
+
+          await Future<void>.delayed(_applyJitter(reconnectDelay));
+          reconnectDelay = _nextReconnectDelay(reconnectDelay);
+        } catch (_) {
+          if (isDisposed) {
+            break;
+          }
+
+          await Future<void>.delayed(_applyJitter(reconnectDelay));
+          reconnectDelay = _nextReconnectDelay(reconnectDelay);
+        } finally {
+          cancelToken = null;
         }
-      } on DioException {
-        await Future<void>.delayed(_applyJitter(reconnectDelay));
-        reconnectDelay = _nextReconnectDelay(reconnectDelay);
+      }
+
+      if (!controller.isClosed) {
+        await controller.close();
       }
     }
+
+    controller = StreamController<HouseholdSseEvent>(
+      onListen: () {
+        unawaited(pumpEvents());
+      },
+      onCancel: () {
+        isDisposed = true;
+        cancelToken?.cancel('Household SSE stream disposed');
+      },
+    );
+
+    return controller.stream;
   }
 
   Duration _nextReconnectDelay(Duration currentDelay) {

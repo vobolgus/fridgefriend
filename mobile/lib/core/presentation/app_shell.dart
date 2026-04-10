@@ -37,6 +37,12 @@ class AppShell extends ConsumerWidget {
     ref.watch(deviceTokenRegistrationProvider);
     _watchHouseholdEvents(ref);
 
+    final householdsAsync = ref.watch(householdsProvider);
+    final households = householdsAsync.valueOrNull;
+    final activeHousehold = households?.where((h) => h.isActive).firstOrNull ??
+        households?.firstOrNull;
+    final householdName = activeHousehold?.name;
+
     final currentIndex = switch (location) {
       '/recipes' => 1,
       '/meal-plan' => 2,
@@ -59,11 +65,27 @@ class AppShell extends ConsumerWidget {
                   size: 18, color: AppColors.textOnPrimary),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Text(
-              'FridgeFriend',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'FridgeFriend',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                ),
+                if (householdName != null)
+                  Text(
+                    householdName,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
+              ],
             ),
           ],
         ),

@@ -21,6 +21,19 @@ class InventoryRepositoryImpl implements InventoryRepository {
   final ApiClient _apiClient;
   final InventoryDao _inventoryDao;
   final SyncManager _syncManager;
+  Future<void>? _cleanupFuture;
+
+  Future<void> cleanupOrphanedItems() async {
+    final cutoff = DateTime.now().subtract(const Duration(days: 7));
+    final items = await _inventoryDao.getAllItems();
+
+    for (final item in items.where((item) => item.id.startsWith('offline_'))) {
+      final createdAt = _offlineCreatedAt(item.id);
+      if (createdAt != null && createdAt.isBefore(cutoff)) {
+        await _inventoryDao.deleteItem(item.id);
+      }
+    }
+  }
 
   @override
   Future<InventoryItem> createInventoryItem({
@@ -34,6 +47,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
     double? confidence,
     DateTime? estimatedExpiryDate,
   }) async {
+    await _ensureCleanup();
+
     if (displayName.trim().isEmpty || quantity <= 0) {
       throw ArgumentError(
           'Item must have a non-empty name and positive quantity');
@@ -78,13 +93,17 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
   @override
   Future<List<InventoryItem>> getInventoryItems() async {
+    await _ensureCleanup();
+
     final cached = await _loadCachedItems();
-    unawaited(syncInventoryItems());
+    unawaited(_syncInBackground());
     return cached;
   }
 
   @override
   Future<List<InventoryItem>> syncInventoryItems() async {
+    await _ensureCleanup();
+
     await _syncManager.flushPendingMutations();
     final remaining = await _syncManager.pendingMutations();
     final remoteItems = await _apiClient.getInventoryItems();
@@ -179,6 +198,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
     DateTime? estimatedExpiryDate,
     int? version,
   }) async {
+    await _ensureCleanup();
+
     try {
       final updated = await _apiClient.updateItem(
         id: id,
@@ -250,6 +271,8 @@ class InventoryRepositoryImpl implements InventoryRepository {
   @override
   Future<InventoryItem> updateItemStatus(String id, String status,
       {int? version}) async {
+    await _ensureCleanup();
+
     final allItems = await _inventoryDao.getAllItems();
     final existing = allItems.where((item) => item.id == id).firstOrNull;
     final previousStatus = allItems
@@ -332,7 +355,18 @@ class InventoryRepositoryImpl implements InventoryRepository {
 
   @override
   Future<void> undoItem(String id) async {
+    await _ensureCleanup();
     await _apiClient.undoItem(id);
+  }
+
+  Future<void> _syncInBackground() async {
+    try {
+      await syncInventoryItems();
+    } catch (_) {}
+  }
+
+  Future<void> _ensureCleanup() {
+    return _cleanupFuture ??= cleanupOrphanedItems();
   }
 
   Future<List<InventoryItem>> _loadCachedItems() async {
@@ -393,5 +427,19 @@ class InventoryRepositoryImpl implements InventoryRepository {
       canonicalIngredientId: Value(item.canonicalIngredientId),
       version: Value(item.version),
     );
+  }
+
+  DateTime? _offlineCreatedAt(String id) {
+    if (!id.startsWith('offline_')) {
+      return null;
+    }
+
+    final rawTimestamp = id.substring('offline_'.length);
+    final microseconds = int.tryParse(rawTimestamp);
+    if (microseconds == null) {
+      return null;
+    }
+
+    return DateTime.fromMicrosecondsSinceEpoch(microseconds);
   }
 }

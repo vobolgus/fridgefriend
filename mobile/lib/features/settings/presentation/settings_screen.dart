@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 import 'package:fridgefriend_mobile/core/presentation/providers/theme_provider.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
 import 'providers.dart';
+
+final _appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return 'v${info.version} (${info.buildNumber})';
+});
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -21,20 +28,7 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(
-          'Settings',
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w900,
-            fontSize: 24,
-            color: colorScheme.onSurface,
-          ),
-        ),
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        elevation: 0,
-        centerTitle: false,
-      ),
+      appBar: const FridgeFriendAppBar(title: 'Settings'),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
@@ -310,38 +304,60 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.xxl),
           OutlinedButton.icon(
             onPressed: () async {
-              HapticFeedback.heavyImpact();
-              final syncManager = ref.read(syncManagerProvider);
-              final pending = await syncManager.pendingMutations();
-              if (pending.isNotEmpty) {
-                try {
-                  await syncManager.flushPendingMutations();
-                } catch (_) {
-                  // flush threw — fall through to remaining check
-                }
-                final remaining = await syncManager.pendingMutations();
-                if (remaining.isNotEmpty) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Sync pending changes before signing out')),
-                    );
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Sign Out',
+                      style: TextStyle(
+                          fontFamily: 'Inter', fontWeight: FontWeight.w800)),
+                  content: const Text('Are you sure you want to sign out?'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel')),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.error),
+                      child: const Text('Sign Out'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                HapticFeedback.heavyImpact();
+                final syncManager = ref.read(syncManagerProvider);
+                final pending = await syncManager.pendingMutations();
+                if (pending.isNotEmpty) {
+                  try {
+                    await syncManager.flushPendingMutations();
+                  } catch (_) {
+                    // flush threw — fall through to remaining check
                   }
-                  return;
+                  final remaining = await syncManager.pendingMutations();
+                  if (remaining.isNotEmpty) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Sync pending changes before signing out')),
+                      );
+                    }
+                    return;
+                  }
                 }
+
+                final pushService = ref.read(pushNotificationServiceProvider);
+                final apiClient = ref.read(apiClientProvider);
+                await pushService.unregisterToken(apiClient);
+
+                final db = ref.read(appDatabaseProvider);
+                await db.inventoryDao.clearAll();
+                await db.recipeDao.clear();
+                await db.mealPlanDao.clear();
+
+                await ref.read(authServiceProvider).signOut();
               }
-
-              final pushService = ref.read(pushNotificationServiceProvider);
-              final apiClient = ref.read(apiClientProvider);
-              await pushService.unregisterToken(apiClient);
-
-              final db = ref.read(appDatabaseProvider);
-              await db.inventoryDao.clearAll();
-              await db.recipeDao.clear();
-              await db.mealPlanDao.clear();
-
-              await ref.read(authServiceProvider).signOut();
             },
             icon: const Icon(Icons.logout_rounded),
             label: const Text('Sign Out'),
@@ -361,16 +377,29 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xl),
           Center(
-            child: Text(
-              'v1.0.0',
-              style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-                letterSpacing: 2,
-                color: AppColors.textSecondary.withOpacity(0.5),
-              ),
-            ),
+            child: ref.watch(_appVersionProvider).when(
+                  data: (version) => Text(
+                    version,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      letterSpacing: 2,
+                      color: AppColors.textSecondary.withOpacity(0.5),
+                    ),
+                  ),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => Text(
+                    'v0.1.0',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      letterSpacing: 2,
+                      color: AppColors.textSecondary.withOpacity(0.5),
+                    ),
+                  ),
+                ),
           ),
           const SizedBox(height: AppSpacing.xxl),
         ],

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
@@ -34,7 +35,8 @@ String _formatTime(TimeOfDay time) {
   return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}:00';
 }
 
-class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferences> {
+class NotificationPreferencesNotifier
+    extends AsyncNotifier<NotificationPreferences> {
   @override
   Future<NotificationPreferences> build() async {
     final apiClient = ref.watch(apiClientProvider);
@@ -50,62 +52,72 @@ class NotificationPreferencesNotifier extends AsyncNotifier<NotificationPreferen
   Future<void> toggleEnabled(bool enabled) async {
     final current = state.valueOrNull;
     if (current == null) return;
+    final updated = NotificationPreferences(
+      enabled: enabled,
+      reminderDaysBefore: current.reminderDaysBefore,
+      quietHoursStart: current.quietHoursStart,
+      quietHoursEnd: current.quietHoursEnd,
+    );
+    state = AsyncValue.data(updated);
     try {
       final apiClient = ref.read(apiClientProvider);
-      await apiClient.updateNotificationPreferences(expiryReminderEnabled: enabled);
-      state = AsyncValue.data(NotificationPreferences(
-        enabled: enabled,
-        reminderDaysBefore: current.reminderDaysBefore,
-        quietHoursStart: current.quietHoursStart,
-        quietHoursEnd: current.quietHoursEnd,
-      ));
-    } catch (_) {
-      state = AsyncValue.data(current);
+      await apiClient.updateNotificationPreferences(
+          expiryReminderEnabled: enabled);
+    } catch (e) {
+      debugPrint(
+          'Failed to sync notification preference (enabled=$enabled): $e');
     }
   }
 
   Future<void> setReminderDaysBefore(int days) async {
     final current = state.valueOrNull;
     if (current == null) return;
+    final updated = NotificationPreferences(
+      enabled: current.enabled,
+      reminderDaysBefore: days,
+      quietHoursStart: current.quietHoursStart,
+      quietHoursEnd: current.quietHoursEnd,
+    );
+    state = AsyncValue.data(updated);
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.updateNotificationPreferences(reminderDaysBefore: days);
-      state = AsyncValue.data(NotificationPreferences(
-        enabled: current.enabled,
-        reminderDaysBefore: days,
-        quietHoursStart: current.quietHoursStart,
-        quietHoursEnd: current.quietHoursEnd,
-      ));
-    } catch (_) {
-      state = AsyncValue.data(current);
+    } catch (e) {
+      debugPrint(
+          'Failed to sync notification preference (reminderDaysBefore=$days): $e');
     }
   }
 
   Future<void> setQuietHours(TimeOfDay? start, TimeOfDay? end) async {
     final current = state.valueOrNull;
     if (current == null) return;
+    final updated = NotificationPreferences(
+      enabled: current.enabled,
+      reminderDaysBefore: current.reminderDaysBefore,
+      quietHoursStart: start,
+      quietHoursEnd: end,
+    );
+    state = AsyncValue.data(updated);
     try {
       final apiClient = ref.read(apiClientProvider);
       await apiClient.updateNotificationPreferences(
         quietHoursStart: start != null ? _formatTime(start) : null,
         quietHoursEnd: end != null ? _formatTime(end) : null,
       );
-      state = AsyncValue.data(NotificationPreferences(
-        enabled: current.enabled,
-        reminderDaysBefore: current.reminderDaysBefore,
-        quietHoursStart: start,
-        quietHoursEnd: end,
-      ));
-    } catch (_) {
-      state = AsyncValue.data(current);
+    } catch (e) {
+      debugPrint(
+        'Failed to sync notification quiet hours '
+        '(start=${start != null ? _formatTime(start) : null}, '
+        'end=${end != null ? _formatTime(end) : null}): $e',
+      );
     }
   }
 }
 
-final notificationPreferencesProvider =
-    AsyncNotifierProvider<NotificationPreferencesNotifier, NotificationPreferences>(
-      NotificationPreferencesNotifier.new,
-    );
+final notificationPreferencesProvider = AsyncNotifierProvider<
+    NotificationPreferencesNotifier, NotificationPreferences>(
+  NotificationPreferencesNotifier.new,
+);
 
 class NotificationsNotifier extends AsyncNotifier<bool> {
   @override
@@ -119,7 +131,8 @@ class NotificationsNotifier extends AsyncNotifier<bool> {
     final current = state.valueOrNull;
     try {
       final apiClient = ref.read(apiClientProvider);
-      await apiClient.updateNotificationPreferences(expiryReminderEnabled: enabled);
+      await apiClient.updateNotificationPreferences(
+          expiryReminderEnabled: enabled);
       state = AsyncValue.data(enabled);
     } catch (_) {
       if (current != null) {
@@ -130,9 +143,11 @@ class NotificationsNotifier extends AsyncNotifier<bool> {
 }
 
 final notificationsEnabledProvider =
-    AsyncNotifierProvider<NotificationsNotifier, bool>(NotificationsNotifier.new);
+    AsyncNotifierProvider<NotificationsNotifier, bool>(
+        NotificationsNotifier.new);
 
-final pushNotificationServiceProvider = Provider<PushNotificationService>((ref) {
+final pushNotificationServiceProvider =
+    Provider<PushNotificationService>((ref) {
   if (useMockAuth) {
     return MockPushNotificationService();
   }

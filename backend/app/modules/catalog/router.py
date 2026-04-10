@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, cast
 from uuid import uuid4
 
@@ -24,6 +25,7 @@ from .schemas import (
 from .service import CatalogService
 
 router = APIRouter(prefix="/v1/scan", tags=["catalog"])
+logger = logging.getLogger(__name__)
 
 
 async def get_catalog_service(
@@ -61,16 +63,18 @@ async def scan_barcode(
 
     resolved = await service.lookup_barcode_with_canonical(payload.barcode)
     if resolved is None:
-        response = BarcodeScanResponse(
-            barcode=payload.barcode,
-            display_name="",
-            canonical_name="",
-            canonical_ingredient_id=None,
-            brand="",
-            quantity=payload.quantity,
-            storage_location=payload.storage_location,
-            confidence=0.0,
-            source="barcode",
+        response = BarcodeScanResponse.model_validate(
+            {
+                "barcode": payload.barcode,
+                "display_name": "",
+                "canonical_name": "",
+                "canonical_ingredient_id": None,
+                "brand": "",
+                "quantity": payload.quantity,
+                "storage_location": payload.storage_location,
+                "confidence": 0.0,
+                "source": "barcode",
+            }
         )
     else:
         result, canonical = resolved
@@ -127,14 +131,14 @@ async def scan_photo(
     if cached:
         return PhotoScanResponse.model_validate(cached)
 
-    import logging as _logging
-    _log = _logging.getLogger("app.modules.catalog.router")
-
     try:
         raw_items = await parser.parse_image(payload.image_url)
-    except Exception as exc:
-        _log.exception("Photo parse failed: %s", exc)
-        raw_items = []
+    except Exception as e:
+        logger.exception("Photo parse failed: %s", e)
+        raise HTTPException(
+            status_code=422,
+            detail="Could not parse photo. Please try again or add items manually.",
+        ) from e
 
     draft_items: list[DraftItem] = []
     for raw_item in raw_items:
@@ -150,27 +154,31 @@ async def scan_photo(
         )
 
         draft_items.append(
-            DraftItem(
-                display_name=display_name,
-                quantity=max(quantity, 0.0),
-                unit=unit,
-                confidence=confidence,
-                canonical_name=normalized_canonical_name or None,
+            DraftItem.model_validate(
+                {
+                    "display_name": display_name,
+                    "quantity": max(quantity, 0.0),
+                    "unit": unit,
+                    "confidence": confidence,
+                    "canonical_name": normalized_canonical_name or None,
+                }
             )
         )
 
     if not draft_items:
         draft_items.append(
-            DraftItem(
-                display_name="",
-                quantity=0.0,
-                unit="unit",
-                confidence=0.0,
-                canonical_name=None,
+            DraftItem.model_validate(
+                {
+                    "display_name": "",
+                    "quantity": 0.0,
+                    "unit": "unit",
+                    "confidence": 0.0,
+                    "canonical_name": None,
+                }
             )
         )
 
-    response = PhotoScanResponse(draft_items=draft_items)
+    response = PhotoScanResponse.model_validate({"draft_items": draft_items})
     store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
     return response
 
@@ -216,6 +224,11 @@ async def upload_photo(
     returned ``image_url`` to ``POST /v1/scan/photo`` for AI parsing.
     This avoids sending raw local file paths to the scan endpoint.
     """
+    if file.size and file.size > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="File too large (max 10MB)")
+    if file.content_type not in ("image/jpeg", "image/png", "image/webp"):
+        raise HTTPException(status_code=415, detail="Unsupported file type. Use JPEG, PNG, or WebP.")
+
     cached = get_cached(str(current_user.id), request.url.path, idempotency_key)
     if cached:
         cached_response = cast(dict[str, str], cached)

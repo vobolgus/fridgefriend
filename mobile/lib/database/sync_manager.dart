@@ -39,6 +39,7 @@ class SyncManager {
   final AppDatabase _database;
   final ApiClient _apiClient;
   final InventoryDao _inventoryDao;
+  bool _isFlushing = false;
 
   Future<void> queueCreate(InventoryItem item, {String? idempotencyKey}) {
     final payload = item.toJson();
@@ -135,114 +136,127 @@ class SyncManager {
   }
 
   Future<void> flushPendingMutations() async {
-    while (true) {
-      final mutations = await pendingMutations();
-      if (mutations.isEmpty) {
-        return;
-      }
-      final mutation = mutations.first;
+    if (_isFlushing) {
+      return;
+    }
 
-      if (mutation.entityType != 'inventory') {
-        await _deleteMutation(mutation.id);
-        continue;
-      }
+    _isFlushing = true;
+    try {
+      while (true) {
+        final mutations = await pendingMutations();
+        if (mutations.isEmpty) {
+          return;
+        }
+        final mutation = mutations.first;
 
-      try {
-        if (mutation.action == 'create') {
-          final syncedItem = await _apiClient.createInventoryItem(
-            displayName: (mutation.payload['displayName'] ?? '').toString(),
-            quantity: _toDouble(mutation.payload['quantity']),
-            unit: (mutation.payload['unit'] ?? '').toString(),
-            storageLocation:
-                (mutation.payload['storageLocation'] ?? '').toString(),
-            source: mutation.payload['source']?.toString(),
-            canonicalName: mutation.payload['canonicalName']?.toString(),
-            canonicalIngredientId:
-                mutation.payload['canonicalIngredientId']?.toString(),
-            confidence: mutation.payload['confidence'] == null
-                ? null
-                : _toDouble(mutation.payload['confidence']),
-            estimatedExpiryDate: mutation.payload['estimatedExpiryDate'] == null
-                ? null
-                : DateTime.tryParse(
-                    mutation.payload['estimatedExpiryDate'].toString(),
-                  ),
-            idempotencyKey: mutation.payload['_idempotencyKey']?.toString(),
-          );
-          await _retargetPendingMutations(
-            fromEntityId: mutation.entityId,
-            toEntityId: syncedItem.id,
-            version: syncedItem.version,
-          );
-
-          await _inventoryDao.deleteItem(mutation.entityId);
-          await _inventoryDao.insertItem(_toCompanion(syncedItem));
+        if (mutation.entityType != 'inventory') {
           await _deleteMutation(mutation.id);
           continue;
         }
 
-        if (mutation.action == 'status_update') {
-          final statusVersion = mutation.payload['version'] is int
-              ? mutation.payload['version'] as int
-              : int.tryParse(mutation.payload['version']?.toString() ?? '');
-          final localStatusItem = _itemFromPayload(mutation.payload);
-          final syncedStatus = await _applyWithConflictResolution(
-            mutation: mutation,
-            submit: (item, version) => _apiClient.updateItemStatus(
-              item.id,
-              item.status,
-              version: version,
-            ),
-            localItem: localStatusItem,
-            version: statusVersion,
-          );
-          await _rebasePendingMutations(
-            entityId: mutation.entityId,
-            version: syncedStatus.version,
-          );
-          await _inventoryDao.insertItem(_toCompanion(syncedStatus));
-          await _deleteMutation(mutation.id);
-          continue;
-        }
+        try {
+          if (mutation.action == 'create') {
+            final syncedItem = await _apiClient.createInventoryItem(
+              displayName: (mutation.payload['displayName'] ?? '').toString(),
+              quantity: _toDouble(mutation.payload['quantity']),
+              unit: (mutation.payload['unit'] ?? '').toString(),
+              storageLocation:
+                  (mutation.payload['storageLocation'] ?? '').toString(),
+              source: mutation.payload['source']?.toString(),
+              canonicalName: mutation.payload['canonicalName']?.toString(),
+              canonicalIngredientId:
+                  mutation.payload['canonicalIngredientId']?.toString(),
+              confidence: mutation.payload['confidence'] == null
+                  ? null
+                  : _toDouble(mutation.payload['confidence']),
+              estimatedExpiryDate:
+                  mutation.payload['estimatedExpiryDate'] == null
+                      ? null
+                      : DateTime.tryParse(
+                          mutation.payload['estimatedExpiryDate'].toString(),
+                        ),
+              idempotencyKey: mutation.payload['_idempotencyKey']?.toString(),
+            );
+            await _retargetPendingMutations(
+              fromEntityId: mutation.entityId,
+              toEntityId: syncedItem.id,
+              version: syncedItem.version,
+            );
 
-        if (mutation.action == 'update') {
-          final localUpdateItem = _itemFromPayload(mutation.payload);
-          final syncedUpdate = await _applyWithConflictResolution(
-            mutation: mutation,
-            submit: (item, version) => _apiClient.updateItem(
-              id: item.id,
-              displayName: item.displayName,
-              quantity: item.quantity,
-              unit: item.unit,
-              storageLocation: item.storageLocation,
-              estimatedExpiryDate: item.estimatedExpiryDate,
-              version: version,
-            ),
-            localItem: localUpdateItem,
-            version: mutation.payload['version'] is int
+            await _inventoryDao.deleteItem(mutation.entityId);
+            await _inventoryDao.insertItem(_toCompanion(syncedItem));
+            await _deleteMutation(mutation.id);
+            continue;
+          }
+
+          if (mutation.action == 'status_update') {
+            final statusVersion = mutation.payload['version'] is int
                 ? mutation.payload['version'] as int
-                : int.tryParse(mutation.payload['version']?.toString() ?? ''),
-          );
-          await _rebasePendingMutations(
-            entityId: mutation.entityId,
-            version: syncedUpdate.version,
-          );
-          await _inventoryDao.insertItem(_toCompanion(syncedUpdate));
-          await _deleteMutation(mutation.id);
-          continue;
-        }
-      } on DioException catch (e) {
-        final statusCode = e.response?.statusCode;
-        if (statusCode != null && statusCode >= 400 && statusCode < 500) {
-          await _deleteMutation(mutation.id);
-          continue;
-        }
-        return;
-      } catch (_) {
-        return;
-      }
+                : int.tryParse(mutation.payload['version']?.toString() ?? '');
+            final localStatusItem = _itemFromPayload(mutation.payload);
+            final syncedStatus = await _applyWithConflictResolution(
+              mutation: mutation,
+              submit: (item, version) => _apiClient.updateItemStatus(
+                item.id,
+                item.status,
+                version: version,
+              ),
+              localItem: localStatusItem,
+              version: statusVersion,
+            );
+            await _rebasePendingMutations(
+              entityId: mutation.entityId,
+              version: syncedStatus.version,
+            );
+            await _inventoryDao.insertItem(_toCompanion(syncedStatus));
+            await _deleteMutation(mutation.id);
+            continue;
+          }
 
-      await _deleteMutation(mutation.id);
+          if (mutation.action == 'update') {
+            final localUpdateItem = _itemFromPayload(mutation.payload);
+            final syncedUpdate = await _applyWithConflictResolution(
+              mutation: mutation,
+              submit: (item, version) => _apiClient.updateItem(
+                id: item.id,
+                displayName: item.displayName,
+                quantity: item.quantity,
+                unit: item.unit,
+                storageLocation: item.storageLocation,
+                estimatedExpiryDate: item.estimatedExpiryDate,
+                version: version,
+              ),
+              localItem: localUpdateItem,
+              version: mutation.payload['version'] is int
+                  ? mutation.payload['version'] as int
+                  : int.tryParse(mutation.payload['version']?.toString() ?? ''),
+            );
+            await _rebasePendingMutations(
+              entityId: mutation.entityId,
+              version: syncedUpdate.version,
+            );
+            await _inventoryDao.insertItem(_toCompanion(syncedUpdate));
+            await _deleteMutation(mutation.id);
+            continue;
+          }
+        } on DioException catch (e) {
+          final statusCode = e.response?.statusCode;
+          if (statusCode != null &&
+              statusCode >= 400 &&
+              statusCode < 500 &&
+              statusCode != 401) {
+            await _deleteMutation(mutation.id);
+            continue;
+          }
+          return;
+        } catch (_) {
+          return;
+        }
+
+        await _deleteMutation(mutation.id);
+      }
+    } finally {
+      _isFlushing = false;
     }
   }
 

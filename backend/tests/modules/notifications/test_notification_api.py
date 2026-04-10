@@ -117,6 +117,35 @@ async def test_register_device_token(
 
 
 @pytest.mark.asyncio
+async def test_register_device_token_upserts_existing_token(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    notifications_test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    existing = DeviceToken(user_id=notifications_test_user.id, token="device-token-upsert", platform="ios")
+    db_session.add(existing)
+    await db_session.commit()
+    await db_session.refresh(existing)
+
+    response = await client.post(
+        "/v1/notifications/devices",
+        headers=_headers(test_headers, "notifications-register-device-upsert"),
+        json={"token": "device-token-upsert", "platform": "android"},
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert payload["id"] == str(existing.id)
+    assert payload["platform"] == "android"
+
+    result = await db_session.execute(select(DeviceToken).where(DeviceToken.token == "device-token-upsert"))
+    tokens = result.scalars().all()
+    assert len(tokens) == 1
+    assert tokens[0].platform == "android"
+
+
+@pytest.mark.asyncio
 async def test_unregister_device_token(
     client: httpx.AsyncClient,
     test_headers: dict[str, str],

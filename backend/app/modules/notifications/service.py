@@ -32,10 +32,7 @@ class NotificationService:
         return await self._repository.update_preferences(preference, payload)
 
     async def register_device_token(self, user: User, payload: DeviceTokenCreate) -> DeviceToken:
-        existing = await self._repository.get_device_token_by_value(payload.token)
-        if existing is not None:
-            return await self._repository.update_device_token(existing, user_id=user.id, platform=payload.platform)
-        return await self._repository.create_device_token(user.id, payload)
+        return await self._repository.upsert_device_token(user.id, payload)
 
     async def unregister_device_token(self, user: User, token_id: uuid.UUID) -> None:
         device_token = await self._repository.get_device_token(user.id, token_id)

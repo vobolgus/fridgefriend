@@ -172,7 +172,7 @@ async def test_add_items_via_manual_barcode_photo(
     assert barcode.json()["source"] == "barcode"
     assert barcode.json()["confidence"] == 1.0
     assert photo.status_code == 200
-    assert "draft_items" in cast(dict[str, object], photo.json())
+    assert "draftItems" in cast(dict[str, object], photo.json())
 
 
 @pytest.mark.asyncio

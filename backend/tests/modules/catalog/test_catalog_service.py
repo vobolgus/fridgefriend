@@ -118,14 +118,14 @@ async def test_barcode_api_endpoint_found(client: httpx.AsyncClient) -> None:
     assert response.status_code == 200
     payload = cast(dict[str, object], response.json())
     assert payload["barcode"] == "8710847909610"
-    assert payload["display_name"] == "Whole Milk 1L"
-    assert payload["canonical_name"] == "milk"
+    assert payload["displayName"] == "Whole Milk 1L"
+    assert payload["canonicalName"] == "milk"
     assert payload["brand"] == "Generic"
     assert payload["quantity"] == 1.0
-    assert payload["storage_location"] == "fridge"
+    assert payload["storageLocation"] == "fridge"
     assert payload["confidence"] == 1.0
     assert payload["source"] == "barcode"
-    assert payload["canonical_ingredient_id"] is not None
+    assert payload["canonicalIngredientId"] is not None
 
 
 @pytest.mark.asyncio
@@ -157,15 +157,39 @@ async def test_barcode_api_endpoint_not_found_returns_editable_draft(client: htt
     assert response.status_code == 200
     assert response.json() == {
         "barcode": "9999999999999",
-        "display_name": "",
-        "canonical_name": "",
+        "displayName": "",
+        "canonicalName": "",
         "brand": "",
-        "canonical_ingredient_id": None,
+        "canonicalIngredientId": None,
         "quantity": 1.0,
-        "storage_location": "pantry",
+        "storageLocation": "pantry",
         "confidence": 0.0,
         "source": "barcode",
     }
+
+
+@pytest.mark.asyncio
+async def test_barcode_api_endpoint_serializes_camel_case_keys(client: httpx.AsyncClient) -> None:
+    response = await client.post(
+        "/v1/scan/barcode",
+        headers=_headers("barcode-camel-case-1"),
+        json={
+            "barcode": "8710847909610",
+            "quantity": 1,
+            "storage_location": "fridge",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = cast(dict[str, object], response.json())
+    assert "displayName" in payload
+    assert "canonicalName" in payload
+    assert "storageLocation" in payload
+    assert "canonicalIngredientId" in payload
+    assert "display_name" not in payload
+    assert "canonical_name" not in payload
+    assert "storage_location" not in payload
+    assert "canonical_ingredient_id" not in payload
 
 
 @pytest.mark.asyncio

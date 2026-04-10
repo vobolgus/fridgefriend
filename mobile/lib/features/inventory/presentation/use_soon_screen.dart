@@ -117,7 +117,8 @@ class UseSoonScreen extends ConsumerWidget {
                       ),
                     ),
                     onTap: () {
-                      context.push('/recipes');
+                      context.push('/recipes',
+                          extra: {'filterIngredient': entry.value.displayName});
                     },
                   ),
                 ),

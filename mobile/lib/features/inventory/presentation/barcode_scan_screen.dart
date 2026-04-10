@@ -6,6 +6,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
+import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
@@ -21,6 +22,7 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
   final TextEditingController _manualController = TextEditingController();
   bool _isLoading = false;
   String? _error;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -90,15 +92,8 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Scan Barcode',
-            style: TextStyle(
-                fontFamily: 'Inter',
-                fontWeight: FontWeight.bold,
-                color: Colors.white)),
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
+      appBar: const FridgeFriendAppBar(
+        title: 'Scan Barcode',
       ),
       extendBodyBehindAppBar: true,
       body: Column(
@@ -110,6 +105,30 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
                 MobileScanner(
                   controller: controller,
                   onDetect: _onDetect,
+                ),
+                CustomPaint(
+                  painter: _ScannerOverlayPainter(),
+                  child: const SizedBox.expand(),
+                ),
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 220),
+                    child: Text(
+                      'Point camera at barcode',
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        fontSize: 16,
+                        shadows: [
+                          Shadow(
+                              color: Colors.black87,
+                              blurRadius: 8,
+                              offset: Offset(0, 2)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
                 if (_isLoading)
                   Container(
@@ -172,28 +191,52 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
                   const SizedBox(height: AppSpacing.md),
                 ],
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _manualController,
-                        style: const TextStyle(
-                            fontFamily: 'Inter', fontWeight: FontWeight.bold),
-                        decoration: InputDecoration(
-                          hintText: 'Enter barcode number',
-                          hintStyle: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontWeight: FontWeight.normal),
-                          prefixIcon: const Icon(Icons.qr_code,
-                              color: AppColors.primary),
-                          filled: true,
-                          fillColor: AppColors.surfaceVariant,
-                          border: OutlineInputBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSpacing.inputRadius),
-                            borderSide: BorderSide.none,
+                      child: Form(
+                        key: _formKey,
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        child: TextFormField(
+                          controller: _manualController,
+                          autofocus: true,
+                          style: const TextStyle(
+                              fontFamily: 'Inter', fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            hintText: 'Enter barcode number',
+                            hintStyle: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontWeight: FontWeight.normal),
+                            prefixIcon: const Icon(Icons.qr_code,
+                                color: AppColors.primary),
+                            filled: true,
+                            fillColor: AppColors.surfaceVariant,
+                            border: OutlineInputBorder(
+                              borderRadius:
+                                  BorderRadius.circular(AppSpacing.inputRadius),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return null;
+                            if (value.length < 8 || value.length > 14) {
+                              return 'Barcode must be 8-14 digits';
+                            }
+                            return null;
+                          },
+                          onFieldSubmitted: (value) {
+                            if (_formKey.currentState?.validate() == true) {
+                              final trimmed = value.trim();
+                              if (trimmed.isNotEmpty) {
+                                _submitBarcode(trimmed);
+                              }
+                            }
+                          },
                         ),
-                        keyboardType: TextInputType.number,
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
@@ -208,9 +251,11 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
                       onPressed: _isLoading
                           ? null
                           : () {
-                              final barcode = _manualController.text.trim();
-                              if (barcode.isNotEmpty) {
-                                _submitBarcode(barcode);
+                              if (_formKey.currentState?.validate() == true) {
+                                final barcode = _manualController.text.trim();
+                                if (barcode.isNotEmpty) {
+                                  _submitBarcode(barcode);
+                                }
                               }
                             },
                       child: const Icon(Icons.arrow_forward_rounded, size: 28),
@@ -224,4 +269,37 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
       ),
     );
   }
+}
+
+class _ScannerOverlayPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final backgroundPaint = Paint()..color = Colors.black54;
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
+
+    final cutOutWidth = 280.0;
+    final cutOutHeight = 150.0;
+    final cutOutRect = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: cutOutWidth,
+      height: cutOutHeight,
+    );
+    final cutOutRRect =
+        RRect.fromRectAndRadius(cutOutRect, const Radius.circular(16));
+
+    final path = Path.combine(
+      PathOperation.difference,
+      Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)),
+      Path()..addRRect(cutOutRRect),
+    );
+
+    canvas.drawPath(path, backgroundPaint);
+    canvas.drawRRect(cutOutRRect, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

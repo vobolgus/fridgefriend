@@ -21,6 +21,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -123,68 +124,76 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   }
 
   Widget _buildEmailForm(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Sign in',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        TextField(
-          controller: _emailController,
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            prefixIcon: Icon(Icons.email_outlined),
+    return Form(
+      key: _formKey,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Sign in',
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
-          keyboardType: TextInputType.emailAddress,
-          textInputAction: TextInputAction.next,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        TextField(
-          controller: _passwordController,
-          decoration: const InputDecoration(
-            labelText: 'Password',
-            prefixIcon: Icon(Icons.lock_outline_rounded),
+          const SizedBox(height: AppSpacing.xl),
+          TextFormField(
+            controller: _emailController,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty)
+                return 'Email is required';
+              if (!value.contains('@')) return 'Invalid email';
+              return null;
+            },
           ),
-          obscureText: true,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _signInWithEmail(),
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        ElevatedButton(
-          onPressed: _isLoading ? null : _signInWithEmail,
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
-              : const Text('Sign In'),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        TextButton(
-          onPressed: () => setState(() => _showEmailForm = false),
-          child: Text(
-            'Other sign-in options',
-            style: TextStyle(color: AppColors.textSecondary),
+          const SizedBox(height: AppSpacing.md),
+          TextFormField(
+            controller: _passwordController,
+            decoration: const InputDecoration(
+              labelText: 'Password',
+              prefixIcon: Icon(Icons.lock_outline_rounded),
+            ),
+            obscureText: true,
+            textInputAction: TextInputAction.done,
+            validator: (value) => (value == null || value.isEmpty)
+                ? 'Password is required'
+                : null,
+            onFieldSubmitted: (_) => _signInWithEmail(),
           ),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.xl),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _signInWithEmail,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white),
+                  )
+                : const Text('Sign In'),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextButton(
+            onPressed: () => setState(() => _showEmailForm = false),
+            child: Text(
+              'Other sign-in options',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Future<void> _signInWithEmail() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final email = _emailController.text.trim();
     final password = _passwordController.text;
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
-      );
-      return;
-    }
 
     setState(() => _isLoading = true);
     try {
