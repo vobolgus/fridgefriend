@@ -172,15 +172,23 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                         padding: AppSpacing.cardPadding,
                         child: Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.md),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primarySurface,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.calendar_today_outlined,
-                                  color: AppColors.primary),
-                            ),
+                            if (day.imageUrl != null &&
+                                day.imageUrl!.isNotEmpty)
+                              ClipRRect(
+                                borderRadius:
+                                    BorderRadius.circular(AppSpacing.md),
+                                child: Image.network(
+                                  day.imageUrl!,
+                                  width: 72,
+                                  height: 72,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return _buildPlanDayImageFallback();
+                                  },
+                                ),
+                              )
+                            else
+                              _buildPlanDayImageFallback(),
                             const SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Column(
@@ -207,6 +215,29 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                                           color: AppColors.textPrimary,
                                         ),
                                   ),
+                                  if (day.prepMinutes != null) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.timer_outlined,
+                                          size: 16,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                        const SizedBox(width: AppSpacing.xs),
+                                        Text(
+                                          '${day.prepMinutes} min',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                color: AppColors.textSecondary,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -235,5 +266,20 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     return '${date.year}-$month-$day';
+  }
+
+  Widget _buildPlanDayImageFallback() {
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        color: AppColors.primarySurface,
+        borderRadius: BorderRadius.circular(AppSpacing.md),
+      ),
+      child: const Icon(
+        Icons.restaurant_menu,
+        color: AppColors.primary,
+      ),
+    );
   }
 }

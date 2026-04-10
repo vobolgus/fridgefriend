@@ -24,6 +24,8 @@ void main() {
             date: DateTime(2026, 4, 3),
             recipeId: 'recipe-1',
             recipeTitle: 'Veggie Stir Fry',
+            prepMinutes: 18,
+            imageUrl: 'https://example.test/stir-fry.jpg',
           ),
         ],
         shoppingList: const [],
@@ -60,6 +62,7 @@ void main() {
     verify(() => mockClient.generatePlan(days: 5)).called(1);
     expect(find.text('Veggie Stir Fry'), findsOneWidget);
     expect(find.text('2026-04-03'), findsOneWidget);
+    expect(find.text('18 min'), findsOneWidget);
   });
 
   testWidgets('ShoppingListScreen shows shopping items', (tester) async {

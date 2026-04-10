@@ -29,6 +29,8 @@ class PlanDay(BaseModel):
     date: date
     recipe_id: str = Field(alias="recipeId")
     recipe_title: str = Field(alias="recipeTitle")
+    prep_minutes: int | None = Field(default=None, alias="prepMinutes")
+    image_url: str | None = Field(default=None, alias="imageUrl")
     servings: int
     reserved_items: list[str] = Field(default_factory=list, alias="reservedItems")
     recipe_ingredients: list[RecipeIngredient] = Field(default_factory=list, exclude=True, alias="recipeIngredients")

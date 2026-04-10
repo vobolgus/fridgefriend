@@ -17,6 +17,7 @@ SPEC_ENDPOINTS = [
     ("POST", "/v1/scan/photo"),
     ("POST", "/v1/scan/photo/upload"),
     ("POST", "/v1/recommendations"),
+    ("GET", "/v1/recipes/{recipe_id}"),
     ("POST", "/v1/plans"),
     ("GET", "/v1/plans/latest"),
     ("GET", "/v1/shopping-list"),

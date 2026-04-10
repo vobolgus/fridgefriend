@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -13,10 +13,10 @@ from app.core.idempotency import get_cached, require_idempotency_key, store_cach
 from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
-from .schemas import RecommendationRequest, RecommendationResponse
+from .schemas import RecommendationRequest, RecommendationResponse, RecipeRecommendation
 from .service import RecommendationService
 
-router = APIRouter(prefix="/v1/recommendations", tags=["recommendations"])
+router = APIRouter(tags=["recommendations"])
 
 
 async def get_recommendation_service(
@@ -39,7 +39,7 @@ async def get_recommendation_service(
     return RecommendationService(session=db, recipe_source=recipe_source)
 
 
-@router.post("", response_model=RecommendationResponse, response_model_by_alias=True)
+@router.post("/v1/recommendations", response_model=RecommendationResponse, response_model_by_alias=True)
 async def get_recommendations(
     payload: RecommendationRequest,
     recommendation_service: Annotated[RecommendationService, Depends(get_recommendation_service)],
@@ -62,3 +62,16 @@ async def get_recommendations(
     store_cached(str(current_user.id), request.url.path, idempotency_key, response.model_dump(mode="json"))
 
     return response
+
+
+@router.get("/v1/recipes/{recipe_id}", response_model=RecipeRecommendation, response_model_by_alias=True)
+async def get_recipe_detail(
+    recipe_id: UUID,
+    recommendation_service: Annotated[RecommendationService, Depends(get_recommendation_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> RecipeRecommendation:
+    _ = current_user
+    recipe = await recommendation_service.get_recipe_detail(recipe_id)
+    if recipe is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found")
+    return recipe

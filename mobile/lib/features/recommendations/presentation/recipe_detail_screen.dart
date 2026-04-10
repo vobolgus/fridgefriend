@@ -59,25 +59,27 @@ class RecipeDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final recipeDetailAsync = ref.watch(recipeDetailProvider(recipe.id));
+    final displayedRecipe = recipeDetailAsync.valueOrNull ?? recipe;
     final savedAsync = ref.watch(savedRecipeProvider(recipe.id));
     final isSaved = savedAsync.valueOrNull ?? false;
 
-    final substitutions = recipe.substitutions;
+    final substitutions = displayedRecipe.substitutions;
 
     Color progressColor;
-    if (recipe.coveragePct > 0.7) {
+    if (displayedRecipe.coveragePct > 0.7) {
       progressColor = AppColors.primary;
-    } else if (recipe.coveragePct >= 0.4) {
+    } else if (displayedRecipe.coveragePct >= 0.4) {
       progressColor = AppColors.thisWeek;
     } else {
       progressColor = AppColors.error;
     }
 
-    final hasIngredientsData = recipe.ingredients.isNotEmpty;
-    final missingSet = recipe.missingItems.toSet();
+    final hasIngredientsData = displayedRecipe.ingredients.isNotEmpty;
+    final missingSet = displayedRecipe.missingItems.toSet();
 
     final haveIngredients = hasIngredientsData
-        ? recipe.ingredients.where((i) {
+        ? displayedRecipe.ingredients.where((i) {
             final name =
                 i['canonical_name']?.toString() ?? i['name']?.toString() ?? '';
             return !missingSet.contains(name);
@@ -85,7 +87,7 @@ class RecipeDetailScreen extends ConsumerWidget {
         : [];
 
     final missingIngredients = hasIngredientsData
-        ? recipe.ingredients.where((i) {
+        ? displayedRecipe.ingredients.where((i) {
             final name =
                 i['canonical_name']?.toString() ?? i['name']?.toString() ?? '';
             return missingSet.contains(name);
@@ -101,16 +103,20 @@ class RecipeDetailScreen extends ConsumerWidget {
             icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
             onPressed: () async {
               final dao = ref.read(appDatabaseProvider).savedRecipeDao;
-              await dao.toggleSave(recipe.id, recipe.title, recipe.imageUrl);
+              await dao.toggleSave(
+                displayedRecipe.id,
+                displayedRecipe.title,
+                displayedRecipe.imageUrl,
+              );
               ref.invalidate(savedRecipeProvider(recipe.id));
               unawaited(
                 ref.read(analyticsProvider).track(
                   'recipe_bookmarked',
                   payload: {
-                    'recipe_id': recipe.id,
+                    'recipe_id': displayedRecipe.id,
                     'saved': !isSaved,
-                    'missing_item_count': recipe.missingItems.length,
-                    'coverage_pct': recipe.coveragePct,
+                    'missing_item_count': displayedRecipe.missingItems.length,
+                    'coverage_pct': displayedRecipe.coveragePct,
                   },
                 ),
               );
@@ -132,7 +138,7 @@ class RecipeDetailScreen extends ConsumerWidget {
             width: double.infinity,
             child: FilledButton(
               onPressed: () {
-                _showMealPlanBottomSheet(context, ref);
+                _showMealPlanBottomSheet(context, ref, displayedRecipe);
               },
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -155,12 +161,14 @@ class RecipeDetailScreen extends ConsumerWidget {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
+          if (recipeDetailAsync.isLoading)
+            const LinearProgressIndicator(minHeight: 2),
           // Hero Image
           Stack(
             children: [
-              if (recipe.imageUrl != null)
+              if (displayedRecipe.imageUrl != null)
                 Image.network(
-                  recipe.imageUrl!,
+                  displayedRecipe.imageUrl!,
                   height: 250,
                   width: double.infinity,
                   fit: BoxFit.cover,
@@ -189,7 +197,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                 left: AppSpacing.md,
                 right: AppSpacing.md,
                 child: Text(
-                  recipe.title,
+                  displayedRecipe.title,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -207,15 +215,15 @@ class RecipeDetailScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Cuisines & Dietary Tags
-                if (recipe.cuisines.isNotEmpty ||
-                    recipe.dietaryTags.isNotEmpty) ...[
+                if (displayedRecipe.cuisines.isNotEmpty ||
+                    displayedRecipe.dietaryTags.isNotEmpty) ...[
                   Wrap(
                     spacing: AppSpacing.xs,
                     runSpacing: AppSpacing.xs,
                     children: [
-                      ...recipe.cuisines.map((c) => _buildChip(context, c,
-                          AppColors.secondaryLight, AppColors.secondary)),
-                      ...recipe.dietaryTags.map((d) => _buildChip(
+                      ...displayedRecipe.cuisines.map((c) => _buildChip(context,
+                          c, AppColors.secondaryLight, AppColors.secondary)),
+                      ...displayedRecipe.dietaryTags.map((d) => _buildChip(
                           context, d, AppColors.accentLight, AppColors.accent)),
                     ],
                   ),
@@ -240,7 +248,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                               size: 16, color: AppColors.primary),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
-                            '${recipe.prepMinutes} min',
+                            '${displayedRecipe.prepMinutes} min',
                             style: const TextStyle(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.bold),
@@ -248,7 +256,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    if (recipe.servings != null) ...[
+                    if (displayedRecipe.servings != null) ...[
                       const SizedBox(width: AppSpacing.md),
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -265,7 +273,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                                 size: 16, color: AppColors.textSecondary),
                             const SizedBox(width: AppSpacing.xs),
                             Text(
-                              '${recipe.servings} servings',
+                              '${displayedRecipe.servings} servings',
                               style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.bold),
@@ -279,9 +287,10 @@ class RecipeDetailScreen extends ConsumerWidget {
                 const SizedBox(height: AppSpacing.xl),
 
                 // Summary
-                if (recipe.summary != null && recipe.summary!.isNotEmpty) ...[
+                if (displayedRecipe.summary != null &&
+                    displayedRecipe.summary!.isNotEmpty) ...[
                   Text(
-                    recipe.summary!,
+                    displayedRecipe.summary!,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           color: AppColors.textSecondary,
                           height: 1.5,
@@ -313,7 +322,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                                 ),
                           ),
                           Text(
-                            '${(recipe.coveragePct * 100).toStringAsFixed(0)}%',
+                            '${(displayedRecipe.coveragePct * 100).toStringAsFixed(0)}%',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
@@ -328,7 +337,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: LinearProgressIndicator(
-                          value: recipe.coveragePct,
+                          value: displayedRecipe.coveragePct,
                           backgroundColor: AppColors.divider,
                           color: progressColor,
                           minHeight: 12,
@@ -424,7 +433,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                       fontWeight: FontWeight.bold, color: AppColors.error),
                 ),
                 const SizedBox(height: AppSpacing.sm),
-                if (recipe.missingItems.isEmpty)
+                if (displayedRecipe.missingItems.isEmpty)
                   Card(
                     elevation: 0,
                     color: AppColors.safeLaterSurface,
@@ -444,7 +453,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                     ),
                   )
                 else if (!hasIngredientsData)
-                  ...recipe.missingItems.map((item) => Card(
+                  ...displayedRecipe.missingItems.map((item) => Card(
                         elevation: 0,
                         color: AppColors.errorLight,
                         margin: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -528,7 +537,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                       )),
 
                 // Instructions
-                if (recipe.instructions.isNotEmpty) ...[
+                if (displayedRecipe.instructions.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.xl),
                   Text(
                     'Instructions',
@@ -538,7 +547,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                         ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  ...recipe.instructions.map((inst) {
+                  ...displayedRecipe.instructions.map((inst) {
                     final num = inst['number']?.toString() ?? '';
                     final step = inst['step']?.toString() ?? '';
                     return Card(
@@ -578,7 +587,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                 ],
 
                 // Nutrition
-                if (recipe.nutrition != null) ...[
+                if (displayedRecipe.nutrition != null) ...[
                   const SizedBox(height: AppSpacing.xl),
                   Text(
                     'Nutrition',
@@ -602,25 +611,25 @@ class RecipeDetailScreen extends ConsumerWidget {
                           _buildNutritionItem(
                               context,
                               'Calories',
-                              '${recipe.nutrition!['calories'] ?? '-'}',
+                              '${displayedRecipe.nutrition!['calories'] ?? '-'}',
                               Icons.local_fire_department_outlined,
                               AppColors.accent),
                           _buildNutritionItem(
                               context,
                               'Protein',
-                              '${recipe.nutrition!['protein'] ?? '-'}g',
+                              '${displayedRecipe.nutrition!['protein'] ?? '-'}g',
                               Icons.fitness_center_outlined,
                               AppColors.primary),
                           _buildNutritionItem(
                               context,
                               'Fat',
-                              '${recipe.nutrition!['fat'] ?? '-'}g',
+                              '${displayedRecipe.nutrition!['fat'] ?? '-'}g',
                               Icons.opacity_outlined,
                               AppColors.today),
                           _buildNutritionItem(
                               context,
                               'Carbs',
-                              '${recipe.nutrition!['carbs'] ?? '-'}g',
+                              '${displayedRecipe.nutrition!['carbs'] ?? '-'}g',
                               Icons.grass_outlined,
                               AppColors.secondary),
                         ],
@@ -637,7 +646,11 @@ class RecipeDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showMealPlanBottomSheet(BuildContext context, WidgetRef ref) {
+  void _showMealPlanBottomSheet(
+    BuildContext context,
+    WidgetRef ref,
+    Recipe recipe,
+  ) {
     int days = 7;
     int servings = 2;
     bool isLoading = false;

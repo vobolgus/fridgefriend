@@ -23,7 +23,7 @@ class SavedRecipeDao {
 
   Future<bool> isSaved(String recipeId) async {
     final rows = await _db.customSelect(
-      'SELECT 1 FROM saved_recipes WHERE recipe_id = ? LIMIT 1',
+      'SELECT 1 FROM saved_recipes_table WHERE recipe_id = ? LIMIT 1',
       variables: [Variable<String>(recipeId)],
     ).get();
     return rows.isNotEmpty;
@@ -34,12 +34,12 @@ class SavedRecipeDao {
     final saved = await isSaved(recipeId);
     if (saved) {
       await _db.customStatement(
-        'DELETE FROM saved_recipes WHERE recipe_id = ?',
+        'DELETE FROM saved_recipes_table WHERE recipe_id = ?',
         [recipeId],
       );
     } else {
       await _db.customStatement(
-        'INSERT OR REPLACE INTO saved_recipes (recipe_id, recipe_title, image_url, saved_at) '
+        'INSERT OR REPLACE INTO saved_recipes_table (recipe_id, recipe_title, image_url, saved_at) '
         'VALUES (?, ?, ?, ?)',
         [recipeId, title, imageUrl, DateTime.now().toIso8601String()],
       );
@@ -50,7 +50,7 @@ class SavedRecipeDao {
     final rows = await _db
         .customSelect(
           'SELECT recipe_id, recipe_title, image_url, saved_at '
-          'FROM saved_recipes ORDER BY saved_at DESC',
+          'FROM saved_recipes_table ORDER BY saved_at DESC',
         )
         .get();
 

@@ -44,18 +44,26 @@ class PlanDay {
     required this.date,
     required this.recipeId,
     required this.recipeTitle,
+    this.prepMinutes,
+    this.imageUrl,
   });
 
   final DateTime date;
   final String recipeId;
   final String recipeTitle;
+  final int? prepMinutes;
+  final String? imageUrl;
 
   factory PlanDay.fromJson(Map<String, dynamic> json) {
     return PlanDay(
       date:
           DateTime.tryParse((json['date'] ?? '').toString()) ?? DateTime.now(),
-      recipeId: (json['recipeId'] ?? '').toString(),
-      recipeTitle: (json['recipeTitle'] ?? json['title'] ?? '').toString(),
+      recipeId: (json['recipeId'] ?? json['recipe_id'] ?? '').toString(),
+      recipeTitle:
+          (json['recipeTitle'] ?? json['recipe_title'] ?? json['title'] ?? '')
+              .toString(),
+      prepMinutes: _asNullableInt(json['prepMinutes'] ?? json['prep_minutes']),
+      imageUrl: (json['imageUrl'] ?? json['image_url'])?.toString(),
     );
   }
 
@@ -64,7 +72,20 @@ class PlanDay {
       'date': date.toIso8601String(),
       'recipeId': recipeId,
       'recipeTitle': recipeTitle,
+      if (prepMinutes != null) 'prepMinutes': prepMinutes,
+      if (imageUrl != null) 'imageUrl': imageUrl,
     };
+  }
+
+  static int? _asNullableInt(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toInt();
+    }
+
+    return int.tryParse(value.toString());
   }
 }
 

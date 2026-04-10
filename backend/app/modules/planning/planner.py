@@ -13,42 +13,6 @@ from app.modules.expiry.urgency import UrgencyBucket, get_urgency_bucket
 from app.modules.planning.schemas import PlanDay, PlanResult, RecipeIngredient
 from app.modules.planning.shopping_list import derive_shopping_list
 
-try:
-    from app.modules.recommendations.fixture_recipes import FIXTURE_RECIPES as PLANNING_RECIPES
-except ImportError:
-    PLANNING_RECIPES: list[dict[str, object]] = [
-        {
-            "id": "11111111-1111-1111-1111-111111111111",
-            "title": "Scrambled Eggs",
-            "prep_minutes": 10,
-            "dietary_tags": ["vegetarian"],
-            "ingredients": [
-                {"canonical_name": "eggs", "quantity": 2.0, "unit": "unit"},
-                {"canonical_name": "butter", "quantity": 1.0, "unit": "tbsp"},
-            ],
-        },
-        {
-            "id": "22222222-2222-2222-2222-222222222222",
-            "title": "Chicken Stir Fry",
-            "prep_minutes": 20,
-            "dietary_tags": [],
-            "ingredients": [
-                {"canonical_name": "chicken", "quantity": 500.0, "unit": "g"},
-                {"canonical_name": "spinach", "quantity": 100.0, "unit": "g"},
-            ],
-        },
-        {
-            "id": "33333333-3333-3333-3333-333333333333",
-            "title": "Vegetable Rice",
-            "prep_minutes": 30,
-            "dietary_tags": ["vegetarian"],
-            "ingredients": [
-                {"canonical_name": "rice", "quantity": 200.0, "unit": "g"},
-                {"canonical_name": "carrots", "quantity": 1.0, "unit": "piece"},
-            ],
-        },
-    ]
-
 
 @dataclass(slots=True)
 class _NormalizedIngredient:
@@ -91,7 +55,9 @@ class MealPlanner:
     ) -> PlanResult:
         inventory = [item for item in user_inventory if item.status not in {InventoryStatus.USED, InventoryStatus.DISCARDED}]
         remaining_inventory = self._build_remaining_inventory(inventory)
-        recipes = self._normalize_recipes(PLANNING_RECIPES if recipes_db is None else recipes_db)
+        if not recipes_db:
+            raise NoMatchingRecipesError("No recipes available for meal plan generation")
+        recipes = self._normalize_recipes(recipes_db)
         filtered_recipes = self._filter_recipes(recipes, dietary_tags or [], max_prep_minutes)
         if recipes and (dietary_tags or max_prep_minutes is not None) and not filtered_recipes:
             raise NoMatchingRecipesError("No recipes match the requested constraints")

@@ -220,6 +220,41 @@ void main() {
         tmpFile.deleteSync();
       }
     });
+
+    test('getRecipe fetches recipe by id', () async {
+      late RequestOptions capturedOptions;
+      final adapter = _RecordingAdapter((options) {
+        capturedOptions = options;
+        return {
+          'id': 'recipe-42',
+          'title': 'Tomato Soup',
+          'coveragePct': 0,
+          'score': 0,
+          'prepMinutes': 25,
+          'missingItems': [],
+          'substitutions': [],
+          'imageUrl': 'https://example.test/soup.jpg',
+          'instructions': [
+            {'number': 1, 'step': 'Simmer tomatoes'}
+          ],
+          'ingredients': [
+            {'name': 'Tomatoes', 'quantity': 4, 'unit': 'count'}
+          ],
+        };
+      });
+
+      final client = ApiClient(baseUrl: 'https://example.test');
+      client.rawClient.httpClientAdapter = adapter;
+
+      final recipe = await client.getRecipe('recipe-42');
+
+      expect(capturedOptions.path, '/v1/recipes/recipe-42');
+      expect(recipe.id, 'recipe-42');
+      expect(recipe.title, 'Tomato Soup');
+      expect(recipe.prepMinutes, 25);
+      expect(recipe.imageUrl, 'https://example.test/soup.jpg');
+      expect(recipe.instructions.single['step'], 'Simmer tomatoes');
+    });
   });
 }
 

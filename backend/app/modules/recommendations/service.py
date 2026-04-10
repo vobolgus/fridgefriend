@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.events import RecommendationSession
 from app.models.inventory_item import InventoryItem, InventoryStatus
+from app.models.recipe import Recipe
 
 from .interfaces import RecipeSourceInterface
 from .mock_recipe_source import MockRecipeSource
@@ -16,6 +17,38 @@ from .scorer import RecipeScorer
 
 
 logger = logging.getLogger(__name__)
+
+
+def _build_recipe_recommendation(
+    recipe: FixtureRecipe | Recipe,
+    *,
+    use_soon_score: float,
+    coverage_pct: float,
+    missing_items: list[str],
+    substitutions: list[str],
+    score: float,
+) -> RecipeRecommendation:
+    return RecipeRecommendation.model_validate(
+        {
+            "id": str(recipe.id),
+            "title": recipe.title,
+            "useSoonScore": use_soon_score,
+            "coveragePct": coverage_pct,
+            "missingItems": missing_items,
+            "substitutions": substitutions,
+            "prepMinutes": recipe.prep_minutes,
+            "imageUrl": recipe.image_url,
+            "sourceUrl": recipe.source_url,
+            "summary": recipe.summary,
+            "instructions": recipe.instructions or [],
+            "cuisines": recipe.cuisines or [],
+            "servings": recipe.servings,
+            "nutrition": recipe.nutrition,
+            "dietaryTags": recipe.dietary_tags,
+            "ingredients": recipe.ingredients,
+            "score": score,
+        }
+    )
 
 
 class RecommendationService:
@@ -74,27 +107,14 @@ class RecommendationService:
                 dietary_preferences=request.dietary_tags,
             )
             recommendations.append(
-                RecipeRecommendation.model_validate(
-                    {
-                        "id": recipe.id,
-                        "title": recipe.title,
-                        "useSoonScore": breakdown.use_soon_score,
-                        "coveragePct": breakdown.coverage_pct,
-                        "missingItems": breakdown.missing_items,
-                        "substitutions": breakdown.substitutions,
-                        "prepMinutes": recipe.prep_minutes,
-                        "imageUrl": recipe.image_url,
-                        "sourceUrl": recipe.source_url,
-                        "summary": recipe.summary,
-                        "instructions": recipe.instructions,
-                        "cuisines": recipe.cuisines,
-                        "servings": recipe.servings,
-                        "nutrition": recipe.nutrition,
-                        "dietaryTags": recipe.dietary_tags,
-                        "ingredients": recipe.ingredients,
-                        "score": breakdown.score,
-                    }
-                ),
+                _build_recipe_recommendation(
+                    recipe,
+                    use_soon_score=breakdown.use_soon_score,
+                    coverage_pct=breakdown.coverage_pct,
+                    missing_items=breakdown.missing_items,
+                    substitutions=breakdown.substitutions,
+                    score=breakdown.score,
+                )
             )
 
         recommendations.sort(key=lambda recommendation: recommendation.score, reverse=True)
@@ -123,6 +143,20 @@ class RecommendationService:
         statement = statement.where(InventoryItem.status.notin_([InventoryStatus.USED, InventoryStatus.DISCARDED]))
         result = await self._session.execute(statement)
         return list(result.scalars().all())
+
+    async def get_recipe_detail(self, recipe_id: UUID) -> RecipeRecommendation | None:
+        statement = select(Recipe).where(Recipe.id == recipe_id)
+        recipe = (await self._session.execute(statement)).scalar_one_or_none()
+        if recipe is None:
+            return None
+        return _build_recipe_recommendation(
+            recipe,
+            use_soon_score=0.0,
+            coverage_pct=0.0,
+            missing_items=[],
+            substitutions=[],
+            score=0.0,
+        )
 
     async def _load_recipes(self, inventory_items: list[InventoryItem]) -> tuple[list[FixtureRecipe], str]:
         if self._recipe_overrides is not None:

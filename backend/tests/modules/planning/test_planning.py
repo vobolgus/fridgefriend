@@ -40,6 +40,7 @@ def _recipe(
         "id": recipe_id,
         "title": title,
         "prep_minutes": prep_minutes,
+        "image_url": f"https://example.com/{recipe_id}.jpg",
         "dietary_tags": dietary_tags,
         "ingredients": ingredients,
     }
@@ -222,6 +223,7 @@ async def _seed_recipes(db_session: AsyncSession, recipes: list[dict[str, object
             Recipe(
                 title=str(recipe["title"]),
                 prep_minutes=_int_value(recipe["prep_minutes"]),
+                image_url=str(recipe.get("image_url", "")) or None,
                 dietary_tags=_string_list(recipe["dietary_tags"]),
                 ingredients=_ingredient_list(recipe["ingredients"]),
             )
@@ -471,6 +473,11 @@ async def test_api_post_plans(
     plan = payload["plan"]
     assert len(plan["days"]) == 3
     assert all(day["recipeId"] for day in plan["days"])
+    recipe_metadata = {recipe["title"]: recipe for recipe in planner_recipes}
+    for day in plan["days"]:
+        matched_recipe = recipe_metadata[day["recipeTitle"]]
+        assert day["prepMinutes"] == matched_recipe["prep_minutes"]
+        assert day["imageUrl"] == matched_recipe["image_url"]
 
 
 @pytest.mark.asyncio
@@ -543,6 +550,42 @@ async def test_api_get_shopping_list(
 
     assert response.status_code == 200
     assert isinstance(response.json()["items"], list)
+
+
+@pytest.mark.asyncio
+async def test_api_get_latest_plan_includes_recipe_metadata(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    await _seed_recipes(db_session, planner_recipes)
+    await _seed_inventory(
+        db_session,
+        planning_test_user,
+        [
+            _inventory_item("eggs", 12.0, "count", 2),
+            _inventory_item("milk", 6.0, "cup", 3),
+            _inventory_item("spinach", 2.0, "bag", 1),
+        ],
+    )
+
+    create_response = await client.post(
+        "/v1/plans",
+        headers=_headers(test_headers, "planning-create-latest-metadata"),
+        json={"days": 3, "servings": 2, "dietary_tags": ["vegetarian"]},
+    )
+    assert create_response.status_code == 200
+
+    latest_response = await client.get("/v1/plans/latest", headers=test_headers)
+
+    assert latest_response.status_code == 200
+    recipe_metadata = {recipe["title"]: recipe for recipe in planner_recipes}
+    for day in latest_response.json()["plan"]["days"]:
+        matched_recipe = recipe_metadata[day["recipeTitle"]]
+        assert day["prepMinutes"] == matched_recipe["prep_minutes"]
+        assert day["imageUrl"] == matched_recipe["image_url"]
 
 
 @pytest.mark.asyncio

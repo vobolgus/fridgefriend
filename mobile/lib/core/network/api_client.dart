@@ -330,6 +330,15 @@ class ApiClient {
     return const [];
   }
 
+  Future<Recipe> getRecipe(String id) async {
+    final response = await _dio.get('${ApiConfig.apiVersionPath}/recipes/$id');
+    final payload = response.data;
+    if (payload is Map<String, dynamic>) {
+      return Recipe.fromJson(payload);
+    }
+    throw const FormatException('Invalid recipe response');
+  }
+
   Future<MealPlan> generatePlan({int days = 7}) async {
     final response = await _dio.post(
       '${ApiConfig.apiVersionPath}/plans',

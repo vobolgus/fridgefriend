@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.household import Household, HouseholdMember, HouseholdRole
 from app.models.inventory_item import InventoryItem, InventorySource, InventoryStatus
+from app.models.recipe import Recipe
 from app.models.user import User
 from app.modules.inventory.dependencies import get_current_user
 from app.modules.recommendations.fixture_recipes import FIXTURE_RECIPES
@@ -80,6 +81,38 @@ async def ensure_household(db_session: AsyncSession, user: User, *, name: str, i
     await db_session.commit()
     await db_session.refresh(household)
     return household
+
+
+async def add_recipe(db_session: AsyncSession, **overrides: object) -> Recipe:
+    prep_minutes = overrides.get("prep_minutes", 20)
+    if not isinstance(prep_minutes, int | str | float):
+        raise TypeError("prep_minutes must be numeric")
+    recipe = Recipe(
+        title=str(overrides.get("title", "Test Recipe")),
+        prep_minutes=int(prep_minutes),
+        image_url=overrides.get("image_url", "https://example.com/test-recipe.jpg"),
+        source_url=overrides.get("source_url", "https://example.com/test-recipe"),
+        summary=overrides.get("summary", "Test recipe summary."),
+        instructions=overrides.get(
+            "instructions",
+            [{"number": 1, "step": "Mix ingredients."}, {"number": 2, "step": "Serve."}],
+        ),
+        cuisines=overrides.get("cuisines", ["American"]),
+        servings=overrides.get("servings", 2),
+        nutrition=overrides.get("nutrition", {"calories": "300 kcal"}),
+        dietary_tags=overrides.get("dietary_tags", ["vegetarian"]),
+        ingredients=overrides.get(
+            "ingredients",
+            [
+                {"canonical_name": "eggs", "quantity": 2.0, "unit": "unit"},
+                {"canonical_name": "milk", "quantity": 100.0, "unit": "ml"},
+            ],
+        ),
+    )
+    db_session.add(recipe)
+    await db_session.commit()
+    await db_session.refresh(recipe)
+    return recipe
 
 
 @pytest_asyncio.fixture
@@ -402,6 +435,79 @@ async def test_api_endpoint_recommendations_includes_rich_recipe_fields(
         {"canonical_name": "eggs", "quantity": 2.0, "unit": "unit"},
         {"canonical_name": "butter", "quantity": 1.0, "unit": "tbsp"},
     ]
+
+
+@pytest.mark.asyncio
+async def test_api_get_recipe_detail(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    _ = test_user
+    recipe = await add_recipe(
+        db_session,
+        title="Herby Omelet",
+        prep_minutes=12,
+        image_url="https://example.com/herby-omelet.jpg",
+        source_url="https://example.com/herby-omelet",
+        summary="A quick omelet with fresh herbs.",
+        instructions=[
+            {"number": 1, "step": "Whisk eggs with herbs."},
+            {"number": 2, "step": "Cook gently and fold."},
+        ],
+        cuisines=["French"],
+        servings=1,
+        nutrition={"calories": "210 kcal", "protein": "14g"},
+        dietary_tags=["gluten-free", "high-protein"],
+        ingredients=[
+            {"canonical_name": "eggs", "quantity": 3.0, "unit": "unit"},
+            {"canonical_name": "chives", "quantity": 1.0, "unit": "tbsp"},
+        ],
+    )
+
+    response = await client.get(f"/v1/recipes/{recipe.id}", headers=test_headers)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": str(recipe.id),
+        "title": "Herby Omelet",
+        "useSoonScore": 0.0,
+        "coveragePct": 0.0,
+        "missingItems": [],
+        "substitutions": [],
+        "prepMinutes": 12,
+        "imageUrl": "https://example.com/herby-omelet.jpg",
+        "sourceUrl": "https://example.com/herby-omelet",
+        "summary": "A quick omelet with fresh herbs.",
+        "instructions": [
+            {"number": 1, "step": "Whisk eggs with herbs."},
+            {"number": 2, "step": "Cook gently and fold."},
+        ],
+        "cuisines": ["French"],
+        "servings": 1,
+        "nutrition": {"calories": "210 kcal", "protein": "14g"},
+        "dietaryTags": ["gluten-free", "high-protein"],
+        "ingredients": [
+            {"canonical_name": "eggs", "quantity": 3.0, "unit": "unit"},
+            {"canonical_name": "chives", "quantity": 1.0, "unit": "tbsp"},
+        ],
+        "score": 0.0,
+    }
+
+
+@pytest.mark.asyncio
+async def test_api_get_recipe_detail_returns_404(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+) -> None:
+    _ = test_user
+
+    response = await client.get("/v1/recipes/11111111-1111-1111-1111-111111111111", headers=test_headers)
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Recipe not found"}
 
 
 @pytest.mark.asyncio

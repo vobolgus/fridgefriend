@@ -27,6 +27,8 @@ void main() {
             date: DateTime(2026, 4, 4),
             recipeId: 'recipe-1',
             recipeTitle: 'Pasta Night',
+            prepMinutes: 25,
+            imageUrl: 'https://example.test/pasta.jpg',
           ),
         ],
         shoppingList: const [
@@ -44,6 +46,8 @@ void main() {
     expect(record, isNotNull);
     expect(record!.toDomain().planId, 'plan-1');
     expect(record.days.single.recipeTitle, 'Pasta Night');
+    expect(record.days.single.prepMinutes, 25);
+    expect(record.days.single.imageUrl, 'https://example.test/pasta.jpg');
     expect(record.shoppingList.single.ingredientName, 'tomatoes');
   });
 }

@@ -35,6 +35,7 @@ void main() {
       ProviderScope(
         overrides: [
           savedRecipeProvider('1').overrideWith((ref) => Future.value(false)),
+          recipeDetailProvider('1').overrideWith((ref) => Future.value(recipe)),
         ],
         child: const MaterialApp(
           home: RecipeDetailScreen(recipe: recipe),

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import select
@@ -33,6 +34,7 @@ class PlanningService:
     async def generate_plan(self, user: User, household_id: UUID, request: PlanRequest) -> PlanResult:
         inventory_items = await self._list_active_inventory(household_id, for_update=True)
         recipes = await self._list_recipes()
+        recipes_by_id = {str(recipe.id): recipe for recipe in recipes}
         planner_input: list[dict[str, object]] = [
             {
                 "id": str(recipe.id),
@@ -98,13 +100,14 @@ class PlanningService:
         return PlanResult(
             planId=str(meal_plan.id),
             days=[
-                PlanDay(
+                self._build_plan_day(
                     date=day.date,
-                    recipeId=day.recipe_id,
-                    recipeTitle=day.recipe_title,
+                    recipe_id=day.recipe_id,
+                    recipe_title=day.recipe_title,
                     servings=request.servings,
-                    reservedItems=day.reserved_items,
-                    recipeIngredients=day.recipe_ingredients,
+                    reserved_items=day.reserved_items,
+                    recipe_ingredients=day.recipe_ingredients,
+                    recipe=recipes_by_id.get(day.recipe_id),
                 )
                 for day in planned.days
             ],
@@ -117,16 +120,17 @@ class PlanningService:
         return PlanResult(
             planId=str(meal_plan.id),
             days=[
-                PlanDay(
+                self._build_plan_day(
                     date=day.date,
-                    recipeId=str(day.recipe_id),
-                    recipeTitle=day.recipe.title if day.recipe else "Unknown Recipe",
+                    recipe_id=str(day.recipe_id),
+                    recipe_title=day.recipe.title if day.recipe else "Unknown Recipe",
                     servings=day.servings,
-                    reservedItems=[
+                    reserved_items=[
                         self._get_recipe_ingredient_name(ingredient)
                         for ingredient in (day.recipe.ingredients if day.recipe else [])
                     ],
-                    recipeIngredients=[],
+                    recipe_ingredients=[],
+                    recipe=day.recipe,
                 )
                 for day in meal_plan.days
             ],
@@ -140,16 +144,16 @@ class PlanningService:
         plan = PlanResult(
             planId=str(meal_plan.id),
             days=[
-                PlanDay(
+                self._build_plan_day(
                     date=day.date,
-                    recipeId=str(day.recipe_id),
-                    recipeTitle=day.recipe.title if day.recipe else "Unknown Recipe",
+                    recipe_id=str(day.recipe_id),
+                    recipe_title=day.recipe.title if day.recipe else "Unknown Recipe",
                     servings=day.servings,
-                    reservedItems=[
+                    reserved_items=[
                         self._get_recipe_ingredient_name(ingredient)
                         for ingredient in (day.recipe.ingredients if day.recipe else [])
                     ],
-                    recipeIngredients=[
+                    recipe_ingredients=[
                         RecipeIngredient.model_validate(
                             {
                                 **ingredient,
@@ -159,6 +163,7 @@ class PlanningService:
                         )
                         for ingredient in (day.recipe.ingredients if day.recipe else [])
                     ],
+                    recipe=day.recipe,
                 )
                 for day in meal_plan.days
             ],
@@ -186,6 +191,28 @@ class PlanningService:
     @staticmethod
     def _get_recipe_ingredient_name(ingredient: Mapping[str, object]) -> str:
         return str(ingredient.get("canonical_name") or ingredient.get("name") or "")
+
+    @staticmethod
+    def _build_plan_day(
+        *,
+        date: date,
+        recipe_id: str,
+        recipe_title: str,
+        servings: int,
+        reserved_items: list[str],
+        recipe_ingredients: list[RecipeIngredient],
+        recipe: Recipe | None,
+    ) -> PlanDay:
+        return PlanDay(
+            date=date,
+            recipeId=recipe_id,
+            recipeTitle=recipe_title,
+            prepMinutes=recipe.prep_minutes if recipe else None,
+            imageUrl=recipe.image_url if recipe else None,
+            servings=servings,
+            reservedItems=reserved_items,
+            recipeIngredients=recipe_ingredients,
+        )
 
     async def _list_active_inventory(
         self,

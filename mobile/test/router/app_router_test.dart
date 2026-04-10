@@ -80,6 +80,8 @@ void main() {
             date: DateTime(2026, 4, 3),
             recipeId: 'recipe-1',
             recipeTitle: 'Pasta Bake',
+            prepMinutes: 30,
+            imageUrl: 'https://example.test/pasta-bake.jpg',
           ),
         ],
         shoppingList: const [
