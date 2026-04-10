@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fridgefriend_mobile/core/analytics/analytics_service.dart';
 import 'package:fridgefriend_mobile/core/presentation/app_shell.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/auth/presentation/sign_in_screen.dart';
@@ -31,12 +34,29 @@ class _RouterRefreshNotifier extends ChangeNotifier {
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshNotifier = _RouterRefreshNotifier();
+  final analytics = ref.watch(analyticsProvider);
 
   // Schedule the first refresh after build to avoid triggering redirect
   // during initial router construction (which causes ShellRoute key collision).
   var initialized = false;
   ref.listen(authStateProvider, (_, __) {
     if (initialized) refreshNotifier.notify();
+  });
+  ref.listen<AsyncValue<String?>>(authStateProvider, (_, next) {
+    next.whenData((token) {
+      if (analytics case final AmplitudeAnalyticsService amplitudeAnalytics) {
+        final userId = token == null ? null : 'authenticated_user';
+        unawaited(amplitudeAnalytics.setUserId(userId));
+        if (userId == null) {
+          return;
+        }
+        unawaited(
+          amplitudeAnalytics.setUserProperties({
+            'auth_provider': useMockAuth ? 'mock' : 'firebase',
+          }),
+        );
+      }
+    });
   });
   ref.listen(onboardingCompleteProvider, (_, __) {
     if (initialized) refreshNotifier.notify();

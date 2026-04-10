@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fridgefriend_mobile/core/analytics/analytics_service.dart';
 import '../data/firebase_auth_service.dart';
 import '../domain/auth_service.dart';
 import '../data/mock_auth_service.dart';
@@ -15,6 +16,15 @@ final authServiceProvider = Provider<AuthService>((ref) {
   }
 
   return FirebaseAuthService();
+});
+
+final analyticsProvider = Provider<AnalyticsService>((ref) {
+  const apiKey = String.fromEnvironment('AMPLITUDE_API_KEY', defaultValue: '');
+  if (apiKey.isEmpty) {
+    return const NoopAnalyticsService();
+  }
+
+  return AmplitudeAnalyticsService(apiKey);
 });
 
 final authStateProvider = StreamProvider<String?>((ref) {

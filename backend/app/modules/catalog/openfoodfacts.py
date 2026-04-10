@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 import time
 from collections.abc import Mapping
@@ -12,6 +13,9 @@ from app.models.ai_inference_log import AiInferenceLog
 
 from .normalizer import normalize_ingredient_name
 from .schemas import BarcodeResult
+
+
+logger = logging.getLogger(__name__)
 
 
 type QueryParams = Mapping[str, str]
@@ -103,12 +107,14 @@ class OpenFoodFactsAPI:
         unit = _extract_unit(quantity_str) or "unit"
         canonical_name = normalize_ingredient_name(product_name)
         display_name = f"{product_name} {quantity_str}".strip() if quantity_str else product_name
-        return BarcodeResult(
-            barcode=barcode,
-            display_name=display_name,
-            canonical_name=canonical_name,
-            brand=brand or "Unknown",
-            unit=unit,
+        return BarcodeResult.model_validate(
+            {
+                "barcode": barcode,
+                "displayName": display_name,
+                "canonicalName": canonical_name,
+                "brand": brand or "Unknown",
+                "unit": unit,
+            }
         )
 
     async def _log_inference(self, duration_ms: float, status: str, error_detail: str | None) -> None:
@@ -126,5 +132,5 @@ class OpenFoodFactsAPI:
                     )
                 )
                 await session.commit()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Open Food Facts inference logging failed: %s", exc)

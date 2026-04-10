@@ -630,17 +630,300 @@ class InventoryItemsTableCompanion
   }
 }
 
+class $SavedRecipesTableTable extends SavedRecipesTable
+    with TableInfo<$SavedRecipesTableTable, SavedRecipeRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedRecipesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _recipeIdMeta =
+      const VerificationMeta('recipeId');
+  @override
+  late final GeneratedColumn<String> recipeId = GeneratedColumn<String>(
+      'recipe_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _recipeTitleMeta =
+      const VerificationMeta('recipeTitle');
+  @override
+  late final GeneratedColumn<String> recipeTitle = GeneratedColumn<String>(
+      'recipe_title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _imageUrlMeta =
+      const VerificationMeta('imageUrl');
+  @override
+  late final GeneratedColumn<String> imageUrl = GeneratedColumn<String>(
+      'image_url', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _savedAtMeta =
+      const VerificationMeta('savedAt');
+  @override
+  late final GeneratedColumn<DateTime> savedAt = GeneratedColumn<DateTime>(
+      'saved_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [recipeId, recipeTitle, imageUrl, savedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_recipes_table';
+  @override
+  VerificationContext validateIntegrity(Insertable<SavedRecipeRecord> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('recipe_id')) {
+      context.handle(_recipeIdMeta,
+          recipeId.isAcceptableOrUnknown(data['recipe_id']!, _recipeIdMeta));
+    } else if (isInserting) {
+      context.missing(_recipeIdMeta);
+    }
+    if (data.containsKey('recipe_title')) {
+      context.handle(
+          _recipeTitleMeta,
+          recipeTitle.isAcceptableOrUnknown(
+              data['recipe_title']!, _recipeTitleMeta));
+    } else if (isInserting) {
+      context.missing(_recipeTitleMeta);
+    }
+    if (data.containsKey('image_url')) {
+      context.handle(_imageUrlMeta,
+          imageUrl.isAcceptableOrUnknown(data['image_url']!, _imageUrlMeta));
+    }
+    if (data.containsKey('saved_at')) {
+      context.handle(_savedAtMeta,
+          savedAt.isAcceptableOrUnknown(data['saved_at']!, _savedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {recipeId};
+  @override
+  SavedRecipeRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedRecipeRecord(
+      recipeId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}recipe_id'])!,
+      recipeTitle: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}recipe_title'])!,
+      imageUrl: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}image_url']),
+      savedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}saved_at'])!,
+    );
+  }
+
+  @override
+  $SavedRecipesTableTable createAlias(String alias) {
+    return $SavedRecipesTableTable(attachedDatabase, alias);
+  }
+}
+
+class SavedRecipeRecord extends DataClass
+    implements Insertable<SavedRecipeRecord> {
+  final String recipeId;
+  final String recipeTitle;
+  final String? imageUrl;
+  final DateTime savedAt;
+  const SavedRecipeRecord(
+      {required this.recipeId,
+      required this.recipeTitle,
+      this.imageUrl,
+      required this.savedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['recipe_id'] = Variable<String>(recipeId);
+    map['recipe_title'] = Variable<String>(recipeTitle);
+    if (!nullToAbsent || imageUrl != null) {
+      map['image_url'] = Variable<String>(imageUrl);
+    }
+    map['saved_at'] = Variable<DateTime>(savedAt);
+    return map;
+  }
+
+  SavedRecipesTableCompanion toCompanion(bool nullToAbsent) {
+    return SavedRecipesTableCompanion(
+      recipeId: Value(recipeId),
+      recipeTitle: Value(recipeTitle),
+      imageUrl: imageUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imageUrl),
+      savedAt: Value(savedAt),
+    );
+  }
+
+  factory SavedRecipeRecord.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedRecipeRecord(
+      recipeId: serializer.fromJson<String>(json['recipeId']),
+      recipeTitle: serializer.fromJson<String>(json['recipeTitle']),
+      imageUrl: serializer.fromJson<String?>(json['imageUrl']),
+      savedAt: serializer.fromJson<DateTime>(json['savedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'recipeId': serializer.toJson<String>(recipeId),
+      'recipeTitle': serializer.toJson<String>(recipeTitle),
+      'imageUrl': serializer.toJson<String?>(imageUrl),
+      'savedAt': serializer.toJson<DateTime>(savedAt),
+    };
+  }
+
+  SavedRecipeRecord copyWith(
+          {String? recipeId,
+          String? recipeTitle,
+          Value<String?> imageUrl = const Value.absent(),
+          DateTime? savedAt}) =>
+      SavedRecipeRecord(
+        recipeId: recipeId ?? this.recipeId,
+        recipeTitle: recipeTitle ?? this.recipeTitle,
+        imageUrl: imageUrl.present ? imageUrl.value : this.imageUrl,
+        savedAt: savedAt ?? this.savedAt,
+      );
+  SavedRecipeRecord copyWithCompanion(SavedRecipesTableCompanion data) {
+    return SavedRecipeRecord(
+      recipeId: data.recipeId.present ? data.recipeId.value : this.recipeId,
+      recipeTitle:
+          data.recipeTitle.present ? data.recipeTitle.value : this.recipeTitle,
+      imageUrl: data.imageUrl.present ? data.imageUrl.value : this.imageUrl,
+      savedAt: data.savedAt.present ? data.savedAt.value : this.savedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedRecipeRecord(')
+          ..write('recipeId: $recipeId, ')
+          ..write('recipeTitle: $recipeTitle, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('savedAt: $savedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(recipeId, recipeTitle, imageUrl, savedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedRecipeRecord &&
+          other.recipeId == this.recipeId &&
+          other.recipeTitle == this.recipeTitle &&
+          other.imageUrl == this.imageUrl &&
+          other.savedAt == this.savedAt);
+}
+
+class SavedRecipesTableCompanion extends UpdateCompanion<SavedRecipeRecord> {
+  final Value<String> recipeId;
+  final Value<String> recipeTitle;
+  final Value<String?> imageUrl;
+  final Value<DateTime> savedAt;
+  final Value<int> rowid;
+  const SavedRecipesTableCompanion({
+    this.recipeId = const Value.absent(),
+    this.recipeTitle = const Value.absent(),
+    this.imageUrl = const Value.absent(),
+    this.savedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedRecipesTableCompanion.insert({
+    required String recipeId,
+    required String recipeTitle,
+    this.imageUrl = const Value.absent(),
+    this.savedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : recipeId = Value(recipeId),
+        recipeTitle = Value(recipeTitle);
+  static Insertable<SavedRecipeRecord> custom({
+    Expression<String>? recipeId,
+    Expression<String>? recipeTitle,
+    Expression<String>? imageUrl,
+    Expression<DateTime>? savedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (recipeId != null) 'recipe_id': recipeId,
+      if (recipeTitle != null) 'recipe_title': recipeTitle,
+      if (imageUrl != null) 'image_url': imageUrl,
+      if (savedAt != null) 'saved_at': savedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedRecipesTableCompanion copyWith(
+      {Value<String>? recipeId,
+      Value<String>? recipeTitle,
+      Value<String?>? imageUrl,
+      Value<DateTime>? savedAt,
+      Value<int>? rowid}) {
+    return SavedRecipesTableCompanion(
+      recipeId: recipeId ?? this.recipeId,
+      recipeTitle: recipeTitle ?? this.recipeTitle,
+      imageUrl: imageUrl ?? this.imageUrl,
+      savedAt: savedAt ?? this.savedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (recipeId.present) {
+      map['recipe_id'] = Variable<String>(recipeId.value);
+    }
+    if (recipeTitle.present) {
+      map['recipe_title'] = Variable<String>(recipeTitle.value);
+    }
+    if (imageUrl.present) {
+      map['image_url'] = Variable<String>(imageUrl.value);
+    }
+    if (savedAt.present) {
+      map['saved_at'] = Variable<DateTime>(savedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedRecipesTableCompanion(')
+          ..write('recipeId: $recipeId, ')
+          ..write('recipeTitle: $recipeTitle, ')
+          ..write('imageUrl: $imageUrl, ')
+          ..write('savedAt: $savedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $InventoryItemsTableTable inventoryItemsTable =
       $InventoryItemsTableTable(this);
+  late final $SavedRecipesTableTable savedRecipesTable =
+      $SavedRecipesTableTable(this);
   late final InventoryDao inventoryDao = InventoryDao(this as AppDatabase);
+  late final SavedRecipeDao savedRecipeDao =
+      SavedRecipeDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [inventoryItemsTable];
+  List<DatabaseSchemaEntity> get allSchemaEntities =>
+      [inventoryItemsTable, savedRecipesTable];
 }
 
 typedef $$InventoryItemsTableTableCreateCompanionBuilder
@@ -933,10 +1216,172 @@ typedef $$InventoryItemsTableTableProcessedTableManager = ProcessedTableManager<
     ),
     InventoryItemsTableData,
     PrefetchHooks Function()>;
+typedef $$SavedRecipesTableTableCreateCompanionBuilder
+    = SavedRecipesTableCompanion Function({
+  required String recipeId,
+  required String recipeTitle,
+  Value<String?> imageUrl,
+  Value<DateTime> savedAt,
+  Value<int> rowid,
+});
+typedef $$SavedRecipesTableTableUpdateCompanionBuilder
+    = SavedRecipesTableCompanion Function({
+  Value<String> recipeId,
+  Value<String> recipeTitle,
+  Value<String?> imageUrl,
+  Value<DateTime> savedAt,
+  Value<int> rowid,
+});
+
+class $$SavedRecipesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedRecipesTableTable> {
+  $$SavedRecipesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get recipeId => $composableBuilder(
+      column: $table.recipeId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get recipeTitle => $composableBuilder(
+      column: $table.recipeTitle, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get savedAt => $composableBuilder(
+      column: $table.savedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$SavedRecipesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedRecipesTableTable> {
+  $$SavedRecipesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get recipeId => $composableBuilder(
+      column: $table.recipeId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get recipeTitle => $composableBuilder(
+      column: $table.recipeTitle, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get imageUrl => $composableBuilder(
+      column: $table.imageUrl, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get savedAt => $composableBuilder(
+      column: $table.savedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$SavedRecipesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedRecipesTableTable> {
+  $$SavedRecipesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get recipeId =>
+      $composableBuilder(column: $table.recipeId, builder: (column) => column);
+
+  GeneratedColumn<String> get recipeTitle => $composableBuilder(
+      column: $table.recipeTitle, builder: (column) => column);
+
+  GeneratedColumn<String> get imageUrl =>
+      $composableBuilder(column: $table.imageUrl, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get savedAt =>
+      $composableBuilder(column: $table.savedAt, builder: (column) => column);
+}
+
+class $$SavedRecipesTableTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $SavedRecipesTableTable,
+    SavedRecipeRecord,
+    $$SavedRecipesTableTableFilterComposer,
+    $$SavedRecipesTableTableOrderingComposer,
+    $$SavedRecipesTableTableAnnotationComposer,
+    $$SavedRecipesTableTableCreateCompanionBuilder,
+    $$SavedRecipesTableTableUpdateCompanionBuilder,
+    (
+      SavedRecipeRecord,
+      BaseReferences<_$AppDatabase, $SavedRecipesTableTable, SavedRecipeRecord>
+    ),
+    SavedRecipeRecord,
+    PrefetchHooks Function()> {
+  $$SavedRecipesTableTableTableManager(
+      _$AppDatabase db, $SavedRecipesTableTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedRecipesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedRecipesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedRecipesTableTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> recipeId = const Value.absent(),
+            Value<String> recipeTitle = const Value.absent(),
+            Value<String?> imageUrl = const Value.absent(),
+            Value<DateTime> savedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SavedRecipesTableCompanion(
+            recipeId: recipeId,
+            recipeTitle: recipeTitle,
+            imageUrl: imageUrl,
+            savedAt: savedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String recipeId,
+            required String recipeTitle,
+            Value<String?> imageUrl = const Value.absent(),
+            Value<DateTime> savedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              SavedRecipesTableCompanion.insert(
+            recipeId: recipeId,
+            recipeTitle: recipeTitle,
+            imageUrl: imageUrl,
+            savedAt: savedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$SavedRecipesTableTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $SavedRecipesTableTable,
+    SavedRecipeRecord,
+    $$SavedRecipesTableTableFilterComposer,
+    $$SavedRecipesTableTableOrderingComposer,
+    $$SavedRecipesTableTableAnnotationComposer,
+    $$SavedRecipesTableTableCreateCompanionBuilder,
+    $$SavedRecipesTableTableUpdateCompanionBuilder,
+    (
+      SavedRecipeRecord,
+      BaseReferences<_$AppDatabase, $SavedRecipesTableTable, SavedRecipeRecord>
+    ),
+    SavedRecipeRecord,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$InventoryItemsTableTableTableManager get inventoryItemsTable =>
       $$InventoryItemsTableTableTableManager(_db, _db.inventoryItemsTable);
+  $$SavedRecipesTableTableTableManager get savedRecipesTable =>
+      $$SavedRecipesTableTableTableManager(_db, _db.savedRecipesTable);
 }

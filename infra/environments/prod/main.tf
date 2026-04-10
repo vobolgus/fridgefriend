@@ -21,7 +21,7 @@ locals {
     AUTH_MOCK                 = "false"
     FIREBASE_PROJECT_ID       = "fridge-friend-c5a88"
     BARCODE_API_SOURCE        = "openfoodfacts"
-    RECIPE_SOURCE             = "mock"
+    RECIPE_SOURCE             = "spoonacular"
     STORAGE_BACKEND           = "s3"
     S3_BUCKET                 = module.s3_cdn.bucket_name
     S3_ENDPOINT_URL           = ""
@@ -41,6 +41,7 @@ locals {
     REDIS_URL                 = module.secrets.secret_arns["redis-url"]
     LLM_API_KEY               = module.secrets.secret_arns["llm-api-key"]
     FIREBASE_CREDENTIALS_JSON = module.secrets.secret_arns["firebase-credentials"]
+    SPOONACULAR_API_KEY       = module.secrets.secret_arns["spoonacular-api-key"]
   }
 
   dashboard_base_environment = {

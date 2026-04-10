@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
+import 'package:fridgefriend_mobile/features/recommendations/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/recommendations/presentation/recipe_detail_screen.dart';
 
 void main() {
@@ -30,8 +32,13 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const MaterialApp(
-        home: RecipeDetailScreen(recipe: recipe),
+      ProviderScope(
+        overrides: [
+          savedRecipeProvider('1').overrideWith((ref) => Future.value(false)),
+        ],
+        child: const MaterialApp(
+          home: RecipeDetailScreen(recipe: recipe),
+        ),
       ),
     );
 

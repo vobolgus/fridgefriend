@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Protocol
 
 import httpx
+
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyticsInterface(Protocol):
@@ -52,7 +56,7 @@ class AmplitudeClient:
         if not self.is_configured:
             return
         try:
-            await self._client.post(
+            _ = await self._client.post(
                 AMPLITUDE_HTTP_API,
                 json={
                     "api_key": self.api_key,
@@ -66,5 +70,5 @@ class AmplitudeClient:
                     ],
                 },
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Amplitude tracking failed: %s", exc)

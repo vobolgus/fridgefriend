@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Mapping
 from typing import Protocol, cast
@@ -8,6 +9,9 @@ import httpx
 
 from app.core.database import AsyncSessionLocal
 from app.models.ai_inference_log import AiInferenceLog
+
+
+logger = logging.getLogger(__name__)
 
 
 type QueryParamValue = str | int | float | bool
@@ -96,8 +100,8 @@ class SpoonacularClient:
                     )
                 )
                 await session.commit()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Spoonacular inference logging failed: %s", exc)
 
     @staticmethod
     def _map_recipe(payload: Mapping[str, object]) -> dict[str, object]:

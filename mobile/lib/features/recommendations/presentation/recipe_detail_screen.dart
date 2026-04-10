@@ -1,11 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
+import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
+import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
+import 'package:fridgefriend_mobile/features/recommendations/presentation/providers.dart';
 
 import 'package:fridgefriend_mobile/features/recommendations/domain/recipe.dart';
 
-class RecipeDetailScreen extends StatelessWidget {
+class RecipeDetailScreen extends ConsumerWidget {
   const RecipeDetailScreen({required this.recipe, super.key});
 
   final Recipe recipe;
@@ -51,7 +58,10 @@ class RecipeDetailScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final savedAsync = ref.watch(savedRecipeProvider(recipe.id));
+    final isSaved = savedAsync.valueOrNull ?? false;
+
     final substitutions = recipe.substitutions;
 
     Color progressColor;
@@ -88,11 +98,29 @@ class RecipeDetailScreen extends StatelessWidget {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.bookmark_border),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Recipe saved!')),
+            icon: Icon(isSaved ? Icons.bookmark : Icons.bookmark_border),
+            onPressed: () async {
+              final dao = ref.read(appDatabaseProvider).savedRecipeDao;
+              await dao.toggleSave(recipe.id, recipe.title, recipe.imageUrl);
+              ref.invalidate(savedRecipeProvider(recipe.id));
+              unawaited(
+                ref.read(analyticsProvider).track(
+                  'recipe_bookmarked',
+                  payload: {
+                    'recipe_id': recipe.id,
+                    'saved': !isSaved,
+                    'missing_item_count': recipe.missingItems.length,
+                    'coverage_pct': recipe.coveragePct,
+                  },
+                ),
               );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                      content:
+                          Text(isSaved ? 'Recipe unsaved' : 'Recipe saved!')),
+                );
+              }
             },
           ),
         ],
@@ -104,9 +132,7 @@ class RecipeDetailScreen extends StatelessWidget {
             width: double.infinity,
             child: FilledButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Recipe added to plan!')),
-                );
+                _showMealPlanBottomSheet(context, ref);
               },
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -608,6 +634,144 @@ class RecipeDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showMealPlanBottomSheet(BuildContext context, WidgetRef ref) {
+    int days = 7;
+    int servings = 2;
+    bool isLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSpacing.cardRadius)),
+      ),
+      builder: (bottomSheetContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                top: AppSpacing.md,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      if (recipe.imageUrl != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(recipe.imageUrl!,
+                              width: 60, height: 60, fit: BoxFit.cover),
+                        )
+                      else
+                        Container(
+                            width: 60,
+                            height: 60,
+                            color: AppColors.primaryLight),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          'Generate a meal plan featuring ${recipe.title}?',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Days',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      DropdownButton<int>(
+                        value: days,
+                        items: [3, 4, 5, 6, 7]
+                            .map((e) => DropdownMenuItem(
+                                value: e, child: Text('$e days')))
+                            .toList(),
+                        onChanged: (v) => setState(() => days = v!),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Servings',
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                      DropdownButton<int>(
+                        value: servings,
+                        items: [1, 2, 3, 4]
+                            .map((e) => DropdownMenuItem(
+                                value: e, child: Text('$e servings')))
+                            .toList(),
+                        onChanged: (v) => setState(() => servings = v!),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              setState(() => isLoading = true);
+                              try {
+                                await ref
+                                    .read(mealPlanProvider.notifier)
+                                    .generatePlan(days: days);
+                                if (context.mounted) {
+                                  Navigator.pop(context); // close bottom sheet
+                                  context.push('/plan',
+                                      extra: {'suggestedRecipe': recipe});
+                                }
+                              } catch (e) {
+                                setState(() => isLoading = false);
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content:
+                                            Text('Failed to generate plan')),
+                                  );
+                                }
+                              }
+                            },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Text('Generate Plan'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

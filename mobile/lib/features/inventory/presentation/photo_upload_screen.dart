@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +10,7 @@ import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/error_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/loading_view.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
+import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
 class PhotoUploadScreen extends ConsumerStatefulWidget {
@@ -39,6 +42,15 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
 
       // Step 2: Send the URL to the scan endpoint for AI parsing
       final draftItems = await apiClient.scanPhoto(imageUrl);
+      unawaited(
+        ref.read(analyticsProvider).track(
+          'photo_uploaded',
+          payload: {
+            'source': source.name,
+            'draft_item_count': draftItems.length,
+          },
+        ),
+      );
 
       if (mounted) {
         context.pushReplacement(

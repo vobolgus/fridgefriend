@@ -1,18 +1,18 @@
 from __future__ import annotations
 
+import logging
 import time
 from collections.abc import Mapping
 from typing import Protocol, cast
 
-import logging
-
 import httpx
 
 from app.core.config import settings
-
-logger = logging.getLogger(__name__)
 from app.core.database import AsyncSessionLocal
 from app.models.ai_inference_log import AiInferenceLog
+
+
+logger = logging.getLogger(__name__)
 
 
 class PhotoParserInterface(Protocol):
@@ -128,10 +128,13 @@ class LLMPhotoParser:
             json_loader = getattr(response, "json", None)
             response_payload = json_loader() if callable(json_loader) else {}
             content = self._extract_content(response_payload)
-            draft_items = cast(object, content.get("draft_items", []))
+            draft_items = content.get("draft_items", [])
             if not isinstance(draft_items, list):
                 draft_items = []
-            result = [cast(dict[str, object], item) for item in draft_items if isinstance(item, dict)]
+            result = []
+            for item in cast(list[object], draft_items):
+                if isinstance(item, dict):
+                    result.append(cast(JSONDict, item))
         except Exception as exc:
             status = "error"
             error_detail = str(exc)[:500]
@@ -157,7 +160,7 @@ class LLMPhotoParser:
             if isinstance(response_payload, Mapping):
                 raw_usage = cast(JSONDict, response_payload).get("usage", {})
                 if isinstance(raw_usage, dict):
-                    usage = raw_usage
+                    usage = cast(JSONDict, raw_usage)
 
             input_tokens = usage.get("prompt_tokens")
             output_tokens = usage.get("completion_tokens")
@@ -195,8 +198,8 @@ class LLMPhotoParser:
                     )
                 )
                 await session.commit()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.warning("Photo parser inference logging failed: %s", exc)
 
     @staticmethod
     def _extract_content(payload: object) -> dict[str, object]:
@@ -208,7 +211,8 @@ class LLMPhotoParser:
         choices = payload_dict.get("choices", [])
         if not isinstance(choices, list) or not choices:
             return {}
-        first_choice = choices[0]
+        normalized_choices = cast(list[object], choices)
+        first_choice = normalized_choices[0]
         if not isinstance(first_choice, Mapping):
             return {}
         first_choice_dict = cast(JSONDict, first_choice)
@@ -224,13 +228,13 @@ class LLMPhotoParser:
         content = message_dict.get("content")
         if isinstance(content, str):
             try:
-                obj = _json.loads(content)
-                if isinstance(obj, dict):
-                    return cast(dict[str, object], obj)
+                parsed_content = cast(object, _json.loads(content))
+                if isinstance(parsed_content, dict):
+                    return cast(dict[str, object], parsed_content)
             except (ValueError, TypeError):
                 pass
         if isinstance(content, list):
-            for item in content:
+            for item in cast(list[object], content):
                 if not isinstance(item, Mapping):
                     continue
                 item_dict = cast(JSONDict, item)

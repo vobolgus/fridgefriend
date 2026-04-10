@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:fridgefriend_mobile/core/design/colors.dart';
 import 'package:fridgefriend_mobile/core/design/spacing.dart';
 import 'package:fridgefriend_mobile/core/presentation/widgets/app_bar.dart';
+import 'package:fridgefriend_mobile/features/auth/presentation/providers.dart';
 import 'package:fridgefriend_mobile/features/inventory/domain/inventory_item.dart';
 import 'package:fridgefriend_mobile/features/inventory/presentation/providers.dart';
 
@@ -56,6 +59,16 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
     try {
       final scannedItem =
           await ref.read(apiClientProvider).scanBarcode(barcode);
+      unawaited(
+        ref.read(analyticsProvider).track(
+          'barcode_scanned',
+          payload: {
+            'entry_method':
+                barcode == _manualController.text.trim() ? 'manual' : 'camera',
+            'barcode_length': barcode.length,
+          },
+        ),
+      );
       final item = InventoryItem(
         id: scannedItem.id,
         displayName: scannedItem.displayName,

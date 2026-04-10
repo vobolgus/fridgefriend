@@ -8,16 +8,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.database import get_db
 from app.core.idempotency import get_cached, require_idempotency_key, store_cached
 from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
-from .mock_recipe_source import MockRecipeSource
-from .opensearch_client import OpenSearchRecipeSource
 from .schemas import RecommendationRequest, RecommendationResponse
-from .spoonacular import SpoonacularClient
 from .service import RecommendationService
 
 router = APIRouter(prefix="/v1/recommendations", tags=["recommendations"])
@@ -26,13 +22,21 @@ router = APIRouter(prefix="/v1/recommendations", tags=["recommendations"])
 async def get_recommendation_service(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RecommendationService:
-    if settings.RECIPE_SOURCE == "spoonacular" and settings.SPOONACULAR_API_KEY:
-        recipe_source = SpoonacularClient(settings.SPOONACULAR_API_KEY)
-    elif settings.RECIPE_SOURCE == "opensearch":
+    from app.core.config import settings
+
+    if settings.RECIPE_SOURCE == "opensearch":
+        from .opensearch_client import OpenSearchRecipeSource
+
         recipe_source = OpenSearchRecipeSource()
+    elif settings.RECIPE_SOURCE == "spoonacular":
+        from .spoonacular import SpoonacularClient
+
+        recipe_source = SpoonacularClient(api_key=settings.SPOONACULAR_API_KEY)
     else:
+        from .mock_recipe_source import MockRecipeSource
+
         recipe_source = MockRecipeSource()
-    return RecommendationService(db, recipe_source=recipe_source)
+    return RecommendationService(session=db, recipe_source=recipe_source)
 
 
 @router.post("", response_model=RecommendationResponse, response_model_by_alias=True)

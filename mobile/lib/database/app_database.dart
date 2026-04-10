@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:fridgefriend_mobile/database/daos/inventory_dao.dart';
 import 'package:fridgefriend_mobile/database/daos/meal_plan_dao.dart';
 import 'package:fridgefriend_mobile/database/daos/recipe_dao.dart';
+import 'package:fridgefriend_mobile/database/daos/saved_recipe_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -74,7 +75,21 @@ class MealPlansTable extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [InventoryItemsTable], daos: [InventoryDao])
+@DataClassName('SavedRecipeRecord')
+class SavedRecipesTable extends Table {
+  TextColumn get recipeId => text()();
+  TextColumn get recipeTitle => text()();
+  TextColumn get imageUrl => text().nullable()();
+  DateTimeColumn get savedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {recipeId};
+}
+
+@DriftDatabase(
+  tables: [InventoryItemsTable, SavedRecipesTable],
+  daos: [InventoryDao],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
@@ -82,9 +97,10 @@ class AppDatabase extends _$AppDatabase {
 
   late final RecipeDao recipeDao = RecipeDao(this);
   late final MealPlanDao mealPlanDao = MealPlanDao(this);
+  late final SavedRecipeDao savedRecipeDao = SavedRecipeDao(this);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +133,16 @@ class AppDatabase extends _$AppDatabase {
             } catch (e) {
               debugPrint('Migration: column may already exist: $e');
             }
+          }
+          if (from < 5) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS saved_recipes_table (
+                recipe_id TEXT PRIMARY KEY NOT NULL,
+                recipe_title TEXT NOT NULL,
+                image_url TEXT,
+                saved_at INTEGER NOT NULL DEFAULT (CAST(strftime('%s','now') AS INT))
+              )
+            ''');
           }
         },
         beforeOpen: (details) async {

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fridgefriend_mobile/core/analytics/analytics_service.dart';
 import 'package:fridgefriend_mobile/core/network/api_client.dart';
 import 'package:fridgefriend_mobile/database/app_database.dart';
 import 'package:fridgefriend_mobile/database/daos/meal_plan_dao.dart';
@@ -117,6 +118,18 @@ class InventoryNotifier extends StateNotifier<AsyncValue<List<InventoryItem>>> {
       if (!mounted) return;
       final currentItems = state.valueOrNull ?? const <InventoryItem>[];
       state = AsyncValue.data([...currentItems, createdItem]);
+      unawaited(
+        _ref?.read(analyticsProvider).track(
+              'inventory_item_added',
+              payload: {
+                'source': createdItem.source,
+                'storage_location': createdItem.storageLocation,
+                'has_expiry_date': createdItem.estimatedExpiryDate != null,
+                'is_offline': createdItem.id.startsWith('offline_'),
+              },
+            ) ??
+            Future.value(),
+      );
       _invalidateRecommendations();
     } catch (error, stackTrace) {
       if (!mounted) return;
@@ -237,6 +250,7 @@ final inventoryProvider =
 final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
   final apiClient = ref.watch(apiClientProvider);
   final recipeDao = ref.watch(appDatabaseProvider).recipeDao;
+  final analytics = ref.watch(analyticsProvider);
   final cached = await recipeDao.getAllRecipes();
 
   if (cached.isNotEmpty) {
@@ -245,18 +259,49 @@ final recommendationsProvider = FutureProvider<List<Recipe>>((ref) async {
         .reduce((a, b) => a.isAfter(b) ? a : b);
     final cacheAge = DateTime.now().difference(newest);
     if (cacheAge < const Duration(hours: 24)) {
-      return cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+      final recipes =
+          cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+      unawaited(
+        analytics.track(
+          'recipe_recommendations_viewed',
+          payload: {
+            'result_count': recipes.length,
+            'source': 'cache',
+          },
+        ),
+      );
+      return recipes;
     }
   }
 
   try {
     final recipes = await apiClient.getRecommendations();
     await recipeDao.replaceAllRecipes(recipes);
+    unawaited(
+      analytics.track(
+        'recipe_recommendations_viewed',
+        payload: {
+          'result_count': recipes.length,
+          'source': 'remote',
+        },
+      ),
+    );
     return recipes;
   } catch (_) {
     final cached = await recipeDao.getAllRecipes();
     if (cached.isNotEmpty) {
-      return cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+      final recipes =
+          cached.map((recipe) => recipe.toDomain()).toList(growable: false);
+      unawaited(
+        analytics.track(
+          'recipe_recommendations_viewed',
+          payload: {
+            'result_count': recipes.length,
+            'source': 'fallback_cache',
+          },
+        ),
+      );
+      return recipes;
     }
     rethrow;
   }
@@ -267,17 +312,19 @@ final mealPlanProvider =
   return MealPlanNotifier(
     ref.watch(apiClientProvider),
     ref.watch(appDatabaseProvider).mealPlanDao,
+    ref.watch(analyticsProvider),
   );
 });
 
 class MealPlanNotifier extends StateNotifier<AsyncValue<MealPlan?>> {
-  MealPlanNotifier(this._apiClient, this._mealPlanDao)
+  MealPlanNotifier(this._apiClient, this._mealPlanDao, this._analytics)
       : super(const AsyncValue.data(null)) {
     loadLatest();
   }
 
   final ApiClient _apiClient;
   final MealPlanDao _mealPlanDao;
+  final AnalyticsService _analytics;
 
   Future<void> loadLatest() async {
     state = const AsyncValue.loading();
@@ -304,6 +351,16 @@ class MealPlanNotifier extends StateNotifier<AsyncValue<MealPlan?>> {
     try {
       final plan = await _apiClient.generatePlan(days: days);
       await _mealPlanDao.saveMealPlan(plan);
+      unawaited(
+        _analytics.track(
+          'meal_plan_generated',
+          payload: {
+            'days_requested': days,
+            'meal_count': plan.days.length,
+            'shopping_item_count': plan.shoppingList.length,
+          },
+        ),
+      );
       if (!mounted) return;
       state = AsyncValue.data(plan);
     } catch (e, st) {
