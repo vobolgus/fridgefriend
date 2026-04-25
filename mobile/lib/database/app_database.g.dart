@@ -916,8 +916,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SavedRecipesTableTable savedRecipesTable =
       $SavedRecipesTableTable(this);
   late final InventoryDao inventoryDao = InventoryDao(this as AppDatabase);
-  late final SavedRecipeDao savedRecipeDao =
-      SavedRecipeDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();

@@ -100,7 +100,7 @@ class AppDatabase extends _$AppDatabase {
   late final SavedRecipeDao savedRecipeDao = SavedRecipeDao(this);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -144,6 +144,22 @@ class AppDatabase extends _$AppDatabase {
               )
             ''');
           }
+          if (from < 6) {
+            try {
+              await customStatement(
+                'ALTER TABLE recipes_cache ADD COLUMN image_url TEXT',
+              );
+            } catch (e) {
+              debugPrint('Migration: column may already exist: $e');
+            }
+            try {
+              await customStatement(
+                'ALTER TABLE recipes_cache ADD COLUMN ingredients_json TEXT',
+              );
+            } catch (e) {
+              debugPrint('Migration: column may already exist: $e');
+            }
+          }
         },
         beforeOpen: (details) async {
           await _ensureAuxiliaryTables();
@@ -160,6 +176,8 @@ class AppDatabase extends _$AppDatabase {
         prep_minutes INTEGER NOT NULL DEFAULT 0,
         missing_items_json TEXT NOT NULL DEFAULT '[]',
         substitutions_json TEXT NOT NULL DEFAULT '[]',
+        image_url TEXT,
+        ingredients_json TEXT,
         synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       )
     ''');
