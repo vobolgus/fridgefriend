@@ -83,6 +83,30 @@ def _plan_with_recipe_ingredients(recipe_id: str, title: str, ingredients: list[
     )
 
 
+def _shopping_list_items_payload(recipe_id: str | None) -> dict[str, object]:
+    return {
+        "items": [
+            {
+                "name": "tomato",
+                "quantity": 2.0,
+                "unit": "pcs",
+                "recipe_id": recipe_id,
+            },
+            {
+                "name": "basil",
+                "quantity": None,
+                "unit": None,
+                "recipe_id": recipe_id,
+            },
+        ]
+    }
+
+
+def _assert_uuid_string(value: object) -> None:
+    assert isinstance(value, str)
+    uuid.UUID(value)
+
+
 def _inventory_item(
     name: str,
     quantity: float,
@@ -727,3 +751,223 @@ async def test_shopping_list_uses_latest_household_plan(
 
     assert shopping_list_response.status_code == 200
     assert isinstance(shopping_list_response.json()["items"], list)
+
+
+@pytest.mark.asyncio
+async def test_post_shopping_list_items_creates_manual_items(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    await _seed_household(
+        db_session,
+        planning_test_user,
+        name="Shopping List Manual Create Household",
+        invite_code="shopping-list-manual-create",
+    )
+    await _seed_recipes(db_session, planner_recipes)
+    recipe = (await db_session.execute(select(Recipe).where(Recipe.title == "Veggie Omelet"))).scalar_one()
+
+    response = await client.post(
+        "/v1/shopping-list/items",
+        headers=_headers(test_headers, "shopping-list-items-create"),
+        json=_shopping_list_items_payload(str(recipe.id)),
+    )
+
+    assert response.status_code == 201
+    payload = response.json()
+    assert list(payload.keys()) == ["items"]
+    assert len(payload["items"]) == 2
+
+    first_item, second_item = payload["items"]
+    _assert_uuid_string(first_item["id"])
+    assert first_item["name"] == "tomato"
+    assert first_item["quantity"] == 2.0
+    assert first_item["unit"] == "pcs"
+    assert first_item["recipeId"] == str(recipe.id)
+    assert isinstance(first_item["createdAt"], str)
+
+    _assert_uuid_string(second_item["id"])
+    assert second_item["name"] == "basil"
+    assert second_item["quantity"] is None
+    assert second_item["unit"] is None
+    assert second_item["recipeId"] == str(recipe.id)
+    assert isinstance(second_item["createdAt"], str)
+
+
+@pytest.mark.asyncio
+async def test_post_shopping_list_items_idempotent_replay(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    await _seed_household(
+        db_session,
+        planning_test_user,
+        name="Shopping List Idempotency Household",
+        invite_code="shopping-list-idempotency",
+    )
+    await _seed_recipes(db_session, planner_recipes)
+    recipe = (await db_session.execute(select(Recipe).where(Recipe.title == "Veggie Omelet"))).scalar_one()
+    headers = _headers(test_headers, "shopping-list-items-idempotent")
+    payload = _shopping_list_items_payload(str(recipe.id))
+
+    first_response = await client.post(
+        "/v1/shopping-list/items",
+        headers=headers,
+        json=payload,
+    )
+    second_response = await client.post(
+        "/v1/shopping-list/items",
+        headers=headers,
+        json=payload,
+    )
+
+    assert first_response.status_code == 201
+    assert second_response.status_code == 201
+    assert [item["id"] for item in second_response.json()["items"]] == [
+        item["id"] for item in first_response.json()["items"]
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_shopping_list_merges_manual_and_derived_items(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    await _seed_household(
+        db_session,
+        planning_test_user,
+        name="Shopping List Merge Household",
+        invite_code="shopping-list-merge",
+    )
+    await _seed_recipes(db_session, planner_recipes)
+    await _seed_inventory(
+        db_session,
+        planning_test_user,
+        [_inventory_item("milk", 1.0, "cup", 2)],
+    )
+    recipe = (await db_session.execute(select(Recipe).where(Recipe.title == "Veggie Omelet"))).scalar_one()
+
+    plan_response = await client.post(
+        "/v1/plans",
+        headers=_headers(test_headers, "shopping-list-merge-plan"),
+        json={"days": 3, "servings": 2, "dietary_tags": ["vegetarian"]},
+    )
+    assert plan_response.status_code == 200
+
+    manual_response = await client.post(
+        "/v1/shopping-list/items",
+        headers=_headers(test_headers, "shopping-list-merge-manual-item"),
+        json={
+            "items": [
+                {
+                    "name": "basil",
+                    "quantity": None,
+                    "unit": None,
+                    "recipe_id": str(recipe.id),
+                }
+            ]
+        },
+    )
+
+    assert manual_response.status_code == 201
+
+    shopping_list_response = await client.get("/v1/shopping-list", headers=test_headers)
+
+    assert shopping_list_response.status_code == 200
+    item_names = {item["name"] for item in shopping_list_response.json()["items"]}
+    assert "basil" in item_names
+    assert {"eggs", "spinach"}.issubset(item_names)
+
+
+@pytest.mark.asyncio
+async def test_post_shopping_list_items_blocks_cross_household_recipe_id(
+    client: httpx.AsyncClient,
+    app: FastAPI,
+    test_headers: dict[str, str],
+    planning_test_user: User,
+    db_session: AsyncSession,
+    planner_recipes: list[dict[str, object]],
+) -> None:
+    await _seed_household(
+        db_session,
+        planning_test_user,
+        name="Shopping List Household A",
+        invite_code="shopping-list-household-a",
+    )
+    other_user = User(email="shopping-list-household-b@example.com")
+    db_session.add(other_user)
+    await db_session.commit()
+    await db_session.refresh(other_user)
+    await _seed_household(
+        db_session,
+        other_user,
+        name="Shopping List Household B",
+        invite_code="shopping-list-household-b",
+    )
+    await _seed_recipes(db_session, planner_recipes)
+    recipe = (await db_session.execute(select(Recipe).where(Recipe.title == "Veggie Omelet"))).scalar_one()
+
+    create_response = await client.post(
+        "/v1/shopping-list/items",
+        headers=_headers(test_headers, "shopping-list-household-a-create"),
+        json={
+            "items": [
+                {
+                    "name": "tomato",
+                    "quantity": 2.0,
+                    "unit": "pcs",
+                    "recipe_id": str(recipe.id),
+                }
+            ]
+        },
+    )
+
+    assert create_response.status_code == 201
+
+    invalid_recipe_response = await client.post(
+        "/v1/shopping-list/items",
+        headers=_headers(test_headers, "shopping-list-invalid-recipe-id"),
+        json={
+            "items": [
+                {
+                    "name": "oregano",
+                    "quantity": None,
+                    "unit": None,
+                    "recipe_id": str(uuid.uuid4()),
+                }
+            ]
+        },
+    )
+
+    assert invalid_recipe_response.status_code in {404, 422}
+
+    async def override_get_current_user_other() -> User:
+        return other_user
+
+    app.dependency_overrides[get_current_user] = override_get_current_user_other
+
+    household_b_response = await client.get("/v1/shopping-list", headers=test_headers)
+
+    assert household_b_response.status_code == 200
+    household_b_item_names = {item["name"] for item in household_b_response.json()["items"]}
+    assert "tomato" not in household_b_item_names
+
+    async def override_get_current_user_original() -> User:
+        return planning_test_user
+
+    app.dependency_overrides[get_current_user] = override_get_current_user_original
+
+    household_a_response = await client.get("/v1/shopping-list", headers=test_headers)
+
+    assert household_a_response.status_code == 200
+    household_a_item_names = {item["name"] for item in household_a_response.json()["items"]}
+    assert "tomato" in household_a_item_names
