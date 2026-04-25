@@ -14,7 +14,7 @@ env:
 jobs:
   build-and-deploy:
     name: Build and upload to TestFlight
-    runs-on: macos-latest
+    runs-on: blacksmith-6vcpu-macos-15
     timeout-minutes: 45
     environment: production
 
