@@ -7,6 +7,8 @@
 - Amplitude API key (optional)
 - Docker + AWS CLI installed locally
 
+> **Cost notes:** Production stack runs at **~$78/mo** of pre-credit AWS usage (post-2026-04-25 optimizations: Container Insights off, backend right-sized to 256/512, dashboard stopped, log retention 7d). An AWS Budget named `fridgefriend-monthly` is configured at $30/mo with email alerts at 80/100/120% — alerts fire on real usage even while promotional credits absorb the bill. See [`docs/aws-cost-analysis.md`](docs/aws-cost-analysis.md) for the full breakdown and remaining optimization opportunities.
+
 ## Pre-flight Checklist
 
 - [ ] All environment variables in `.env.production` are set with real values
@@ -21,20 +23,99 @@
 - [ ] All 261 backend tests pass locally
 - [ ] All 44 Flutter tests pass locally
 
+## Database Migrations (Alembic)
+
+Schema changes ship via [Alembic](https://alembic.sqlalchemy.org/). The application no longer creates tables on startup against PostgreSQL — `alembic upgrade head` is the only supported way to evolve production schema.
+
+### Local workflow
+
+Generate a new revision after editing `app/models/`:
+
+```bash
+cd backend
+docker compose -f ../docker-compose.yml up -d db
+source .venv/bin/activate
+
+# Autogenerate against an empty database to capture only your changes.
+docker exec ailab_project-db-1 psql -U fridgefriend -d postgres \
+  -c "DROP DATABASE IF EXISTS alembic_scratch;" \
+  -c "CREATE DATABASE alembic_scratch OWNER fridgefriend;"
+
+DATABASE_URL="postgresql+asyncpg://fridgefriend:fridgefriend@localhost:5432/alembic_scratch" \
+  alembic upgrade head
+
+DATABASE_URL="postgresql+asyncpg://fridgefriend:fridgefriend@localhost:5432/alembic_scratch" \
+  alembic revision --autogenerate -m "<short slug>"
+```
+
+Inspect the generated `alembic/versions/<timestamp>_<slug>.py`. Autogenerate has known blind spots — most notably it does **not** drop PostgreSQL `ENUM` types when their owning tables are dropped. Patch the `downgrade()` with explicit `DROP TYPE IF EXISTS <name>` calls when tables containing `sa.Enum(...)` are removed (see `20260425_0943-9c891418bc24_initial_schema.py` for the pattern).
+
+Verify the round-trip before committing:
+
+```bash
+DATABASE_URL="postgresql+asyncpg://fridgefriend:fridgefriend@localhost:5432/alembic_scratch" \
+  alembic downgrade base
+
+DATABASE_URL="postgresql+asyncpg://fridgefriend:fridgefriend@localhost:5432/alembic_scratch" \
+  alembic upgrade head
+
+DATABASE_URL="postgresql+asyncpg://fridgefriend:fridgefriend@localhost:5432/alembic_scratch" \
+  alembic check          # must report "No new upgrade operations detected."
+```
+
+### Tests
+
+Tests use SQLite in-memory and bootstrap the schema via `Base.metadata.create_all()` — Alembic is intentionally **not** in the test path. The lifespan in `app/main.py` only invokes `create_all()` when `DATABASE_URL` contains `sqlite`; PostgreSQL deployments rely entirely on Alembic.
+
+### First-time bootstrap of an existing database
+
+The production database was originally created via `Base.metadata.create_all()`, so its schema already matches the initial Alembic revision but `alembic_version` is empty. After deploying the first version of the backend that ships Alembic, mark the initial revision as applied without re-running it:
+
+```bash
+# One-shot, run by an operator with RDS access. NEVER run alembic upgrade head
+# against a database that was created with create_all() and has not been stamped.
+aws ecs run-task \
+  --cluster fridgefriend-production-cluster \
+  --launch-type FARGATE \
+  --task-definition fridgefriend-production-backend \
+  --overrides '{"containerOverrides":[{"name":"backend","command":["alembic","stamp","head"]}]}' \
+  --network-configuration "$(aws ecs describe-services \
+      --cluster fridgefriend-production-cluster \
+      --services fridgefriend-production-backend \
+      --query 'services[0].networkConfiguration')"
+```
+
+After the stamp completes, every subsequent push to `main` runs `alembic upgrade head` automatically (see below).
+
+### CI/CD
+
+`.github/workflows/deploy.yml` runs migrations as a dedicated `migrate` job between `build-and-push` and `deploy-backend`/`deploy-worker`. The job:
+
+1. Clones the latest `fridgefriend-production-backend` task definition.
+2. Overrides the container command to `["alembic","upgrade","head"]` and registers it under family `fridgefriend-production-migrate`.
+3. Reuses the backend service's VPC/subnet/security-group config so the task can reach RDS over the private network.
+4. Runs the task with `aws ecs run-task`, waits for `tasks-stopped`, and fails the build on a non-zero container exit code.
+
+Migration logs land in the `/ecs/fridgefriend/production/backend` log group (the cloned task inherits the backend service's `awslogs` config) — search for the migration task ARN to find them.
+
+If a migration fails, `deploy-backend` and `deploy-worker` are not started, leaving the previous image serving traffic. Fix the migration on a branch, push to `main`, and the deploy retries from the migrate step.
+
 ## Deployment Steps
 
 1. Build and push Docker images to ECR.
-2. Update ECS task definitions with new image tags.
-3. Deploy ECS services using a rolling update strategy (`maximumPercent=200`, `minimumHealthyPercent=100`).
-4. Verify health checks pass for `/health` and `/health/ready`.
-5. Run smoke tests against the production ALB or service DNS.
-6. Monitor Sentry and CloudWatch for errors, latency regressions, and failed background jobs.
+2. Run `alembic upgrade head` as a one-shot ECS task (handled automatically by `migrate` job in `deploy.yml`).
+3. Update ECS task definitions with new image tags.
+4. Deploy ECS services using a rolling update strategy (`maximumPercent=200`, `minimumHealthyPercent=100`).
+5. Verify health checks pass for `/health` and `/health/ready`.
+6. Run smoke tests against the production ALB or service DNS.
+7. Monitor Sentry and CloudWatch for errors, latency regressions, and failed background jobs.
 
 ## Rollback Procedure
 
 1. Update each ECS service to the previous task definition revision.
-2. Verify health checks and smoke tests return to normal.
-3. Investigate the root cause before attempting another deployment.
+2. If the rolled-back image predates a recent migration, run `alembic downgrade -1` against production via a one-shot task before flipping traffic. Be cautious — destructive downgrades (dropped columns/tables) lose data; prefer rolling forward with a fix.
+3. Verify health checks and smoke tests return to normal.
+4. Investigate the root cause before attempting another deployment.
 
 ## Environment Variable Reference
 

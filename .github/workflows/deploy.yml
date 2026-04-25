@@ -88,11 +88,124 @@ jobs:
           cache-from: type=gha,scope=dashboard
           cache-to: type=gha,scope=dashboard,mode=max
 
+  migrate:
+    name: Run database migrations
+    runs-on: ubuntu-latest
+    environment: production
+    needs: build-and-push
+    permissions:
+      contents: read
+    env:
+      TASK_FAMILY: fridgefriend-production-backend
+      CONTAINER_NAME: backend
+      ECS_SERVICE: fridgefriend-production-backend
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Render migration task definition from backend family
+        id: render
+        run: |
+          set -euo pipefail
+
+          # Pull the latest backend task definition, swap the image, and override
+          # the command to run alembic. Strip read-only fields so RegisterTaskDefinition
+          # accepts the JSON.
+          aws ecs describe-task-definition \
+            --task-definition "$TASK_FAMILY" \
+            --query 'taskDefinition' \
+            --output json \
+            | jq --arg image "${{ needs.build-and-push.outputs.backend_image }}" \
+                 --arg container "$CONTAINER_NAME" '
+              del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)
+              | .family = "fridgefriend-production-migrate"
+              | .containerDefinitions = (
+                  .containerDefinitions
+                  | map(
+                      if .name == $container then
+                        .image = $image
+                        | .command = ["alembic","upgrade","head"]
+                        | .essential = true
+                        | del(.portMappings, .healthCheck)
+                      else . end
+                    )
+                  | map(select(.name == $container))
+                )
+            ' > migrate-task-def.json
+
+          REVISION_ARN=$(aws ecs register-task-definition \
+            --cli-input-json file://migrate-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "task_definition_arn=$REVISION_ARN" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve service network configuration
+        id: network
+        run: |
+          set -euo pipefail
+          # Reuse the running backend service's VPC/subnet/SG so the migration
+          # task can reach RDS over the same private network path.
+          NETWORK=$(aws ecs describe-services \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].networkConfiguration' \
+            --output json)
+          echo "network=$(echo "$NETWORK" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+      - name: Run alembic upgrade head
+        env:
+          TASK_DEF_ARN: ${{ steps.render.outputs.task_definition_arn }}
+          NETWORK_CONFIG: ${{ steps.network.outputs.network }}
+        run: |
+          set -euo pipefail
+
+          TASK_ARN=$(aws ecs run-task \
+            --cluster "$ECS_CLUSTER" \
+            --launch-type FARGATE \
+            --task-definition "$TASK_DEF_ARN" \
+            --network-configuration "$NETWORK_CONFIG" \
+            --propagate-tags TASK_DEFINITION \
+            --query 'tasks[0].taskArn' \
+            --output text)
+
+          if [ -z "$TASK_ARN" ] || [ "$TASK_ARN" = "None" ]; then
+            echo "::error::run-task did not return a task ARN"
+            exit 1
+          fi
+
+          echo "Started migration task: $TASK_ARN"
+          aws ecs wait tasks-stopped --cluster "$ECS_CLUSTER" --tasks "$TASK_ARN"
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].containers[0].exitCode' \
+            --output text)
+          STOP_REASON=$(aws ecs describe-tasks \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$TASK_ARN" \
+            --query 'tasks[0].stoppedReason' \
+            --output text)
+
+          echo "Migration task exit code: $EXIT_CODE"
+          echo "Stop reason: $STOP_REASON"
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "::error::Migration failed (exit=$EXIT_CODE, reason=$STOP_REASON). Check CloudWatch logs for the migrate task."
+            exit 1
+          fi
+
   deploy-backend:
     name: Deploy backend to ECS
     runs-on: ubuntu-latest
     environment: production
-    needs: build-and-push
+    needs: [build-and-push, migrate]
     permissions:
       contents: read
     env:
@@ -135,7 +248,7 @@ jobs:
     name: Deploy worker to ECS
     runs-on: ubuntu-latest
     environment: production
-    needs: build-and-push
+    needs: [build-and-push, migrate]
     permissions:
       contents: read
     env:
