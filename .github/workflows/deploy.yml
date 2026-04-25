@@ -26,7 +26,7 @@ env:
 jobs:
   build-and-push:
     name: Build and push images
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: production
     permissions:
       contents: read
@@ -48,8 +48,8 @@ jobs:
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Setup Blacksmith Builder
+        uses: useblacksmith/setup-docker-builder@v1
 
       - name: Compute image metadata
         id: image-meta
@@ -63,7 +63,7 @@ jobs:
           echo "dashboard_image=${DASHBOARD_IMAGE}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push backend image
-        uses: docker/build-push-action@v6
+        uses: useblacksmith/build-push-action@v2
         with:
           context: ./backend
           file: ./backend/Dockerfile
@@ -72,11 +72,9 @@ jobs:
           tags: |
             ${{ steps.image-meta.outputs.backend_image }}
             ${{ env.ECR_REGISTRY }}/${{ env.BACKEND_ECR_REPO }}:latest
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,scope=backend,mode=max
 
       - name: Build and push dashboard image
-        uses: docker/build-push-action@v6
+        uses: useblacksmith/build-push-action@v2
         with:
           context: ./dashboard
           file: ./dashboard/Dockerfile
@@ -85,12 +83,10 @@ jobs:
           tags: |
             ${{ steps.image-meta.outputs.dashboard_image }}
             ${{ env.ECR_REGISTRY }}/${{ env.DASHBOARD_ECR_REPO }}:latest
-          cache-from: type=gha,scope=dashboard
-          cache-to: type=gha,scope=dashboard,mode=max
 
   deploy-backend:
     name: Deploy backend to ECS
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: production
     needs: build-and-push
     permissions:
@@ -133,7 +129,7 @@ jobs:
 
   deploy-worker:
     name: Deploy worker to ECS
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: production
     needs: build-and-push
     permissions:
@@ -176,7 +172,7 @@ jobs:
 
   deploy-dashboard:
     name: Deploy dashboard to ECS
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: production
     needs: build-and-push
     permissions:
@@ -219,7 +215,7 @@ jobs:
 
   smoke-test:
     name: Smoke test production endpoints
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     needs:
       - deploy-backend
       - deploy-worker
