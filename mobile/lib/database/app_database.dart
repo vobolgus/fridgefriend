@@ -100,7 +100,7 @@ class AppDatabase extends _$AppDatabase {
   late final SavedRecipeDao savedRecipeDao = SavedRecipeDao(this);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -159,6 +159,12 @@ class AppDatabase extends _$AppDatabase {
             } catch (e) {
               debugPrint('Migration: column may already exist: $e');
             }
+          }
+          if (from < 7) {
+            // One-shot purge: cached recipes from before the live Spoonacular
+            // wire-up have image URLs that don't match their titles. Drop them
+            // so the next open refetches from the server.
+            await customStatement('DELETE FROM recipes_cache');
           }
         },
         beforeOpen: (details) async {

@@ -132,7 +132,12 @@ class RecommendationsScreen extends ConsumerWidget {
                             ? () => context.go('/')
                             : null,
                       )
-                    : ListView.builder(
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          ref.invalidate(recommendationsProvider);
+                          await ref.read(recommendationsProvider.future);
+                        },
+                        child: ListView.builder(
                         padding: AppSpacing.screenPadding,
                         itemCount: displayRecipes.length,
                         itemBuilder: (context, index) {
@@ -338,6 +343,7 @@ class RecommendationsScreen extends ConsumerWidget {
                             ),
                           );
                         },
+                        ),
                       ),
               ),
             ],
