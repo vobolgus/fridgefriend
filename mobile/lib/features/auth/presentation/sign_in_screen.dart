@@ -42,11 +42,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.15),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
@@ -59,7 +59,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             Text(
               'FridgeFriend',
               style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.onPrimary,
                     fontWeight: FontWeight.w800,
                   ),
             ),
@@ -67,15 +67,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             Text(
               'Reduce waste. Eat better.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.85),
+                    color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.85),
                   ),
             ),
             const Spacer(flex: 3),
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppSpacing.bottomSheetRadius),
                 ),
               ),
@@ -168,11 +168,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           ElevatedButton(
             onPressed: _isLoading ? null : _signInWithEmail,
             child: _isLoading
-                ? const SizedBox(
+                ? SizedBox(
                     height: 20,
                     width: 20,
                     child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
+                        strokeWidth: 2, color: Theme.of(context).colorScheme.onPrimary),
                   )
                 : const Text('Sign In'),
           ),
@@ -181,7 +181,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             onPressed: () => setState(() => _showEmailForm = false),
             child: Text(
               'Other sign-in options',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
           ),
         ],
