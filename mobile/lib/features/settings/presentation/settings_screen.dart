@@ -59,7 +59,7 @@ class SettingsScreen extends ConsumerWidget {
                       style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                          color: colorScheme.onSurfaceVariant,
                           fontSize: 13),
                     ),
                     value: prefs.enabled,
@@ -92,8 +92,8 @@ class SettingsScreen extends ConsumerWidget {
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<int>(
                           value: prefs.reminderDaysBefore,
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                              color: AppColors.textSecondary),
+                           icon: Icon(Icons.keyboard_arrow_down_rounded,
+                              color: colorScheme.onSurfaceVariant),
                           style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w800,
@@ -137,7 +137,7 @@ class SettingsScreen extends ConsumerWidget {
                       style: TextStyle(
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w500,
-                          color: AppColors.textSecondary,
+                          color: colorScheme.onSurfaceVariant,
                           fontSize: 13),
                     ),
                     trailing: Container(
@@ -163,8 +163,8 @@ class SettingsScreen extends ConsumerWidget {
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w800,
                           color: prefs.enabled
-                              ? AppColors.thisWeek
-                              : AppColors.textSecondary,
+                                ? AppColors.thisWeek
+                                : colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -253,7 +253,7 @@ class SettingsScreen extends ConsumerWidget {
                     },
                     style: SegmentedButton.styleFrom(
                       backgroundColor: theme.colorScheme.surface,
-                      selectedBackgroundColor: AppColors.primarySurface,
+                      selectedBackgroundColor: colorScheme.primaryContainer,
                       selectedForegroundColor: AppColors.primaryDark,
                       side: BorderSide(color: theme.dividerColor),
                       textStyle: const TextStyle(
@@ -289,13 +289,13 @@ class SettingsScreen extends ConsumerWidget {
               leading: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primarySurface,
+                  color: colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.home_rounded, color: AppColors.primary),
               ),
-              trailing: const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textSecondary),
+              trailing: Icon(Icons.chevron_right_rounded,
+                  color: colorScheme.onSurfaceVariant),
               onTap: () {
                 context.push('/household');
               },
@@ -385,7 +385,7 @@ class SettingsScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                       letterSpacing: 2,
-                      color: AppColors.textSecondary.withOpacity(0.5),
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
                   ),
                   loading: () => const SizedBox.shrink(),
@@ -396,7 +396,7 @@ class SettingsScreen extends ConsumerWidget {
                       fontWeight: FontWeight.w700,
                       fontSize: 12,
                       letterSpacing: 2,
-                      color: AppColors.textSecondary.withOpacity(0.5),
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
                     ),
                   ),
                 ),
