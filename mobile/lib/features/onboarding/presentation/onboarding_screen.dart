@@ -35,7 +35,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -84,7 +83,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 child: TextButton(
                   onPressed: _completeOnboarding,
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
+                    foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   child: const Text('Skip'),
                 ),
@@ -108,7 +107,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   icon: const Icon(Icons.arrow_forward),
                   style: IconButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
                     shape: const CircleBorder(),
                     padding: const EdgeInsets.all(AppSpacing.md),
                   ),
@@ -133,12 +132,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             BorderRadius.circular(AppSpacing.buttonRadius),
                       ),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Get Started',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.onPrimary,
                       ),
                     ),
                   ),
@@ -159,7 +158,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           width: _currentPage == index ? 24 : 8,
           decoration: BoxDecoration(
             color:
-                _currentPage == index ? AppColors.primary : AppColors.divider,
+                _currentPage == index ? AppColors.primary : Theme.of(context).colorScheme.outlineVariant,
             borderRadius: BorderRadius.circular(4),
           ),
         );
@@ -197,7 +196,7 @@ class _OnboardingPage extends StatelessWidget {
             ),
             child: Icon(
               icon,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onPrimary,
               size: 64,
             ),
           ),
@@ -206,7 +205,7 @@ class _OnboardingPage extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: Theme.of(context).colorScheme.onSurface,
                 ),
             textAlign: TextAlign.center,
           ),
@@ -214,7 +213,7 @@ class _OnboardingPage extends StatelessWidget {
           Text(
             subtitle,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.textSecondary,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
             textAlign: TextAlign.center,
           ),
