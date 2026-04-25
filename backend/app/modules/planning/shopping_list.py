@@ -80,3 +80,7 @@ def derive_shopping_list(
         )
 
     return items
+
+
+def merge_shopping_list_items(derived_items: list[ShoppingItem], manual_items: list[ShoppingItem]) -> list[ShoppingItem]:
+    return [*derived_items, *manual_items]

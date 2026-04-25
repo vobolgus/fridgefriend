@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime
 from datetime import date
 from typing import ClassVar
+from uuid import UUID
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 
 
 class RecipeIngredient(BaseModel):
@@ -40,9 +42,16 @@ class ShoppingItem(BaseModel):
     model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True)
 
     ingredient_name: str = Field(alias="ingredientName")
+    name: str | None = None
     quantity: float
     unit: str
     reason: str
+
+    @model_validator(mode="after")
+    def _populate_name(self) -> ShoppingItem:
+        if self.name is None:
+            self.name = self.ingredient_name
+        return self
 
 
 class PlanResult(BaseModel):
@@ -61,3 +70,31 @@ class PlanResponse(BaseModel):
 
 class ShoppingListResponse(BaseModel):
     items: list[ShoppingItem] = Field(default_factory=list)
+
+
+class ShoppingListItemCreate(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(str_strip_whitespace=True)
+
+    name: str
+    quantity: float | None = None
+    unit: str | None = None
+    recipe_id: UUID | None = None
+
+
+class ShoppingListItemBatchCreate(BaseModel):
+    items: list[ShoppingListItemCreate]
+
+
+class ShoppingListItemRead(BaseModel):
+    model_config: ClassVar[ConfigDict] = ConfigDict(populate_by_name=True, from_attributes=True)
+
+    id: UUID
+    name: str
+    quantity: float | None = None
+    unit: str | None = None
+    recipe_id: UUID | None = Field(default=None, alias="recipeId")
+    created_at: datetime = Field(alias="createdAt")
+
+
+class ShoppingListItemBatchRead(BaseModel):
+    items: list[ShoppingListItemRead]

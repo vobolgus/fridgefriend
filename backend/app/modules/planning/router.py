@@ -1,4 +1,4 @@
-# pyright: reportAny=false
+# pyright: reportAny=false, reportUnknownVariableType=false, reportUnknownMemberType=false, reportUnknownArgumentType=false
 
 from __future__ import annotations
 
@@ -14,7 +14,13 @@ from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
 from .planner import NoMatchingRecipesError
-from .schemas import PlanRequest, PlanResponse, ShoppingListResponse
+from .schemas import (
+    PlanRequest,
+    PlanResponse,
+    ShoppingListItemBatchCreate,
+    ShoppingListItemBatchRead,
+    ShoppingListResponse,
+)
 from .service import MealPlanNotFoundError, PlanningService
 
 router = APIRouter(tags=["planning"])
@@ -76,6 +82,28 @@ async def get_shopping_list(
         return await planning_service.get_shopping_list(current_user, household_id)
     except MealPlanNotFoundError:
         return ShoppingListResponse(items=[])
+
+
+@router.post(
+    "/v1/shopping-list/items",
+    response_model=ShoppingListItemBatchRead,
+    response_model_by_alias=True,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_shopping_list_items(
+    payload: ShoppingListItemBatchCreate,
+    planning_service: Annotated[PlanningService, Depends(get_planning_service)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    household_id: Annotated[UUID, Depends(get_active_household_id)],
+    idempotency_key: Annotated[str, Depends(require_idempotency_key)],
+) -> ShoppingListItemBatchRead:
+    items = await planning_service.add_manual_shopping_list_items(
+        items=payload.items,
+        household_id=household_id,
+        user_id=current_user.id,
+        idempotency_key=idempotency_key,
+    )
+    return ShoppingListItemBatchRead(items=items)
 
 
 @router.delete("/v1/plans/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)
