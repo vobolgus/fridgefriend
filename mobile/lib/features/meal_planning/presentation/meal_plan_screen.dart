@@ -24,6 +24,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final planState = ref.watch(mealPlanProvider);
 
     return Scaffold(
@@ -61,19 +62,19 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                                 setState(() => _selectedDays = days);
                               }
                             },
-                            selectedColor: AppColors.primary,
-                            backgroundColor: AppColors.surfaceVariant,
-                            side: BorderSide.none,
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppSpacing.chipRadius),
-                            ),
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? AppColors.textOnPrimary
-                                  : AppColors.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
+                             selectedColor: AppColors.primary,
+                             backgroundColor: cs.surfaceContainerHigh,
+                             side: BorderSide.none,
+                             shape: RoundedRectangleBorder(
+                               borderRadius:
+                                   BorderRadius.circular(AppSpacing.chipRadius),
+                             ),
+                             labelStyle: TextStyle(
+                               color: isSelected
+                                   ? AppColors.textOnPrimary
+                                   : cs.onSurface,
+                               fontWeight: FontWeight.bold,
+                             ),
                           ),
                         );
                       }).toList(),
@@ -84,14 +85,15 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             ),
           ),
           Expanded(
-            child: _buildPlanContent(planState),
+            child: _buildPlanContent(context, planState),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPlanContent(AsyncValue<MealPlan?> planState) {
+  Widget _buildPlanContent(BuildContext context, AsyncValue<MealPlan?> planState) {
+    final cs = Theme.of(context).colorScheme;
     return planState.when(
       data: (mealPlan) {
         if (mealPlan == null || mealPlan.days.isEmpty) {
@@ -182,59 +184,59 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                                   width: 72,
                                   height: 72,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return _buildPlanDayImageFallback();
-                                  },
+                                 errorBuilder: (context, error, stackTrace) {
+                                     return _buildPlanDayImageFallback(context);
+                                   },
                                 ),
                               )
                             else
-                              _buildPlanDayImageFallback(),
-                            const SizedBox(width: AppSpacing.md),
+                  _buildPlanDayImageFallback(context),
+                             const SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    _formatDate(day.date),
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          color: AppColors.textSecondary,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    day.recipeTitle,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.textPrimary,
-                                        ),
-                                  ),
-                                  if (day.prepMinutes != null) ...[
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      children: [
-                                        const Icon(
-                                          Icons.timer_outlined,
-                                          size: 16,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                        const SizedBox(width: AppSpacing.xs),
-                                        Text(
-                                          '${day.prepMinutes} min',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                color: AppColors.textSecondary,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
+                                   Text(
+                                     _formatDate(day.date),
+                                     style: Theme.of(context)
+                                         .textTheme
+                                         .bodySmall
+                                         ?.copyWith(
+                                           color: cs.onSurfaceVariant,
+                                           fontWeight: FontWeight.w600,
+                                         ),
+                                   ),
+                                   const SizedBox(height: 4),
+                                   Text(
+                                     day.recipeTitle,
+                                     style: Theme.of(context)
+                                         .textTheme
+                                         .titleMedium
+                                         ?.copyWith(
+                                           fontWeight: FontWeight.bold,
+                                           color: cs.onSurface,
+                                         ),
+                                   ),
+                                   if (day.prepMinutes != null) ...[
+                                     const SizedBox(height: 6),
+                                     Row(
+                                       children: [
+                                         Icon(
+                                           Icons.timer_outlined,
+                                           size: 16,
+                                           color: cs.onSurfaceVariant,
+                                         ),
+                                         const SizedBox(width: AppSpacing.xs),
+                                         Text(
+                                           '${day.prepMinutes} min',
+                                           style: Theme.of(context)
+                                               .textTheme
+                                               .bodySmall
+                                               ?.copyWith(
+                                                 color: cs.onSurfaceVariant,
+                                                 fontWeight: FontWeight.w600,
+                                               ),
+                                         ),
                                       ],
                                     ),
                                   ],
@@ -268,12 +270,13 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     return '${date.year}-$month-$day';
   }
 
-  Widget _buildPlanDayImageFallback() {
+  Widget _buildPlanDayImageFallback(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       width: 72,
       height: 72,
       decoration: BoxDecoration(
-        color: AppColors.primarySurface,
+        color: cs.primaryContainer,
         borderRadius: BorderRadius.circular(AppSpacing.md),
       ),
       child: const Icon(

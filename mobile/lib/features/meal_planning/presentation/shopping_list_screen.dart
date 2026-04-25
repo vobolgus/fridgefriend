@@ -20,7 +20,6 @@ class ShoppingListScreen extends ConsumerWidget {
     final shoppingItems = ref.watch(shoppingListProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text(
           'Shopping List',
@@ -28,7 +27,6 @@ class ShoppingListScreen extends ConsumerWidget {
             fontFamily: 'Inter',
             fontWeight: FontWeight.w900,
             fontSize: 24,
-            color: AppColors.textPrimary,
           ),
         ),
         backgroundColor: AppColors.navBarBackground,
@@ -71,6 +69,7 @@ class _ShoppingListContentState extends State<_ShoppingListContent> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return ListView.separated(
       padding: AppSpacing.screenPadding,
       itemCount: widget.items.length,
@@ -84,17 +83,17 @@ class _ShoppingListContentState extends State<_ShoppingListContent> {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              color: isChecked ? AppColors.surfaceVariant : AppColors.surface,
+              color: isChecked ? cs.surfaceContainer : cs.surfaceContainerHigh,
               borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
               border: Border.all(
-                color: isChecked ? AppColors.divider : Colors.transparent,
+                color: isChecked ? cs.outlineVariant : Colors.transparent,
                 width: 2,
               ),
               boxShadow: isChecked
                   ? []
                   : [
                       BoxShadow(
-                        color: AppColors.textPrimary.withOpacity(0.05),
+                        color: cs.shadow.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -129,7 +128,7 @@ class _ShoppingListContentState extends State<_ShoppingListContent> {
                           border: Border.all(
                             color: isChecked
                                 ? AppColors.primary
-                                : AppColors.textSecondary,
+                                : cs.onSurfaceVariant,
                             width: 2.5,
                           ),
                           borderRadius: BorderRadius.circular(8),
@@ -155,8 +154,8 @@ class _ShoppingListContentState extends State<_ShoppingListContent> {
                                 fontWeight: FontWeight.w800,
                                 fontSize: 18,
                                 color: isChecked
-                                    ? AppColors.textSecondary
-                                    : AppColors.textPrimary,
+                                    ? cs.onSurfaceVariant
+                                    : cs.onSurface,
                                 decoration: isChecked
                                     ? TextDecoration.lineThrough
                                     : null,
@@ -170,8 +169,8 @@ class _ShoppingListContentState extends State<_ShoppingListContent> {
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w500,
                                   fontSize: 13,
-                                  color: AppColors.textSecondary
-                                      .withOpacity(isChecked ? 0.5 : 0.9),
+                                  color: cs.onSurfaceVariant
+                                      .withValues(alpha: isChecked ? 0.5 : 0.9),
                                 ),
                               ),
                             ],
@@ -182,8 +181,8 @@ class _ShoppingListContentState extends State<_ShoppingListContent> {
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
-                                color: AppColors.textSecondary
-                                    .withOpacity(isChecked ? 0.5 : 1.0),
+                                color: cs.onSurfaceVariant
+                                    .withValues(alpha: isChecked ? 0.5 : 1.0),
                               ),
                             ),
                           ],
