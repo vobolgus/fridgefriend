@@ -58,5 +58,8 @@ asc_api_key.json
 # Local-only QA artifacts
 screenshots/
 
+# Cached font for icon generation (re-fetched on demand by mobile/branding/generate_icon.py)
+mobile/branding/.material_symbols_rounded.ttf
+
 # Misc
 *.log
