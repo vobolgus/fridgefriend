@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from datetime import date, timedelta
+from typing import cast
 
 import httpx
 import pytest
@@ -494,6 +495,110 @@ async def test_api_get_recipe_detail(
         ],
         "score": 0.0,
     }
+
+
+@pytest.mark.asyncio
+async def test_recipe_detail_empty_fridge_shows_zero_coverage(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    fixture_recipe = get_recipe("Chicken Stir Fry")
+    recipe = await add_recipe(
+        db_session,
+        title=str(fixture_recipe["title"]),
+        prep_minutes=cast(int, fixture_recipe["prep_minutes"]),
+        image_url=fixture_recipe["image_url"],
+        source_url=fixture_recipe["source_url"],
+        summary=fixture_recipe["summary"],
+        instructions=fixture_recipe["instructions"],
+        cuisines=fixture_recipe["cuisines"],
+        servings=fixture_recipe["servings"],
+        nutrition=fixture_recipe["nutrition"],
+        dietary_tags=fixture_recipe["dietary_tags"],
+        ingredients=fixture_recipe["ingredients"],
+    )
+    await ensure_household(
+        db_session,
+        test_user,
+        name="Recipe Detail Empty Fridge Household",
+        invite_code="recipe-detail-empty-fridge",
+    )
+
+    response = await client.get(f"/v1/recipes/{recipe.id}", headers=test_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    ingredients = cast(list[dict[str, object]], fixture_recipe["ingredients"])
+    ingredient_names = [str(ingredient["canonical_name"]) for ingredient in ingredients]
+
+    assert payload["coveragePct"] == pytest.approx(0.0)
+    assert payload["missingItems"] == ingredient_names, (
+        f"expected recipe detail to report all missing ingredients for an empty fridge; "
+        f"expected {ingredient_names}, got {payload['missingItems']}"
+    )
+    assert len(payload["missingItems"]) == len(ingredient_names), (
+        f"expected {len(ingredient_names)} missing items for empty fridge, got "
+        f"{len(payload['missingItems'])}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_recipe_detail_partial_fridge_shows_real_coverage_and_missing(
+    client: httpx.AsyncClient,
+    test_headers: dict[str, str],
+    test_user: User,
+    db_session: AsyncSession,
+) -> None:
+    fixture_recipe = get_recipe("Chicken Stir Fry")
+    recipe = await add_recipe(
+        db_session,
+        title=str(fixture_recipe["title"]),
+        prep_minutes=cast(int, fixture_recipe["prep_minutes"]),
+        image_url=fixture_recipe["image_url"],
+        source_url=fixture_recipe["source_url"],
+        summary=fixture_recipe["summary"],
+        instructions=fixture_recipe["instructions"],
+        cuisines=fixture_recipe["cuisines"],
+        servings=fixture_recipe["servings"],
+        nutrition=fixture_recipe["nutrition"],
+        dietary_tags=fixture_recipe["dietary_tags"],
+        ingredients=fixture_recipe["ingredients"],
+    )
+    household = await ensure_household(
+        db_session,
+        test_user,
+        name="Recipe Detail Partial Fridge Household",
+        invite_code="recipe-detail-partial-fridge",
+    )
+    matched_ingredient = "chicken"
+    await add_inventory_item(db_session, test_user, matched_ingredient, household_id=household.id)
+
+    response = await client.get(f"/v1/recipes/{recipe.id}", headers=test_headers)
+
+    assert response.status_code == 200
+    payload = response.json()
+    ingredients = cast(list[dict[str, object]], fixture_recipe["ingredients"])
+    ingredient_names = [str(ingredient["canonical_name"]) for ingredient in ingredients]
+    expected_missing_items = [name for name in ingredient_names if name != matched_ingredient]
+
+    assert payload["coveragePct"] == pytest.approx(1 / len(ingredient_names)), (
+        f"expected recipe detail coverage to reflect 1/{len(ingredient_names)} matched ingredients, "
+        f"got {payload['coveragePct']}"
+    )
+    assert payload["missingItems"] == expected_missing_items, (
+        f"expected recipe detail to exclude matched ingredient '{matched_ingredient}' from missing items; "
+        f"expected {expected_missing_items}, got {payload['missingItems']}"
+    )
+    assert len(payload["missingItems"]) == len(ingredient_names) - 1, (
+        f"expected {len(ingredient_names) - 1} missing items after matching '{matched_ingredient}', got "
+        f"{len(payload['missingItems'])}"
+    )
+    assert matched_ingredient not in payload["missingItems"], (
+        f"matched ingredient '{matched_ingredient}' should not appear in missingItems: "
+        f"{payload['missingItems']}"
+    )
 
 
 @pytest.mark.asyncio
