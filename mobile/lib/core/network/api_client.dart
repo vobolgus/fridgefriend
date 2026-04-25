@@ -401,6 +401,23 @@ class ApiClient {
     return const [];
   }
 
+  Future<void> addToShoppingList({
+    required List<Map<String, Object?>> items,
+    String? idempotencyKey,
+  }) async {
+    if (items.isEmpty) return;
+    await _dio.post(
+      '${ApiConfig.apiVersionPath}/shopping-list/items',
+      data: {'items': items},
+      options: Options(
+        headers: {
+          'Idempotency-Key':
+              idempotencyKey ?? _uniqueIdempotencyKey('shopping_list_add'),
+        },
+      ),
+    );
+  }
+
   Future<List<Household>> getHouseholds() async {
     final response = await _dio.get('${ApiConfig.apiVersionPath}/households');
     final payload = response.data;
