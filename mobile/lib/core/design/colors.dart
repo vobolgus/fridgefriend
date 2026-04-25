@@ -44,4 +44,45 @@ abstract final class AppColors {
   static const navBarBackgroundDark = Color(0xFF1A1A2E);
   static const shimmerBase = Color(0xFFE0E0E0);
   static const shimmerHighlight = Color(0xFFF5F5F5);
+
+  // === M3 Dark Surface Container Hierarchy ===
+  // Generated from a tonal palette anchored on backgroundDark (#121220).
+  // Each step ~+4-6 luminance for visible elevation tiers in dark mode.
+  static const surfaceContainerLowestDark = Color(0xFF0E0E1A);
+  static const surfaceContainerLowDark = Color(0xFF161624);
+  static const surfaceContainerDark = Color(0xFF1C1C2E);
+  static const surfaceContainerHighDark = Color(0xFF222236);
+  static const surfaceContainerHighestDark = Color(0xFF2A2A40);
+
+  // === Brand color refinements for dark ===
+  // Lifted dark primary for better contrast on dark surfaces (per design decision).
+  static const primaryLifted = Color(0xFF5BD178); // dark-mode primary override
+  // onPrimaryDark is what should be used as foreground on primaryLifted.
+  // 90% opaque near-black for strong contrast against the lifted green.
+  static const onPrimaryDark = Color(0xFF00390C);
+
+  // === Muted dark status colors (M3 spec) ===
+  // Replaces saturated Colors.red etc. which are eyestrain in dark.
+  static const errorDark = Color(0xFFFFB4AB); // M3 dark error baseline
+  static const errorContainerDark = Color(0xFF93000A);
+  static const onErrorDark = Color(0xFF690005);
+  static const onErrorContainerDark = Color(0xFFFFDAD6);
+
+  // === Urgency dark variants ===
+  // Same hue family as light, lifted for legibility on dark surfaces.
+  static const expiredDark = Color(0xFFFFB4AB); // pinkish red
+  static const expiredSurfaceDark = Color(0xFF410002);
+  static const todayDark = Color(0xFFFFB59E); // warm coral
+  static const todaySurfaceDark = Color(0xFF5C1900);
+  static const thisWeekDark = Color(0xFFFFD37D); // muted amber
+  static const thisWeekSurfaceDark = Color(0xFF402D00);
+  static const safeLaterDark = Color(0xFF7CDC97); // soft green
+  static const safeLaterSurfaceDark = Color(0xFF003919);
+
+  // === Shimmer (loading) dark variants ===
+  static const shimmerBaseDark = Color(0xFF222236);
+  static const shimmerHighlightDark = Color(0xFF2D2D45);
+
+  // === Scrim (image/camera overlays) ===
+  static const scrim = Color(0xFF000000); // M3 scrim is always pure black
 }
