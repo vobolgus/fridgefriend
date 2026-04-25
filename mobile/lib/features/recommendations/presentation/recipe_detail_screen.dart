@@ -88,14 +88,6 @@ class RecipeDetailScreen extends ConsumerWidget {
           }).toList()
         : [];
 
-    final missingIngredients = hasIngredientsData
-        ? displayedRecipe.ingredients.where((i) {
-            final name =
-                i['canonical_name']?.toString() ?? i['name']?.toString() ?? '';
-            return missingSet.contains(name);
-          }).toList()
-        : [];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Recipe Details'),
@@ -136,27 +128,36 @@ class RecipeDetailScreen extends ConsumerWidget {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.md),
-          child: SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: () {
-                _showMealPlanBottomSheet(context, ref, displayedRecipe);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.textOnPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+          child: Row(
+            children: [
+              if (displayedRecipe.missingItems.isNotEmpty) ...[
+                Expanded(
+                  child: _AddMissingToShoppingListButton(recipe: displayedRecipe),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-                textStyle: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
+                const SizedBox(width: AppSpacing.md),
+              ],
+              Expanded(
+                child: FilledButton(
+                  onPressed: () {
+                    _showMealPlanBottomSheet(context, ref, displayedRecipe);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textOnPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                    textStyle: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                  child: const Text('Add to Meal Plan', textAlign: TextAlign.center),
                 ),
               ),
-              child: const Text('Add to Meal Plan'),
-            ),
+            ],
           ),
         ),
       ),
@@ -474,10 +475,16 @@ class RecipeDetailScreen extends ConsumerWidget {
                         ),
                       ))
                 else
-                  ...missingIngredients.map((item) {
-                    final name = item['canonical_name']?.toString() ??
-                        item['name']?.toString() ??
-                        'Unknown';
+                  ...displayedRecipe.missingItems.map((missingName) {
+                    final item = displayedRecipe.ingredients.firstWhere(
+                      (i) =>
+                          (i['canonical_name']?.toString() ??
+                              i['name']?.toString() ??
+                              '') ==
+                          missingName,
+                      orElse: () => <String, dynamic>{},
+                    );
+                    final name = missingName;
                     final qty = item['quantity']?.toString() ?? '';
                     final unit = item['unit']?.toString() ?? '';
                     return Card(
@@ -810,3 +817,101 @@ class RecipeDetailScreen extends ConsumerWidget {
     );
   }
 }
+
+class _AddMissingToShoppingListButton extends ConsumerStatefulWidget {
+  const _AddMissingToShoppingListButton({required this.recipe});
+
+  final Recipe recipe;
+
+  @override
+  ConsumerState<_AddMissingToShoppingListButton> createState() =>
+      _AddMissingToShoppingListButtonState();
+}
+
+class _AddMissingToShoppingListButtonState
+    extends ConsumerState<_AddMissingToShoppingListButton> {
+  bool _isAdding = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.recipe.missingItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final cs = Theme.of(context).colorScheme;
+    final count = widget.recipe.missingItems.length;
+
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.tonal(
+        onPressed: _isAdding ? null : _handleTap,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
+          ),
+        ),
+        child: _isAdding
+            ? SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: cs.onSecondaryContainer,
+                ),
+              )
+            : Text(
+                'Add $count missing to shopping list',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _handleTap() async {
+    setState(() => _isAdding = true);
+    try {
+      final apiClient = ref.read(apiClientProvider);
+      final items = widget.recipe.missingItems
+          .map((name) => <String, Object?>{
+                'name': name,
+                'recipe_id': widget.recipe.id,
+              })
+          .toList();
+      await apiClient.addToShoppingList(items: items);
+      if (!mounted) return;
+      ref.invalidate(shoppingListProvider);
+      final count = widget.recipe.missingItems.length;
+      unawaited(
+        ref.read(analyticsProvider).track(
+          'recipe_missing_added_to_shopping_list',
+          payload: {
+            'recipe_id': widget.recipe.id,
+            'count': count,
+          },
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Added $count ${count == 1 ? 'item' : 'items'} to shopping list',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not add to shopping list. Try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isAdding = false);
+    }
+  }
+}
+
