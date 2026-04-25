@@ -70,8 +70,10 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final onPrimary = Theme.of(context).colorScheme.onPrimary;
+
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const FridgeFriendAppBar(title: 'Scan Photo'),
       body: _isUploading
           ? const LoadingView(message: 'Analyzing fridge contents...')
@@ -85,22 +87,22 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
+                      Text(
                         'Add via Photo',
                         style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 32,
                             fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary),
+                            color: cs.onSurface),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: AppSpacing.sm),
-                      const Text(
+                       const SizedBox(height: AppSpacing.sm),
+                       Text(
                         'Snap your fridge or receipt to add items instantly using AI.',
                         style: TextStyle(
                             fontFamily: 'Inter',
                             fontSize: 16,
-                            color: AppColors.textSecondary,
+                            color: cs.onSurfaceVariant,
                             fontWeight: FontWeight.w500),
                         textAlign: TextAlign.center,
                       ),
@@ -117,23 +119,23 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
                                   borderRadius: BorderRadius.circular(
                                       AppSpacing.cardRadius),
                                   boxShadow: [
-                                    BoxShadow(
-                                        color:
-                                            AppColors.primary.withOpacity(0.3),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 8))
+                                   BoxShadow(
+                                         color:
+                                             AppColors.primary.withValues(alpha: 0.3),
+                                         blurRadius: 16,
+                                         offset: const Offset(0, 8))
                                   ],
                                 ),
-                                child: const Column(
+                                child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.camera_alt_rounded,
-                                        color: Colors.white, size: 56),
-                                    SizedBox(height: AppSpacing.md),
+                                        color: onPrimary, size: 56),
+                                    const SizedBox(height: AppSpacing.md),
                                     Text('Camera',
                                         style: TextStyle(
                                             fontFamily: 'Inter',
-                                            color: Colors.white,
+                                            color: onPrimary,
                                             fontWeight: FontWeight.w800,
                                             fontSize: 20)),
                                   ],
@@ -152,23 +154,23 @@ class _PhotoUploadScreenState extends ConsumerState<PhotoUploadScreen> {
                                   borderRadius: BorderRadius.circular(
                                       AppSpacing.cardRadius),
                                   boxShadow: [
-                                    BoxShadow(
-                                        color: AppColors.secondary
-                                            .withOpacity(0.3),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 8))
+                                   BoxShadow(
+                                         color: AppColors.secondary
+                                             .withValues(alpha: 0.3),
+                                         blurRadius: 16,
+                                         offset: const Offset(0, 8))
                                   ],
                                 ),
-                                child: const Column(
+                                child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Icon(Icons.photo_library_rounded,
-                                        color: Colors.white, size: 56),
-                                    SizedBox(height: AppSpacing.md),
+                                        color: onPrimary, size: 56),
+                                    const SizedBox(height: AppSpacing.md),
                                     Text('Gallery',
                                         style: TextStyle(
                                             fontFamily: 'Inter',
-                                            color: Colors.white,
+                                            color: onPrimary,
                                             fontWeight: FontWeight.w800,
                                             fontSize: 20)),
                                   ],

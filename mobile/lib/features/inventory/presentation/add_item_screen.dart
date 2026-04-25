@@ -61,8 +61,8 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: FridgeFriendAppBar(
         title: _isEditing ? 'Edit Item' : 'Add Item',
       ),
@@ -73,12 +73,12 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
           child: ListView(
             padding: AppSpacing.screenPadding,
             children: [
-              const Text(
+              Text(
                 'ITEM DETAILS',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurfaceVariant,
                   letterSpacing: 1.2,
                   fontSize: 12,
                 ),
@@ -140,12 +140,12 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
-              const Text(
+              Text(
                 'STORAGE LOCATION',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurfaceVariant,
                   letterSpacing: 1.2,
                   fontSize: 12,
                 ),
@@ -165,12 +165,12 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                         fontWeight: FontWeight.bold,
                         color: isSelected
                             ? AppColors.textOnPrimary
-                            : AppColors.textPrimary,
+                            : cs.onSurface,
                       ),
                     ),
                     selected: isSelected,
                     selectedColor: AppColors.primary,
-                    backgroundColor: AppColors.surface,
+                    backgroundColor: cs.surfaceContainerHigh,
                     shape: RoundedRectangleBorder(
                         borderRadius:
                             BorderRadius.circular(AppSpacing.chipRadius)),
@@ -185,12 +185,12 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                 }).toList(),
               ),
               const SizedBox(height: AppSpacing.xl),
-              const Text(
+              Text(
                 'EXPIRY DATE',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w800,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurfaceVariant,
                   letterSpacing: 1.2,
                   fontSize: 12,
                 ),
@@ -205,19 +205,6 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                     initialDate: _expiryDate ?? now,
                     firstDate: now,
                     lastDate: now.add(const Duration(days: 365 * 2)),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: const ColorScheme.light(
-                            primary: AppColors.primary,
-                            onPrimary: Colors.white,
-                            surface: AppColors.surface,
-                            onSurface: AppColors.textPrimary,
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
                   );
                   if (picked != null) {
                     setState(() {
@@ -229,9 +216,9 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.lg, vertical: AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: cs.surfaceContainer,
                     borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
-                    border: Border.all(color: AppColors.divider),
+                    border: Border.all(color: cs.outlineVariant),
                   ),
                   child: Row(
                     children: [
@@ -244,18 +231,18 @@ class _AddItemScreenState extends ConsumerState<AddItemScreen> {
                             fontFamily: 'Inter', fontWeight: FontWeight.bold),
                       ),
                       const Spacer(),
-                      Text(
-                        _expiryDate != null
-                            ? '${_expiryDate!.year}-${_expiryDate!.month.toString().padLeft(2, '0')}-${_expiryDate!.day.toString().padLeft(2, '0')}'
-                            : 'Not set',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          color: _expiryDate != null
-                              ? AppColors.textPrimary
-                              : AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                       Text(
+                         _expiryDate != null
+                             ? '${_expiryDate!.year}-${_expiryDate!.month.toString().padLeft(2, '0')}-${_expiryDate!.day.toString().padLeft(2, '0')}'
+                             : 'Not set',
+                         style: TextStyle(
+                           fontFamily: 'Inter',
+                           color: _expiryDate != null
+                               ? cs.onSurface
+                               : cs.onSurfaceVariant,
+                           fontWeight: FontWeight.w600,
+                         ),
+                       ),
                     ],
                   ),
                 ),

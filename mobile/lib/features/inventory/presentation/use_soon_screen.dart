@@ -42,21 +42,51 @@ class UseSoonScreen extends ConsumerWidget {
             );
           }
 
+          final isDark =
+              Theme.of(context).brightness == Brightness.dark;
           return ListView(
             padding: AppSpacing.screenPadding,
             children: [
               if (expired.isNotEmpty)
-                _buildSection(context, 'Expired', expired,
-                    AppColors.expiredSurface, AppColors.expired),
+                _buildSection(
+                  context,
+                  'Expired',
+                  expired,
+                  isDark
+                      ? AppColors.expiredSurfaceDark
+                      : AppColors.expiredSurface,
+                  isDark ? AppColors.expiredDark : AppColors.expired,
+                ),
               if (today.isNotEmpty)
-                _buildSection(context, 'Today', today, AppColors.todaySurface,
-                    AppColors.today),
+                _buildSection(
+                  context,
+                  'Today',
+                  today,
+                  isDark
+                      ? AppColors.todaySurfaceDark
+                      : AppColors.todaySurface,
+                  isDark ? AppColors.todayDark : AppColors.today,
+                ),
               if (thisWeek.isNotEmpty)
-                _buildSection(context, 'This Week', thisWeek,
-                    AppColors.thisWeekSurface, AppColors.thisWeek),
+                _buildSection(
+                  context,
+                  'This Week',
+                  thisWeek,
+                  isDark
+                      ? AppColors.thisWeekSurfaceDark
+                      : AppColors.thisWeekSurface,
+                  isDark ? AppColors.thisWeekDark : AppColors.thisWeek,
+                ),
               if (safeLater.isNotEmpty)
-                _buildSection(context, 'Safe Later', safeLater,
-                    AppColors.safeLaterSurface, AppColors.safeLater),
+                _buildSection(
+                  context,
+                  'Safe Later',
+                  safeLater,
+                  isDark
+                      ? AppColors.safeLaterSurfaceDark
+                      : AppColors.safeLaterSurface,
+                  isDark ? AppColors.safeLaterDark : AppColors.safeLater,
+                ),
             ],
           );
         },
@@ -109,13 +139,13 @@ class UseSoonScreen extends ConsumerWidget {
                       entry.value.displayName,
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    trailing: Text(
-                      '${entry.value.quantity} ${entry.value.unit}',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                     trailing: Text(
+                       '${entry.value.quantity} ${entry.value.unit}',
+                       style: TextStyle(
+                         color: Theme.of(context).colorScheme.onSurfaceVariant,
+                         fontWeight: FontWeight.w600,
+                       ),
+                     ),
                     onTap: () {
                       context.push('/recipes',
                           extra: {'filterIngredient': entry.value.displayName});

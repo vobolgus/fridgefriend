@@ -97,7 +97,7 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
         border: Border.all(color: color, width: 1.5),
       ),
@@ -114,13 +114,12 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text('Review ${_draftItems.length} Items',
             style: const TextStyle(
                 fontFamily: 'Inter', fontWeight: FontWeight.w800)),
-        backgroundColor: AppColors.surface,
         elevation: 0,
       ),
       body: _draftItems.isEmpty
@@ -128,12 +127,12 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('No items detected',
-                      style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textSecondary)),
+                   Text('No items detected',
+                       style: TextStyle(
+                           fontFamily: 'Inter',
+                           fontSize: 18,
+                           fontWeight: FontWeight.w600,
+                           color: cs.onSurfaceVariant)),
                   const SizedBox(height: AppSpacing.lg),
                   FilledButton.icon(
                     onPressed: () => context.pushReplacement('/add-item'),
@@ -154,15 +153,18 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
                 final item = _draftItems[index];
                 return Container(
                   padding: AppSpacing.cardPadding,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                    border: Border.all(color: AppColors.divider, width: 2),
-                    boxShadow: const [
+                   decoration: BoxDecoration(
+                     color: cs.surfaceContainer,
+                     borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                     border: Border.all(color: cs.outlineVariant, width: 2),
+                    boxShadow: [
                       BoxShadow(
-                          color: Colors.black12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .shadow
+                              .withValues(alpha: 0.12),
                           blurRadius: 4,
-                          offset: Offset(0, 2))
+                          offset: const Offset(0, 2))
                     ],
                   ),
                   child: Column(
@@ -174,11 +176,11 @@ class _OcrReviewScreenState extends ConsumerState<OcrReviewScreen> {
                           Expanded(
                             child: TextFormField(
                               initialValue: item.displayName,
-                              style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 20,
-                                  color: AppColors.textPrimary),
+                               style: TextStyle(
+                                   fontFamily: 'Inter',
+                                   fontWeight: FontWeight.w800,
+                                   fontSize: 20,
+                                   color: cs.onSurface),
                               decoration: const InputDecoration(
                                   labelText: 'Name',
                                   labelStyle: TextStyle(

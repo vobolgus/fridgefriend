@@ -78,11 +78,12 @@ class _ExpiringBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(
           AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
       child: Material(
-        color: AppColors.accentLight,
+        color: cs.tertiaryContainer,
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
@@ -100,8 +101,9 @@ class _ExpiringBanner extends StatelessWidget {
                     color: AppColors.accent,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.warning_amber_rounded,
-                      color: Colors.white, size: 22),
+                  child: Icon(Icons.warning_amber_rounded,
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      size: 22),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -115,12 +117,12 @@ class _ExpiringBanner extends StatelessWidget {
                                   color: AppColors.accent,
                                 ),
                       ),
-                      Text(
-                        'Tap to see what to use first',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
+                       Text(
+                         'Tap to see what to use first',
+                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                               color: cs.onSurfaceVariant,
+                             ),
+                       ),
                     ],
                   ),
                 ),
@@ -142,6 +144,7 @@ class _InventoryTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final quantityStr = item.quantity.truncateToDouble() == item.quantity
         ? item.quantity.toInt().toString()
         : item.quantity.toStringAsFixed(1);
@@ -150,7 +153,7 @@ class _InventoryTile extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
       child: Material(
-        color: AppColors.surface,
+        color: cs.surfaceContainer,
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
@@ -162,14 +165,14 @@ class _InventoryTile extends ConsumerWidget {
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    _storageIcon(item.storageLocation),
-                    color: AppColors.textSecondary,
-                  ),
+                   decoration: BoxDecoration(
+                     color: cs.surfaceContainerHigh,
+                     borderRadius: BorderRadius.circular(12),
+                   ),
+                   child: Icon(
+                     _storageIcon(item.storageLocation),
+                     color: cs.onSurfaceVariant,
+                   ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -183,12 +186,12 @@ class _InventoryTile extends ConsumerWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        '$quantityStr ${item.unit} · ${item.storageLocation}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                      ),
+                       Text(
+                         '$quantityStr ${item.unit} · ${item.storageLocation}',
+                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                               color: cs.onSurfaceVariant,
+                             ),
+                       ),
                     ],
                   ),
                 ),
@@ -205,7 +208,7 @@ class _InventoryTile extends ConsumerWidget {
 
   Widget _buildPopupMenu(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+      icon: Icon(Icons.more_vert_rounded, color: Theme.of(context).colorScheme.onSurfaceVariant),
       onSelected: (value) async {
         if (value != 'edit') {
           HapticFeedback.mediumImpact();

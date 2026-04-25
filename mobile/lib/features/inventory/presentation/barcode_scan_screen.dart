@@ -103,8 +103,9 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Theme.of(context).colorScheme.scrim,
       appBar: const FridgeFriendAppBar(
         title: 'Scan Barcode',
       ),
@@ -123,21 +124,21 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
                   painter: _ScannerOverlayPainter(),
                   child: const SizedBox.expand(),
                 ),
-                const Center(
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.only(top: 220),
+                    padding: const EdgeInsets.only(top: 220),
                     child: Text(
                       'Point camera at barcode',
                       style: TextStyle(
                         fontFamily: 'Inter',
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: AppColors.textOnDark,
                         fontSize: 16,
                         shadows: [
                           Shadow(
-                              color: Colors.black87,
+                              color: AppColors.scrim.withValues(alpha: 0.87),
                               blurRadius: 8,
-                              offset: Offset(0, 2)),
+                              offset: const Offset(0, 2)),
                         ],
                       ),
                     ),
@@ -145,7 +146,7 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
                 ),
                 if (_isLoading)
                   Container(
-                    color: Colors.black54,
+                    color: AppColors.scrim.withValues(alpha: 0.54),
                     child: const Center(
                       child: CircularProgressIndicator(
                           color: AppColors.primary, strokeWidth: 4),
@@ -161,29 +162,29 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
               top: AppSpacing.xl,
               bottom: MediaQuery.of(context).padding.bottom + AppSpacing.xl,
             ),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.vertical(
+            decoration: BoxDecoration(
+              color: cs.surfaceContainer,
+              borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(AppSpacing.bottomSheetRadius)),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black12,
+                    color: AppColors.scrim.withValues(alpha: 0.12),
                     blurRadius: 10,
-                    offset: Offset(0, -4))
+                    offset: const Offset(0, -4))
               ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Manual Entry',
-                  style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary),
-                ),
+                  Text(
+                    'Manual Entry',
+                    style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: cs.onSurface),
+                  ),
                 const SizedBox(height: AppSpacing.md),
                 if (_error != null) ...[
                   Container(
@@ -222,8 +223,8 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
                                 fontWeight: FontWeight.normal),
                             prefixIcon: const Icon(Icons.qr_code,
                                 color: AppColors.primary),
-                            filled: true,
-                            fillColor: AppColors.surfaceVariant,
+                             filled: true,
+                             fillColor: cs.surfaceContainerHigh,
                             border: OutlineInputBorder(
                               borderRadius:
                                   BorderRadius.circular(AppSpacing.inputRadius),
@@ -287,14 +288,14 @@ class _BarcodeScanScreenState extends ConsumerState<BarcodeScanScreen> {
 class _ScannerOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final backgroundPaint = Paint()..color = Colors.black54;
+    final backgroundPaint = Paint()..color = AppColors.scrim.withValues(alpha: 0.54);
     final borderPaint = Paint()
-      ..color = Colors.white
+      ..color = AppColors.textOnDark
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3;
 
-    final cutOutWidth = 280.0;
-    final cutOutHeight = 150.0;
+    const cutOutWidth = 280.0;
+    const cutOutHeight = 150.0;
     final cutOutRect = Rect.fromCenter(
       center: Offset(size.width / 2, size.height / 2),
       width: cutOutWidth,
