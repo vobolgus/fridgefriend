@@ -18,6 +18,7 @@ abstract final class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      applyElevationOverlayColor: true,
       colorScheme: colorScheme,
       textTheme: AppTypography.textTheme,
       scaffoldBackgroundColor: AppColors.background,
@@ -37,7 +38,7 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
           side: const BorderSide(color: AppColors.divider),
         ),
-        color: AppColors.surface,
+        color: colorScheme.surfaceContainerLow,
         margin: EdgeInsets.zero,
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -120,8 +121,9 @@ abstract final class AppTheme {
         shape: CircleBorder(),
         sizeConstraints: BoxConstraints.tightFor(width: 60, height: 60),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        shape: RoundedRectangleBorder(
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colorScheme.surface,
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppSpacing.bottomSheetRadius),
           ),
@@ -157,37 +159,41 @@ abstract final class AppTheme {
   static ThemeData get dark {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
-      primary: AppColors.primary,
-      onPrimary: AppColors.textOnPrimary,
-      secondary: AppColors.secondary,
-      error: AppColors.error,
-      surface: AppColors.surfaceDark,
-      onSurface: AppColors.textPrimaryDark,
       brightness: Brightness.dark,
+    ).copyWith(
+      primary: AppColors.primaryLifted,
+      onPrimary: AppColors.onPrimaryDark,
+      error: AppColors.errorDark,
+      errorContainer: AppColors.errorContainerDark,
+      onError: AppColors.onErrorDark,
+      onErrorContainer: AppColors.onErrorContainerDark,
+      surface: AppColors.backgroundDark,
     );
 
     return ThemeData(
       useMaterial3: true,
+      applyElevationOverlayColor: true,
       colorScheme: colorScheme,
       textTheme: AppTypography.textTheme,
       scaffoldBackgroundColor: AppColors.backgroundDark,
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.surfaceDark,
-        foregroundColor: AppColors.textPrimaryDark,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
         scrolledUnderElevation: 1,
+        surfaceTintColor: colorScheme.primary,
         centerTitle: false,
         titleTextStyle: AppTypography.textTheme.headlineMedium?.copyWith(
-          color: AppColors.textPrimaryDark,
+          color: colorScheme.onSurface,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-          side: const BorderSide(color: AppColors.dividerDark),
         ),
-        color: AppColors.surfaceDark,
+        color: colorScheme.surfaceContainer,
+        surfaceTintColor: colorScheme.primary.withValues(alpha: 0.08),
         margin: EdgeInsets.zero,
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -205,8 +211,8 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
           ),
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.textOnPrimary,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
           elevation: 0,
           textStyle: AppTypography.textTheme.labelLarge,
         ),
@@ -223,7 +229,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surfaceVariantDark,
+        fillColor: colorScheme.surfaceContainerHigh,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
@@ -236,21 +242,23 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.error, width: 1.5),
         ),
         labelStyle: AppTypography.textTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondaryDark,
+          color: colorScheme.onSurfaceVariant,
         ),
+        hintStyle:
+            TextStyle(color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.navBarBackgroundDark,
+        backgroundColor: colorScheme.surfaceContainerLow,
         elevation: 0,
         height: 72,
-        indicatorColor: AppColors.primaryDark,
+        indicatorColor: colorScheme.primaryContainer,
         labelTextStyle: WidgetStatePropertyAll(
           AppTypography.textTheme.labelSmall?.copyWith(
             fontWeight: FontWeight.w600,
@@ -258,22 +266,24 @@ abstract final class AppTheme {
         ),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: AppColors.primaryLight, size: 26);
+            return IconThemeData(
+              color: colorScheme.onPrimaryContainer,
+              size: 26,
+            );
           }
-          return const IconThemeData(
-              color: AppColors.textSecondaryDark, size: 24);
+          return IconThemeData(color: colorScheme.onSurfaceVariant, size: 24);
         }),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.textOnPrimary,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colorScheme.primaryContainer,
+        foregroundColor: colorScheme.onPrimaryContainer,
         elevation: 4,
-        shape: CircleBorder(),
-        sizeConstraints: BoxConstraints.tightFor(width: 60, height: 60),
+        shape: const CircleBorder(),
+        sizeConstraints: const BoxConstraints.tightFor(width: 60, height: 60),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: AppColors.surfaceDark,
-        shape: RoundedRectangleBorder(
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
             top: Radius.circular(AppSpacing.bottomSheetRadius),
           ),
@@ -283,25 +293,29 @@ abstract final class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
+          borderRadius: BorderRadius.circular(12),
         ),
-        backgroundColor: AppColors.surfaceDark,
-        contentTextStyle: const TextStyle(color: AppColors.textPrimaryDark),
+        backgroundColor: colorScheme.inverseSurface,
+        contentTextStyle: TextStyle(color: colorScheme.onInverseSurface),
+        actionTextColor: colorScheme.inversePrimary,
       ),
-      dividerTheme: const DividerThemeData(
-        color: AppColors.dividerDark,
-        thickness: 1,
-        space: 0,
+      dividerTheme: DividerThemeData(
+        color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+        thickness: 0.5,
+        space: 1,
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.surfaceVariantDark,
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        selectedColor: colorScheme.primaryContainer,
+        labelStyle: TextStyle(color: colorScheme.onSurfaceVariant),
+        secondaryLabelStyle: TextStyle(color: colorScheme.onPrimaryContainer),
+        side: BorderSide.none,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
-          side: const BorderSide(color: AppColors.dividerDark),
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: AppColors.surfaceDark,
+        color: colorScheme.surfaceContainer,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         ),
