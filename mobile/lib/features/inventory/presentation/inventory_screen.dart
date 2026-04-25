@@ -98,12 +98,11 @@ class _ExpiringBanner extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: cs.tertiary,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(Icons.warning_amber_rounded,
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      size: 22),
+                      color: cs.onTertiary, size: 22),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
@@ -114,20 +113,21 @@ class _ExpiringBanner extends StatelessWidget {
                         '$count item${count == 1 ? '' : 's'} expiring soon',
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppColors.accent,
+                                  color: cs.onTertiaryContainer,
+                                  fontWeight: FontWeight.w600,
                                 ),
                       ),
-                       Text(
-                         'Tap to see what to use first',
-                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                               color: cs.onSurfaceVariant,
-                             ),
-                       ),
+                      Text(
+                        'Tap to see what to use first',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: cs.onTertiaryContainer.withValues(alpha: 0.7),
+                            ),
+                      ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
-                    color: AppColors.accent),
+                Icon(Icons.chevron_right_rounded,
+                    color: cs.onTertiaryContainer),
               ],
             ),
           ),

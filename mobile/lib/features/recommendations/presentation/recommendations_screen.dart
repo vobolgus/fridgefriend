@@ -16,21 +16,22 @@ class RecommendationsScreen extends ConsumerWidget {
   const RecommendationsScreen({super.key});
 
   Widget _buildPlaceholder(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: 160,
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primaryLight, AppColors.primary],
+          colors: [cs.primaryContainer, cs.primary],
         ),
       ),
       child: Center(
         child: Icon(
           Icons.restaurant_menu,
           size: 48,
-          color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.54),
+          color: cs.onPrimary.withValues(alpha: 0.54),
         ),
       ),
     );

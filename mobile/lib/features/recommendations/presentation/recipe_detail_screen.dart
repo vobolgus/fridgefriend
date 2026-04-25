@@ -17,22 +17,23 @@ class RecipeDetailScreen extends ConsumerWidget {
 
   final Recipe recipe;
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       height: 250,
       width: double.infinity,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.primaryLight, AppColors.primary],
+          colors: [cs.primaryContainer, cs.primary],
         ),
       ),
       child: Center(
         child: Icon(
           Icons.restaurant_menu,
           size: 64,
-          color: AppColors.textOnPrimary.withValues(alpha: 0.54),
+          color: cs.onPrimary.withValues(alpha: 0.54),
         ),
       ),
     );
@@ -174,10 +175,10 @@ class RecipeDetailScreen extends ConsumerWidget {
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) =>
-                      _buildPlaceholder(),
+                      _buildPlaceholder(context),
                 )
               else
-                _buildPlaceholder(),
+                _buildPlaceholder(context),
               Positioned(
                 bottom: 0,
                 left: 0,
@@ -690,7 +691,8 @@ class RecipeDetailScreen extends ConsumerWidget {
                         Container(
                             width: 60,
                             height: 60,
-                            color: AppColors.primaryLight),
+                            color:
+                                Theme.of(context).colorScheme.primaryContainer),
                       const SizedBox(width: AppSpacing.md),
                       Expanded(
                         child: Text(
