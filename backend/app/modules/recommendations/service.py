@@ -144,18 +144,55 @@ class RecommendationService:
         result = await self._session.execute(statement)
         return list(result.scalars().all())
 
-    async def get_recipe_detail(self, recipe_id: UUID) -> RecipeRecommendation | None:
+    async def get_recipe_detail(
+        self,
+        recipe_id: UUID,
+        user_id: UUID,
+        household_id: UUID | None = None,
+    ) -> RecipeRecommendation | None:
         statement = select(Recipe).where(Recipe.id == recipe_id)
         recipe = (await self._session.execute(statement)).scalar_one_or_none()
         if recipe is None:
             return None
+
+        if household_id is None:
+            return _build_recipe_recommendation(
+                recipe,
+                use_soon_score=0.0,
+                coverage_pct=0.0,
+                missing_items=[],
+                substitutions=[],
+                score=0.0,
+            )
+
+        inventory_items = await self.list_inventory_items(user_id, household_id)
+        breakdown = self._scorer.score_breakdown(
+            FixtureRecipe.model_validate(
+                {
+                    "id": str(recipe.id),
+                    "title": recipe.title,
+                    "prep_minutes": recipe.prep_minutes,
+                    "image_url": recipe.image_url,
+                    "source_url": recipe.source_url,
+                    "summary": recipe.summary,
+                    "instructions": recipe.instructions,
+                    "cuisines": recipe.cuisines,
+                    "servings": recipe.servings,
+                    "nutrition": recipe.nutrition,
+                    "dietary_tags": recipe.dietary_tags,
+                    "ingredients": recipe.ingredients,
+                }
+            ),
+            inventory_items,
+        )
+
         return _build_recipe_recommendation(
             recipe,
-            use_soon_score=0.0,
-            coverage_pct=0.0,
-            missing_items=[],
-            substitutions=[],
-            score=0.0,
+            use_soon_score=breakdown.use_soon_score,
+            coverage_pct=breakdown.coverage_pct,
+            missing_items=breakdown.missing_items,
+            substitutions=breakdown.substitutions,
+            score=breakdown.score,
         )
 
     async def _load_recipes(self, inventory_items: list[InventoryItem]) -> tuple[list[FixtureRecipe], str]:

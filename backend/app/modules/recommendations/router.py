@@ -6,10 +6,12 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.idempotency import get_cached, require_idempotency_key, store_cached
+from app.models.household import HouseholdMember
 from app.models.user import User
 from app.modules.inventory.dependencies import get_active_household_id, get_current_user
 
@@ -69,9 +71,21 @@ async def get_recipe_detail(
     recipe_id: UUID,
     recommendation_service: Annotated[RecommendationService, Depends(get_recommendation_service)],
     current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> RecipeRecommendation:
-    _ = current_user
-    recipe = await recommendation_service.get_recipe_detail(recipe_id)
+    membership_statement = (
+        select(HouseholdMember)
+        .where(HouseholdMember.user_id == current_user.id)
+        .order_by(HouseholdMember.is_active.desc(), HouseholdMember.created_at.asc())
+    )
+    membership = (await db.execute(membership_statement)).scalars().first()
+    household_id = membership.household_id if membership is not None else None
+
+    recipe = await recommendation_service.get_recipe_detail(
+        recipe_id,
+        current_user.id,
+        household_id,
+    )
     if recipe is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipe not found")
     return recipe
