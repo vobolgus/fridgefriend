@@ -16,10 +16,10 @@ class ActivityLogScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final activityAsync = ref.watch(activityLogProvider(householdId));
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const FridgeFriendAppBar(title: 'Activity Log'),
       body: activityAsync.when(
         data: (events) {
@@ -60,7 +60,7 @@ class ActivityLogScreen extends ConsumerWidget {
 
               if (action.contains('create') || action.contains('add')) {
                 badgeColor = AppColors.primary;
-                badgeSurface = AppColors.primarySurface;
+                badgeSurface = cs.primaryContainer;
                 actionText = 'ADDED';
               } else if (action.contains('update') || action.contains('edit')) {
                 badgeColor = AppColors.thisWeek;
@@ -74,11 +74,11 @@ class ActivityLogScreen extends ConsumerWidget {
                 actionText = 'REMOVED';
               } else if (action.contains('consume') || action.contains('use')) {
                 badgeColor = AppColors.accent;
-                badgeSurface = AppColors.accentLight;
+                badgeSurface = cs.tertiaryContainer;
                 actionText = 'USED';
               } else {
-                badgeColor = AppColors.textSecondary;
-                badgeSurface = AppColors.surfaceVariant;
+                badgeColor = cs.onSurfaceVariant;
+                badgeSurface = cs.surfaceContainerHigh;
                 actionText = action.toUpperCase();
               }
 
@@ -99,7 +99,7 @@ class ActivityLogScreen extends ConsumerWidget {
                               bottom: 0,
                               child: Container(
                                 width: 2,
-                                color: AppColors.divider,
+                                color: cs.outlineVariant,
                               ),
                             ),
                           Container(
@@ -110,7 +110,7 @@ class ActivityLogScreen extends ConsumerWidget {
                               color: badgeColor,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.background,
+                                color: cs.surface,
                                 width: 3,
                               ),
                             ),
@@ -123,14 +123,14 @@ class ActivityLogScreen extends ConsumerWidget {
                       child: Container(
                         margin: const EdgeInsets.only(bottom: AppSpacing.lg),
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          color: cs.surfaceContainer,
                           borderRadius:
                               BorderRadius.circular(AppSpacing.cardRadius),
                           border:
-                              Border.all(color: AppColors.divider, width: 1),
+                              Border.all(color: cs.outlineVariant, width: 1),
                           boxShadow: [
                             BoxShadow(
-                              color: AppColors.textPrimary.withOpacity(0.03),
+                              color: cs.shadow.withValues(alpha: 0.03),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -145,11 +145,11 @@ class ActivityLogScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   userId,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontWeight: FontWeight.w800,
                                     fontSize: 16,
-                                    color: AppColors.textPrimary,
+                                    color: cs.onSurface,
                                   ),
                                 ),
                                 Container(
@@ -175,11 +175,11 @@ class ActivityLogScreen extends ConsumerWidget {
                             const SizedBox(height: AppSpacing.sm),
                             Text(
                               itemName,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontWeight: FontWeight.w600,
                                 fontSize: 18,
-                                color: AppColors.textPrimary,
+                                color: cs.onSurface,
                               ),
                             ),
                             const SizedBox(height: AppSpacing.xs),
@@ -190,8 +190,7 @@ class ActivityLogScreen extends ConsumerWidget {
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w600,
                                   fontSize: 12,
-                                  color:
-                                      AppColors.textSecondary.withOpacity(0.7),
+                                  color: cs.onSurfaceVariant.withValues(alpha: 0.7),
                                 ),
                               ),
                           ],

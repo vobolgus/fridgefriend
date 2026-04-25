@@ -28,10 +28,10 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final householdsAsync = ref.watch(householdsProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: const FridgeFriendAppBar(title: 'Households'),
       body: householdsAsync.when(
         data: (households) {
@@ -50,17 +50,13 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ElevatedButton.icon(
+                      FilledButton.tonal(
                         onPressed: () {
                           HapticFeedback.mediumImpact();
                           _showCreateDialog(context, ref);
                         },
-                        icon: const Icon(Icons.add_home_rounded),
-                        label: const Text('Create'),
-                        style: ElevatedButton.styleFrom(
+                        style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 52),
-                          backgroundColor: AppColors.textPrimary,
-                          foregroundColor: AppColors.surface,
                           textStyle: const TextStyle(
                             fontFamily: 'Inter',
                             fontWeight: FontWeight.w800,
@@ -71,6 +67,14 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                             borderRadius:
                                 BorderRadius.circular(AppSpacing.buttonRadius),
                           ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.add_home_rounded),
+                            SizedBox(width: 8),
+                            Text('Create'),
+                          ],
                         ),
                       ),
                       const SizedBox(width: AppSpacing.md),
@@ -110,16 +114,12 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: FilledButton(
                       onPressed: () {
                         HapticFeedback.mediumImpact();
                         _showCreateDialog(context, ref);
                       },
-                      icon: const Icon(Icons.add_home_rounded, size: 20),
-                      label: const Text('Create'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.textPrimary,
-                        foregroundColor: AppColors.surface,
+                      style: FilledButton.styleFrom(
                         elevation: 0,
                         textStyle: const TextStyle(
                           fontFamily: 'Inter',
@@ -130,6 +130,14 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                           borderRadius:
                               BorderRadius.circular(AppSpacing.buttonRadius),
                         ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add_home_rounded, size: 20),
+                          SizedBox(width: 8),
+                          Text('Create'),
+                        ],
                       ),
                     ),
                   ),
@@ -143,8 +151,8 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                       icon: const Icon(Icons.group_add_rounded, size: 20),
                       label: const Text('Join'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primarySurface,
-                        foregroundColor: AppColors.primaryDark,
+                        backgroundColor: cs.primaryContainer,
+                        foregroundColor: cs.onPrimaryContainer,
                         elevation: 0,
                         textStyle: const TextStyle(
                           fontFamily: 'Inter',
@@ -161,14 +169,14 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
-              const Text(
+              Text(
                 'YOUR HOUSEHOLDS',
                 style: TextStyle(
                   fontFamily: 'Inter',
                   fontWeight: FontWeight.w900,
                   fontSize: 13,
                   letterSpacing: 1.2,
-                  color: AppColors.textSecondary,
+                  color: cs.onSurfaceVariant,
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -184,20 +192,21 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
   }
 
   Widget _buildHouseholdCard(BuildContext context, Household household) {
+    final cs = Theme.of(context).colorScheme;
     final isActive = household.isActive;
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.lg),
       decoration: BoxDecoration(
-        color: isActive ? AppColors.primarySurface : AppColors.surface,
+        color: isActive ? cs.primaryContainer : cs.surface,
         borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
         border: Border.all(
-          color: isActive ? AppColors.primary : AppColors.divider,
+          color: isActive ? cs.primary : cs.outlineVariant,
           width: isActive ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: AppColors.textPrimary.withOpacity(0.05),
+            color: cs.shadow.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -218,11 +227,11 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                         children: [
                           Text(
                             household.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w900,
                               fontSize: 20,
-                              color: AppColors.textPrimary,
+                              color: cs.onSurface,
                             ),
                           ),
                           if (isActive) ...[
@@ -231,16 +240,16 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
-                                color: AppColors.primary,
+                                color: cs.primary,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'ACTIVE',
                                 style: TextStyle(
                                   fontFamily: 'Inter',
                                   fontWeight: FontWeight.w900,
                                   fontSize: 10,
-                                  color: AppColors.textOnPrimary,
+                                  color: cs.onPrimary,
                                   letterSpacing: 0.5,
                                 ),
                               ),
@@ -255,23 +264,21 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                           fontFamily: 'Inter',
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: cs.onSurfaceVariant,
                         ),
                       ),
                     ],
                   ),
                 ),
                 if (!isActive)
-                  ElevatedButton(
+                  FilledButton(
                     onPressed: _switchingHouseholdId == household.id
                         ? null
                         : () {
                             HapticFeedback.mediumImpact();
                             _setActiveHousehold(household);
                           },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.textPrimary,
-                      foregroundColor: AppColors.surface,
+                    style: FilledButton.styleFrom(
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius:
@@ -281,12 +288,12 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                           horizontal: 16, vertical: 12),
                     ),
                     child: _switchingHouseholdId == household.id
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: AppColors.surface,
+                              color: cs.onPrimary,
                             ),
                           )
                         : const Text(
@@ -305,28 +312,28 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                 horizontal: AppSpacing.lg, vertical: AppSpacing.md),
             decoration: BoxDecoration(
               color: isActive
-                  ? AppColors.surface.withOpacity(0.5)
-                  : AppColors.surfaceVariant,
+                  ? cs.surface.withValues(alpha: 0.5)
+                  : cs.surfaceContainerHigh,
               border: Border(
                 top: BorderSide(
                     color: isActive
-                        ? AppColors.primary.withOpacity(0.2)
-                        : AppColors.divider),
+                        ? cs.primary.withValues(alpha: 0.2)
+                        : cs.outlineVariant),
                 bottom: BorderSide(
                     color: isActive
-                        ? AppColors.primary.withOpacity(0.2)
-                        : AppColors.divider),
+                        ? cs.primary.withValues(alpha: 0.2)
+                        : cs.outlineVariant),
               ),
             ),
             child: Row(
               children: [
-                const Text(
+                Text(
                   'Invite Code:',
                   style: TextStyle(
                     fontFamily: 'Inter',
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
-                    color: AppColors.textSecondary,
+                    color: cs.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -344,10 +351,10 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: cs.surface,
                         borderRadius:
                             BorderRadius.circular(AppSpacing.chipRadius),
-                        border: Border.all(color: AppColors.divider),
+                        border: Border.all(color: cs.outlineVariant),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -355,16 +362,16 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                         children: [
                           Text(
                             household.inviteCode,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Inter',
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
-                              color: AppColors.textPrimary,
+                              color: cs.onSurface,
                             ),
                           ),
                           const SizedBox(width: AppSpacing.xs),
-                          const Icon(Icons.copy_rounded,
-                              size: 14, color: AppColors.textSecondary),
+                          Icon(Icons.copy_rounded,
+                              size: 14, color: cs.onSurfaceVariant),
                         ],
                       ),
                     ),
@@ -393,8 +400,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.primaryDark,
                             shape: BoxShape.circle,
-                            border:
-                                Border.all(color: AppColors.surface, width: 2),
+                            border: Border.all(color: cs.surface, width: 2),
                           ),
                           alignment: Alignment.center,
                           child: Text(
@@ -421,7 +427,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
                   icon: const Icon(Icons.history_rounded, size: 18),
                   label: const Text('Activity'),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.textPrimary,
+                    foregroundColor: cs.onSurface,
                     textStyle: const TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w700,
@@ -507,6 +513,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
   }
 
   void _showCreateDialog(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final controller = TextEditingController();
     final formKey = GlobalKey<FormState>();
     showDialog(
@@ -514,12 +521,12 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.cardRadius)),
-        title: const Text(
+        title: Text(
           'Create Household',
           style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w900,
-              color: AppColors.textPrimary),
+              color: cs.onSurface),
         ),
         content: Form(
           key: formKey,
@@ -530,9 +537,9 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               hintText: 'Household name',
               hintStyle: TextStyle(
                   fontFamily: 'Inter',
-                  color: AppColors.textSecondary.withOpacity(0.5)),
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
               filled: true,
-              fillColor: AppColors.surfaceVariant,
+              fillColor: cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
                 borderSide: BorderSide.none,
@@ -550,9 +557,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel',
                 style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary)),
+                    fontFamily: 'Inter', fontWeight: FontWeight.w700)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -592,6 +597,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
   }
 
   void _showJoinDialog(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final controller = TextEditingController();
     final formKey = GlobalKey<FormState>();
     showDialog(
@@ -599,12 +605,12 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSpacing.cardRadius)),
-        title: const Text(
+        title: Text(
           'Join Household',
           style: TextStyle(
               fontFamily: 'Inter',
               fontWeight: FontWeight.w900,
-              color: AppColors.textPrimary),
+              color: cs.onSurface),
         ),
         content: Form(
           key: formKey,
@@ -615,9 +621,9 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
               hintText: 'Invite Code',
               hintStyle: TextStyle(
                   fontFamily: 'Inter',
-                  color: AppColors.textSecondary.withOpacity(0.5)),
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
               filled: true,
-              fillColor: AppColors.surfaceVariant,
+              fillColor: cs.surfaceContainerHigh,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
                 borderSide: BorderSide.none,
@@ -635,9 +641,7 @@ class _HouseholdScreenState extends ConsumerState<HouseholdScreen> {
             onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel',
                 style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textSecondary)),
+                    fontFamily: 'Inter', fontWeight: FontWeight.w700)),
           ),
           ElevatedButton(
             onPressed: () async {
