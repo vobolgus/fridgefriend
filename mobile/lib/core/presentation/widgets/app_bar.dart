@@ -39,11 +39,11 @@ class FridgeFriendAppBar extends StatelessWidget
             const SizedBox(height: 2),
             Text(
               subtitle!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Inter',
                 fontWeight: FontWeight.w500,
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ],

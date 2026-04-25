@@ -82,23 +82,32 @@ class _UrgencyBadgeState extends State<UrgencyBadge>
   }
 
   static (String, Color, Color) _resolve(String bucket, Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
     return switch (bucket) {
-      'expired' => ('Expired', AppColors.expired, AppColors.expiredSurface),
-      'today' => ('Today', AppColors.today, AppColors.todaySurface),
+      'expired' => (
+          'Expired',
+          isDark ? AppColors.expiredDark : AppColors.expired,
+          isDark ? AppColors.expiredSurfaceDark : AppColors.expiredSurface,
+        ),
+      'today' => (
+          'Today',
+          isDark ? AppColors.todayDark : AppColors.today,
+          isDark ? AppColors.todaySurfaceDark : AppColors.todaySurface,
+        ),
       'this_week' => (
           'This Week',
-          AppColors.thisWeek,
-          AppColors.thisWeekSurface
+          isDark ? AppColors.thisWeekDark : AppColors.thisWeek,
+          isDark ? AppColors.thisWeekSurfaceDark : AppColors.thisWeekSurface,
         ),
-      'safe_later' => ('Safe', AppColors.safeLater, AppColors.safeLaterSurface),
+      'safe_later' => (
+          'Safe',
+          isDark ? AppColors.safeLaterDark : AppColors.safeLater,
+          isDark ? AppColors.safeLaterSurfaceDark : AppColors.safeLaterSurface,
+        ),
       _ => (
           bucket,
-          brightness == Brightness.dark
-              ? AppColors.textSecondaryDark
-              : AppColors.textSecondary,
-          brightness == Brightness.dark
-              ? AppColors.surfaceVariantDark
-              : AppColors.surfaceVariant
+          isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+          isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
         ),
     };
   }

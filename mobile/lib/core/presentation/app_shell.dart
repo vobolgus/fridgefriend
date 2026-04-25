@@ -78,11 +78,11 @@ class AppShell extends ConsumerWidget {
                 if (householdName != null)
                   Text(
                     householdName,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'Inter',
                       fontWeight: FontWeight.w500,
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
               ],
@@ -94,9 +94,7 @@ class AppShell extends ConsumerWidget {
             icon: Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? AppColors.surfaceVariantDark
-                    : AppColors.surfaceVariant,
+                color: Theme.of(context).colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.settings_outlined, size: 20),
@@ -180,11 +178,11 @@ class AppShell extends ConsumerWidget {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.secondaryLight,
+                    color: Theme.of(context).colorScheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.qr_code_scanner_rounded,
-                      color: AppColors.secondary),
+                  child: Icon(Icons.qr_code_scanner_rounded,
+                      color: Theme.of(context).colorScheme.onSecondaryContainer),
                 ),
                 title: const Text('Scan Barcode'),
                 subtitle: const Text('Quick add with camera'),
@@ -198,11 +196,11 @@ class AppShell extends ConsumerWidget {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.accentLight,
+                    color: Theme.of(context).colorScheme.tertiaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.camera_alt_rounded,
-                      color: AppColors.accent),
+                  child: Icon(Icons.camera_alt_rounded,
+                      color: Theme.of(context).colorScheme.onTertiaryContainer),
                 ),
                 title: const Text('Take Photo'),
                 subtitle: const Text('AI-powered fridge scan'),
@@ -216,11 +214,11 @@ class AppShell extends ConsumerWidget {
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primarySurface,
+                    color: Theme.of(context).colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.edit_rounded,
-                      color: AppColors.primaryDark),
+                  child: Icon(Icons.edit_rounded,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer),
                 ),
                 title: const Text('Manual Entry'),
                 subtitle: const Text('Type in item details'),
