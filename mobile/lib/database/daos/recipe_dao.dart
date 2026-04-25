@@ -14,6 +14,8 @@ class CachedRecipeRecord {
     required this.prepMinutes,
     required this.missingItems,
     required this.substitutions,
+    required this.imageUrl,
+    required this.ingredients,
     required this.syncedAt,
   });
 
@@ -24,6 +26,8 @@ class CachedRecipeRecord {
   final int prepMinutes;
   final List<String> missingItems;
   final List<String> substitutions;
+  final String? imageUrl;
+  final List<Map<String, dynamic>> ingredients;
   final DateTime syncedAt;
 
   Recipe toDomain() {
@@ -35,6 +39,8 @@ class CachedRecipeRecord {
       prepMinutes: prepMinutes,
       missingItems: missingItems,
       substitutions: substitutions,
+      imageUrl: imageUrl,
+      ingredients: ingredients,
     );
   }
 }
@@ -46,7 +52,7 @@ class RecipeDao {
 
   Future<List<CachedRecipeRecord>> getAllRecipes() async {
     final rows = await _db.customSelect(
-      'SELECT id, title, coverage_pct, score, prep_minutes, missing_items_json, substitutions_json, synced_at '
+      'SELECT id, title, coverage_pct, score, prep_minutes, missing_items_json, substitutions_json, image_url, ingredients_json, synced_at '
       'FROM recipes_cache ORDER BY synced_at DESC, title ASC',
     ).get();
 
@@ -60,8 +66,8 @@ class RecipeDao {
       for (final recipe in recipes) {
         await _db.customStatement(
           'INSERT OR REPLACE INTO recipes_cache '
-          '(id, title, coverage_pct, score, prep_minutes, missing_items_json, substitutions_json, synced_at) '
-          'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          '(id, title, coverage_pct, score, prep_minutes, missing_items_json, substitutions_json, image_url, ingredients_json, synced_at) '
+          'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           <Object?>[
             recipe.id,
             recipe.title,
@@ -70,6 +76,8 @@ class RecipeDao {
             recipe.prepMinutes,
             jsonEncode(recipe.missingItems),
             jsonEncode(recipe.substitutions),
+            recipe.imageUrl,
+            jsonEncode(recipe.ingredients),
             DateTime.now().toIso8601String(),
           ],
         );
@@ -82,7 +90,15 @@ class RecipeDao {
   CachedRecipeRecord _mapRow(QueryRow row) {
     final missingItemsJson = row.read<String>('missing_items_json');
     final substitutionsJson = row.read<String>('substitutions_json');
+    final ingredientsJson = row.readNullable<String>('ingredients_json');
     final syncedAtRaw = row.read<String>('synced_at');
+
+    final ingredients = ingredientsJson == null || ingredientsJson.isEmpty
+        ? const <Map<String, dynamic>>[]
+        : (jsonDecode(ingredientsJson) as List<dynamic>)
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList(growable: false);
 
     return CachedRecipeRecord(
       id: row.read<String>('id'),
@@ -96,6 +112,8 @@ class RecipeDao {
       substitutions: (jsonDecode(substitutionsJson) as List<dynamic>)
           .map((item) => item.toString())
           .toList(growable: false),
+      imageUrl: row.readNullable<String>('image_url'),
+      ingredients: ingredients,
       syncedAt: DateTime.tryParse(syncedAtRaw) ?? DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
