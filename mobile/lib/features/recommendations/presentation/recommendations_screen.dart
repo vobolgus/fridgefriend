@@ -15,7 +15,7 @@ import 'package:fridgefriend_mobile/features/inventory/presentation/providers.da
 class RecommendationsScreen extends ConsumerWidget {
   const RecommendationsScreen({super.key});
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(BuildContext context) {
     return Container(
       height: 160,
       width: double.infinity,
@@ -26,11 +26,11 @@ class RecommendationsScreen extends ConsumerWidget {
           colors: [AppColors.primaryLight, AppColors.primary],
         ),
       ),
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.restaurant_menu,
           size: 48,
-          color: Colors.white54,
+          color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.54),
         ),
       ),
     );
@@ -57,6 +57,7 @@ class RecommendationsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final recommendations = ref.watch(recommendationsProvider);
     Object? extra;
     try {
@@ -84,7 +85,7 @@ class RecommendationsScreen extends ConsumerWidget {
             children: [
               if (filterIngredient != null)
                 Container(
-                  color: AppColors.primarySurface,
+                  color: cs.primaryContainer,
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSpacing.lg,
                     vertical: AppSpacing.md,
@@ -178,23 +179,23 @@ class RecommendationsScreen extends ConsumerWidget {
                                             fit: BoxFit.cover,
                                             errorBuilder:
                                                 (context, error, stackTrace) =>
-                                                    _buildPlaceholder(),
+                                                    _buildPlaceholder(context),
                                           )
                                         else
-                                          _buildPlaceholder(),
+                                          _buildPlaceholder(context),
                                         Positioned(
                                           bottom: 0,
                                           left: 0,
                                           right: 0,
                                           child: Container(
                                             height: 80,
-                                            decoration: const BoxDecoration(
+                                            decoration: BoxDecoration(
                                               gradient: LinearGradient(
                                                 begin: Alignment.topCenter,
                                                 end: Alignment.bottomCenter,
                                                 colors: [
                                                   Colors.transparent,
-                                                  Colors.black87
+                                                  Theme.of(context).colorScheme.scrim.withValues(alpha: 0.87)
                                                 ],
                                               ),
                                             ),
@@ -209,10 +210,10 @@ class RecommendationsScreen extends ConsumerWidget {
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .titleLarge
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                ),
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.textOnDark,
+                                                  ),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -233,19 +234,18 @@ class RecommendationsScreen extends ConsumerWidget {
                                               spacing: AppSpacing.xs,
                                               runSpacing: AppSpacing.xs,
                                               children: [
-                                                ...recipe.cuisines.map((c) =>
-                                                    _buildChip(
-                                                        context,
-                                                        c,
-                                                        AppColors
-                                                            .secondaryLight,
-                                                        AppColors.secondary)),
-                                                ...recipe.dietaryTags.map((d) =>
-                                                    _buildChip(
-                                                        context,
-                                                        d,
-                                                        AppColors.accentLight,
-                                                        AppColors.accent)),
+                                 ...recipe.cuisines.map((c) =>
+                                                     _buildChip(
+                                                         context,
+                                                         c,
+                                                         cs.secondaryContainer,
+                                                         cs.secondary)),
+                                                 ...recipe.dietaryTags.map((d) =>
+                                                     _buildChip(
+                                                         context,
+                                                         d,
+                                                         cs.tertiaryContainer,
+                                                         cs.tertiary)),
                                               ],
                                             ),
                                             const SizedBox(
@@ -253,41 +253,37 @@ class RecommendationsScreen extends ConsumerWidget {
                                           ],
                                           Row(
                                             children: [
-                                              const Icon(Icons.timer_outlined,
+                                           Icon(Icons.timer_outlined,
                                                   size: 16,
-                                                  color:
-                                                      AppColors.textSecondary),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${recipe.prepMinutes} min',
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyMedium
-                                                    ?.copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                    ),
-                                              ),
-                                              if (recipe.servings != null) ...[
-                                                const SizedBox(
-                                                    width: AppSpacing.md),
-                                                const Icon(
-                                                    Icons.restaurant_outlined,
-                                                    size: 16,
-                                                    color: AppColors
-                                                        .textSecondary),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  '${recipe.servings} servings',
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .bodyMedium
-                                                      ?.copyWith(
-                                                        color: AppColors
-                                                            .textSecondary,
-                                                      ),
-                                                ),
-                                              ],
+                                                  color: cs.onSurfaceVariant),
+                                               const SizedBox(width: 4),
+                                               Text(
+                                                 '${recipe.prepMinutes} min',
+                                                 style: Theme.of(context)
+                                                     .textTheme
+                                                     .bodyMedium
+                                                     ?.copyWith(
+                                                       color: cs.onSurfaceVariant,
+                                                     ),
+                                               ),
+                                               if (recipe.servings != null) ...[
+                                                 const SizedBox(
+                                                     width: AppSpacing.md),
+                                                 Icon(
+                                                     Icons.restaurant_outlined,
+                                                     size: 16,
+                                                     color: cs.onSurfaceVariant),
+                                                 const SizedBox(width: 4),
+                                                 Text(
+                                                   '${recipe.servings} servings',
+                                                   style: Theme.of(context)
+                                                       .textTheme
+                                                       .bodyMedium
+                                                       ?.copyWith(
+                                                         color: cs.onSurfaceVariant,
+                                                       ),
+                                                 ),
+                                               ],
                                               const Spacer(),
                                               Container(
                                                 padding:
@@ -297,7 +293,7 @@ class RecommendationsScreen extends ConsumerWidget {
                                                         vertical: 4),
                                                 decoration: BoxDecoration(
                                                   color: progressColor
-                                                      .withOpacity(0.1),
+                                                      .withValues(alpha: 0.1),
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                           AppSpacing

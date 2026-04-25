@@ -28,11 +28,11 @@ class RecipeDetailScreen extends ConsumerWidget {
           colors: [AppColors.primaryLight, AppColors.primary],
         ),
       ),
-      child: const Center(
+      child: Center(
         child: Icon(
           Icons.restaurant_menu,
           size: 64,
-          color: Colors.white54,
+          color: AppColors.textOnPrimary.withValues(alpha: 0.54),
         ),
       ),
     );
@@ -59,6 +59,7 @@ class RecipeDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
     final recipeDetailAsync = ref.watch(recipeDetailProvider(recipe.id));
     final displayedRecipe = recipeDetailAsync.valueOrNull ?? recipe;
     final savedAsync = ref.watch(savedRecipeProvider(recipe.id));
@@ -142,7 +143,7 @@ class RecipeDetailScreen extends ConsumerWidget {
               },
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.textOnPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSpacing.inputRadius),
                 ),
@@ -183,11 +184,11 @@ class RecipeDetailScreen extends ConsumerWidget {
                 right: 0,
                 child: Container(
                   height: 120,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black87],
+                      colors: [Colors.transparent, AppColors.scrim.withValues(alpha: 0.87)],
                     ),
                   ),
                 ),
@@ -200,7 +201,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                   displayedRecipe.title,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppColors.textOnDark,
                       ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -221,10 +222,10 @@ class RecipeDetailScreen extends ConsumerWidget {
                     spacing: AppSpacing.xs,
                     runSpacing: AppSpacing.xs,
                     children: [
-                      ...displayedRecipe.cuisines.map((c) => _buildChip(context,
-                          c, AppColors.secondaryLight, AppColors.secondary)),
-                      ...displayedRecipe.dietaryTags.map((d) => _buildChip(
-                          context, d, AppColors.accentLight, AppColors.accent)),
+                     ...displayedRecipe.cuisines.map((c) => _buildChip(context,
+                          c, cs.secondaryContainer, cs.secondary)),
+                       ...displayedRecipe.dietaryTags.map((d) => _buildChip(
+                          context, d, cs.tertiaryContainer, cs.tertiary)),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -236,16 +237,16 @@ class RecipeDetailScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySurface,
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.chipRadius),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.timer_outlined,
-                              size: 16, color: AppColors.primary),
+                         decoration: BoxDecoration(
+                           color: cs.primaryContainer,
+                           borderRadius:
+                               BorderRadius.circular(AppSpacing.chipRadius),
+                         ),
+                         child: Row(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                             const Icon(Icons.timer_outlined,
+                                 size: 16, color: AppColors.primary),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
                             '${displayedRecipe.prepMinutes} min',
@@ -261,23 +262,23 @@ class RecipeDetailScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceVariant,
-                          borderRadius:
-                              BorderRadius.circular(AppSpacing.chipRadius),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.restaurant_outlined,
-                                size: 16, color: AppColors.textSecondary),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              '${displayedRecipe.servings} servings',
-                              style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontWeight: FontWeight.bold),
-                            ),
+                         decoration: BoxDecoration(
+                           color: cs.surfaceContainerHigh,
+                           borderRadius:
+                               BorderRadius.circular(AppSpacing.chipRadius),
+                         ),
+                         child: Row(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                             Icon(Icons.restaurant_outlined,
+                                 size: 16, color: cs.onSurfaceVariant),
+                             const SizedBox(width: AppSpacing.xs),
+                             Text(
+                               '${displayedRecipe.servings} servings',
+                               style: TextStyle(
+                                   color: cs.onSurfaceVariant,
+                                   fontWeight: FontWeight.bold),
+                             ),
                           ],
                         ),
                       ),
@@ -289,31 +290,31 @@ class RecipeDetailScreen extends ConsumerWidget {
                 // Summary
                 if (displayedRecipe.summary != null &&
                     displayedRecipe.summary!.isNotEmpty) ...[
-                  Text(
-                    displayedRecipe.summary!,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.5,
-                        ),
-                  ),
+                   Text(
+                     displayedRecipe.summary!,
+                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                           color: cs.onSurfaceVariant,
+                           height: 1.5,
+                         ),
+                   ),
                   const SizedBox(height: AppSpacing.xl),
                 ],
 
                 // Coverage
                 Container(
                   padding: AppSpacing.cardPadding,
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Ingredient Coverage',
+                   decoration: BoxDecoration(
+                     color: cs.surfaceContainerHigh,
+                     borderRadius: BorderRadius.circular(AppSpacing.cardRadius),
+                   ),
+                   child: Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
+                       Row(
+                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                         children: [
+                           Text(
+                             'Ingredient Coverage',
                             style: Theme.of(context)
                                 .textTheme
                                 .titleMedium
@@ -334,15 +335,15 @@ class RecipeDetailScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: LinearProgressIndicator(
-                          value: displayedRecipe.coveragePct,
-                          backgroundColor: AppColors.divider,
-                          color: progressColor,
-                          minHeight: 12,
-                        ),
-                      ),
+                       ClipRRect(
+                         borderRadius: BorderRadius.circular(8),
+                         child: LinearProgressIndicator(
+                           value: displayedRecipe.coveragePct,
+                           backgroundColor: cs.surfaceContainerHigh,
+                           color: progressColor,
+                           minHeight: 12,
+                         ),
+                       ),
                     ],
                   ),
                 ),
@@ -388,11 +389,11 @@ class RecipeDetailScreen extends ConsumerWidget {
                     ),
                   )
                 else if (haveIngredients.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: AppSpacing.md),
-                    child: Text('No ingredients on hand.',
-                        style: TextStyle(color: AppColors.textSecondary)),
-                  )
+                   Padding(
+                     padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                     child: Text('No ingredients on hand.',
+                         style: TextStyle(color: cs.onSurfaceVariant)),
+                   )
                 else
                   ...haveIngredients.map((item) {
                     final name = item['canonical_name']?.toString() ??
@@ -513,9 +514,9 @@ class RecipeDetailScreen extends ConsumerWidget {
                       ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                if (substitutions.isEmpty)
-                  const Text('No substitutions suggested',
-                      style: TextStyle(color: AppColors.textSecondary))
+                 if (substitutions.isEmpty)
+                   Text('No substitutions suggested',
+                       style: TextStyle(color: cs.onSurfaceVariant))
                 else
                   ...substitutions.map((sub) => Card(
                         elevation: 0,
@@ -547,13 +548,13 @@ class RecipeDetailScreen extends ConsumerWidget {
                         ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  ...displayedRecipe.instructions.map((inst) {
-                    final num = inst['number']?.toString() ?? '';
-                    final step = inst['step']?.toString() ?? '';
-                    return Card(
-                      elevation: 0,
-                      color: AppColors.surfaceVariant,
-                      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                   ...displayedRecipe.instructions.map((inst) {
+                     final num = inst['number']?.toString() ?? '';
+                     final step = inst['step']?.toString() ?? '';
+                     return Card(
+                       elevation: 0,
+                       color: cs.surfaceContainerHigh,
+                       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
                       shape: RoundedRectangleBorder(
                           borderRadius:
                               BorderRadius.circular(AppSpacing.cardRadius)),
@@ -567,7 +568,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                               backgroundColor: AppColors.primary,
                               child: Text(num,
                                   style: const TextStyle(
-                                      color: Colors.white,
+                                      color: AppColors.textOnPrimary,
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold)),
                             ),
@@ -597,16 +598,16 @@ class RecipeDetailScreen extends ConsumerWidget {
                         ?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  Card(
-                    elevation: 0,
-                    color: AppColors.surfaceVariant,
-                    shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSpacing.cardRadius)),
-                    child: Padding(
-                      padding: AppSpacing.cardPadding,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                   Card(
+                     elevation: 0,
+                     color: cs.surfaceContainerHigh,
+                     shape: RoundedRectangleBorder(
+                         borderRadius:
+                             BorderRadius.circular(AppSpacing.cardRadius)),
+                     child: Padding(
+                       padding: AppSpacing.cardPadding,
+                       child: Row(
+                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           _buildNutritionItem(
                               context,
@@ -765,7 +766,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                             },
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.textOnPrimary,
                         padding:
                             const EdgeInsets.symmetric(vertical: AppSpacing.lg),
                       ),
@@ -774,7 +775,7 @@ class RecipeDetailScreen extends ConsumerWidget {
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2),
+                                  color: AppColors.textOnPrimary, strokeWidth: 2),
                             )
                           : const Text('Generate Plan'),
                     ),
@@ -790,18 +791,19 @@ class RecipeDetailScreen extends ConsumerWidget {
 
   Widget _buildNutritionItem(BuildContext context, String label, String value,
       IconData icon, Color color) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
         Icon(icon, color: color, size: 24),
         const SizedBox(height: AppSpacing.xs),
         Text(value,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                fontWeight: FontWeight.bold, color: cs.onSurface)),
         Text(label,
             style: Theme.of(context)
                 .textTheme
                 .bodySmall
-                ?.copyWith(color: AppColors.textSecondary)),
+                ?.copyWith(color: cs.onSurfaceVariant)),
       ],
     );
   }
