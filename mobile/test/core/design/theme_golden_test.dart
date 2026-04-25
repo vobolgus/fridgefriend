@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,18 @@ import 'package:fridgefriend_mobile/core/design/theme.dart';
 // font loader throws. We suppress those specific exceptions so the widget still
 // renders (with system fallback font) and the golden captures color/shape
 // faithfully without requiring network access or bundled font assets.
+//
+// Goldens are platform-sensitive: Flutter's golden comparison includes anti-
+// aliased font glyphs, and Linux Freetype renders glyphs slightly differently
+// from macOS CoreText. The committed baselines were captured on macOS, so we
+// only run the comparison on macOS hosts. Linux/Windows CI runners skip — the
+// hardcoded-color lint test (no_hardcoded_colors_test.dart) provides the
+// platform-independent regression coverage.
+
+// Skip on non-macOS hosts (e.g. Linux CI runners). Reason: golden baselines
+// were rendered on macOS and Freetype glyph anti-aliasing on Linux produces
+// sub-pixel diffs that fail the comparison.
+final bool _skipOnThisHost = kIsWeb || !Platform.isMacOS;
 
 bool _isFontError(String msg) =>
     msg.contains('google_fonts') ||
@@ -52,7 +65,7 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/theme_light.png'),
       );
-    });
+    }, skip: _skipOnThisHost);
 
     testWidgets('dark theme snapshot', (tester) async {
       await runZonedGuarded(
@@ -70,7 +83,7 @@ void main() {
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/theme_dark.png'),
       );
-    });
+    }, skip: _skipOnThisHost);
   });
 }
 
