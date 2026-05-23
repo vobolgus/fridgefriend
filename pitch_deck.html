@@ -174,6 +174,31 @@ ul.cl li svg { width: 12px; height: 12px; color: var(--em); flex-shrink: 0; marg
 .ctr  { font-size: 11px; color: var(--z500); font-weight: 600; min-width: 36px; text-align: center; }
 .snum { position: fixed; top: 18px; right: 24px; font-size: 11px; color: rgba(255,255,255,.2); z-index: 200; letter-spacing: .05em; }
 
+/* ── waste cycle (slide 2) ──────────────────────────────── */
+.waste-cycle {
+  position: relative; width: 100%; max-width: 260px; aspect-ratio: 1;
+  margin: 0 auto;
+}
+.wc-arcs { position: absolute; inset: 0; width: 100%; height: 100%; }
+.wc-center {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  color: rgba(220,38,38,.6);
+}
+.wc-center svg { width: 20px; height: 20px; }
+.wc-center span { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.wc-node {
+  position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.25);
+  border-radius: 10px; padding: 10px 12px; min-width: 64px; text-align: center;
+}
+.wc-node svg  { width: 16px; height: 16px; color: #f87171; }
+.wc-node span { font-size: 10px; font-weight: 600; color: #fca5a5; }
+.wc-n1 { top: 0; left: 50%; transform: translateX(-50%); }
+.wc-n2 { top: 50%; right: 0; transform: translateY(-50%); }
+.wc-n3 { bottom: 0; left: 50%; transform: translateX(-50%); }
+.wc-n4 { top: 50%; left: 0; transform: translateY(-50%); }
+
 /* util */
 .row  { display: flex; align-items: center; gap: 10px; }
 .kv   { display: flex; justify-content: space-between; align-items: center; }
@@ -217,11 +242,27 @@ ul.cl li svg { width: 12px; height: 12px; color: var(--em); flex-shrink: 0; marg
       <div class="stat-d">of purchased groceries never make it to the table</div>
     </div>
   </div>
-  <div class="card" style="flex:1;display:flex;align-items:flex-start;gap:12px;">
-    <div class="chip" style="margin-top:2px;"><i data-lucide="message-circle"></i></div>
-    <div>
-      <h3>The root cause</h3>
-      <p style="font-size:13px;">People don't know what's in their fridge, forget expiry dates, struggle to decide what to cook — then go shopping again and buy duplicates. No single app solves all of this together.</p>
+  <div class="g2" style="flex:1;min-height:0;align-items:start;">
+    <div class="card" style="display:flex;align-items:flex-start;gap:12px;">
+      <div class="chip" style="margin-top:2px;flex-shrink:0;"><i data-lucide="message-circle"></i></div>
+      <div>
+        <h3>The root cause</h3>
+        <p style="font-size:13px;">People don't know what's in their fridge, forget expiry dates, struggle to decide what to cook — then go shopping again and buy duplicates.</p>
+      </div>
+    </div>
+    <!-- waste cycle illustration -->
+    <div class="waste-cycle">
+      <div class="wc-center"><i data-lucide="refresh-cw"></i><span>Waste Cycle</span></div>
+      <div class="wc-node wc-n1"><i data-lucide="shopping-cart"></i><span>Overbuy</span></div>
+      <div class="wc-node wc-n2"><i data-lucide="refrigerator"></i><span>Forget</span></div>
+      <div class="wc-node wc-n3"><i data-lucide="clock"></i><span>Expires</span></div>
+      <div class="wc-node wc-n4"><i data-lucide="trash-2"></i><span>Throw away</span></div>
+      <svg class="wc-arcs" viewBox="0 0 220 220">
+        <path d="M 148 42 A 80 80 0 0 1 188 130" fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <path d="M 178 148 A 80 80 0 0 1 80 192"  fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <path d="M 58 178 A 80 80 0 0 1 28 80"    fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <path d="M 40 60 A 80 80 0 0 1 130 28"     fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
+      </svg>
     </div>
   </div>
 </div>
