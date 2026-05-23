@@ -1,43 +1,37 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import httpx
 import pytest
 
 
-SPEC_ENDPOINTS = [
-    ("POST", "/v1/items"),
-    ("GET", "/v1/items"),
-    ("GET", "/v1/items/{item_id}"),
-    ("PATCH", "/v1/items/{item_id}"),
-    ("PUT", "/v1/items/{item_id}"),
-    ("DELETE", "/v1/items/{item_id}"),
-    ("POST", "/v1/items/{item_id}/status"),
-    ("POST", "/v1/items/{item_id}/undo"),
-    ("POST", "/v1/scan/barcode"),
-    ("POST", "/v1/scan/photo"),
-    ("POST", "/v1/scan/photo/upload"),
-    ("POST", "/v1/recommendations"),
-    ("GET", "/v1/recipes/{recipe_id}"),
-    ("POST", "/v1/plans"),
-    ("GET", "/v1/plans/latest"),
-    ("GET", "/v1/shopping-list"),
-    ("DELETE", "/v1/plans/{plan_id}"),
-    ("GET", "/v1/households"),
-    ("POST", "/v1/households"),
-    ("GET", "/v1/households/{household_id}"),
-    ("PATCH", "/v1/households/{household_id}"),
-    ("POST", "/v1/households/join"),
-    ("POST", "/v1/households/{household_id}/leave"),
-    ("DELETE", "/v1/households/{household_id}/members/{user_id}"),
-    ("GET", "/v1/households/{household_id}/events"),
-    ("GET", "/v1/households/{household_id}/activity"),
-    ("GET", "/v1/notifications"),
-    ("PATCH", "/v1/notifications"),
-    ("POST", "/v1/notifications/devices"),
-    ("DELETE", "/v1/notifications/devices/{token_id}"),
-    ("POST", "/v1/analytics/events"),
-    ("GET", "/health"),
-]
+SPEC_PATH = Path(__file__).resolve().parents[2] / "SPEC.md"
+CONTRACT_START = "<!-- api-contract:start -->"
+CONTRACT_END = "<!-- api-contract:end -->"
+
+
+def _load_spec_endpoints() -> tuple[tuple[str, str], ...]:
+    spec = SPEC_PATH.read_text(encoding="utf-8")
+    start = spec.index(CONTRACT_START) + len(CONTRACT_START)
+    end = spec.index(CONTRACT_END)
+    endpoints: list[tuple[str, str]] = []
+
+    for line in spec[start:end].splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip().strip("`") for cell in line.strip().strip("|").split("|")]
+        if len(cells) < 2 or cells[0] in {"Method", "---"}:
+            continue
+        endpoints.append((cells[0].upper(), cells[1]))
+
+    if not endpoints:
+        raise AssertionError(f"No API endpoints found in {SPEC_PATH}")
+
+    return tuple(endpoints)
+
+
+SPEC_ENDPOINTS = _load_spec_endpoints()
 
 
 @pytest.mark.asyncio

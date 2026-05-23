@@ -6,6 +6,7 @@ Reduce food waste by tracking kitchen inventory, surfacing expiring items, gener
 
 - Backend: FastAPI prototype with household scoping, inventory events, notifications, analytics, planning, and integration coverage.
 - Mobile: Flutter scaffold with Riverpod, Drift offline cache, SSE household listener, and test coverage for core flows.
+- Product spec: [SPEC.md](SPEC.md), converted from `FridgeFriend_SPEC_filled.xlsx` for agent-friendly edits.
 
 ## Feature Summary
 
@@ -179,6 +180,14 @@ source backend/.venv/bin/activate
 python scripts/verify_api_contract.py --base-url http://localhost:8000 --token test-token
 ```
 
+### Product spec export
+
+```bash
+python scripts/export_spec_markdown.py
+cd backend
+python -m pytest tests/test_spec_markdown.py tests/test_api_contract.py -v --tb=short
+```
+
 ## Observability Stubs
 
 - Backend Sentry initializes when `SENTRY_DSN` is set.
@@ -199,6 +208,7 @@ mobile/
   lib/
   test/
 scripts/
+docs/
 .github/workflows/
 docker-compose.yml
 docker-compose.prod.yml
