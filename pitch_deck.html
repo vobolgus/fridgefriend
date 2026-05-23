@@ -1,1250 +1,656 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FridgeFriend — Investor Pitch Deck</title>
+<title>FridgeFriend — Investor Pitch</title>
+<script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 <style>
-  :root {
-    --green: #2ecc71;
-    --green-dark: #27ae60;
-    --green-light: #a8f0c6;
-    --navy: #0d1b2a;
-    --navy-mid: #1a2e44;
-    --slate: #2c3e50;
-    --white: #ffffff;
-    --off-white: #f4f9f4;
-    --gray: #8a9bb0;
-    --accent: #f39c12;
-    --red-soft: #e74c3c;
-  }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --em:   #10b981;
+  --em2:  #059669;
+  --em-bg:  rgba(16,185,129,.10);
+  --em-bd:  rgba(16,185,129,.25);
+  --z950: #09090b;
+  --z900: #18181b;
+  --z800: #27272a;
+  --z700: #3f3f46;
+  --z500: #71717a;
+  --z400: #a1a1aa;
+  --z300: #d4d4d8;
+  --z50:  #fafafa;
+  --nav:  64px;
+}
 
-  body {
-    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-    background: var(--navy);
-    color: var(--white);
-    overflow: hidden;
-    height: 100vh;
-    width: 100vw;
-  }
+html, body { height: 100%; overflow: hidden; background: var(--z950); color: var(--z50);
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased; }
 
-  /* ── Slideshow container ─────────────────────────────────── */
-  .deck {
-    width: 100%;
-    height: 100%;
-    position: relative;
-  }
+/* ── deck & slides ──────────────────────────────────────── */
+.deck { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
 
-  .slide {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 60px 80px;
-    opacity: 0;
-    transform: translateX(60px);
-    transition: opacity .45s ease, transform .45s ease;
-    pointer-events: none;
-  }
+.slide {
+  position: absolute; inset: 0; overflow: hidden;
+  display: flex; flex-direction: column;
+  padding: 40px 64px var(--nav);
+  opacity: 0; transform: translateX(40px);
+  transition: opacity .32s ease, transform .32s ease;
+  pointer-events: none;
+}
+.slide.active  { opacity: 1; transform: translateX(0);   pointer-events: all; }
+.slide.exit    { opacity: 0; transform: translateX(-40px); }
 
-  .slide.active {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: all;
-  }
+/* ── slide header ───────────────────────────────────────── */
+.sh { flex-shrink: 0; margin-bottom: 20px; }
+.label {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--em); margin-bottom: 8px;
+}
+.label svg { width: 10px; height: 10px; }
+h2 { font-size: clamp(20px, 2.8vw, 34px); font-weight: 700; line-height: 1.15; color: var(--z50); }
 
-  .slide.exit {
-    opacity: 0;
-    transform: translateX(-60px);
-  }
+/* ── body copy ──────────────────────────────────────────── */
+p  { font-size: 13px; color: var(--z400); line-height: 1.6; }
+h3 { font-size: 13px; font-weight: 600; color: var(--z50); margin-bottom: 6px; }
+.muted { font-size: 11px; color: var(--z500); }
 
-  /* ── Backgrounds per slide ───────────────────────────────── */
-  .bg-hero    { background: linear-gradient(135deg, #0d1b2a 0%, #1a3a1a 100%); }
-  .bg-problem { background: linear-gradient(135deg, #1a0a0a 0%, #2c1a0a 100%); }
-  .bg-solution{ background: linear-gradient(135deg, #0a1a0d 0%, #0d2a1a 100%); }
-  .bg-dark    { background: linear-gradient(135deg, #0d1b2a 0%, #1a2e44 100%); }
-  .bg-market  { background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 100%); }
-  .bg-biz     { background: linear-gradient(135deg, #0a1a0a 0%, #1a2a0a 100%); }
-  .bg-tech    { background: linear-gradient(135deg, #0a0d1a 0%, #0d1a2a 100%); }
-  .bg-ask     { background: linear-gradient(135deg, #0d1a0d 0%, #1a2e1a 100%); }
+/* ── cards ──────────────────────────────────────────────── */
+.card    { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09); border-radius: 10px; padding: 16px; }
+.card-em { background: var(--em-bg); border: 1px solid var(--em-bd); border-radius: 10px; padding: 16px; }
 
-  /* ── Typography ──────────────────────────────────────────── */
-  .label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--green);
-    margin-bottom: 16px;
-  }
+/* ── grids ──────────────────────────────────────────────── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr;     gap: 14px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.g4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
 
-  h1 {
-    font-size: clamp(36px, 5vw, 64px);
-    font-weight: 800;
-    line-height: 1.1;
-    color: var(--white);
-    margin-bottom: 20px;
-  }
+/* ── icon chip ──────────────────────────────────────────── */
+.chip {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: var(--em-bg); border: 1px solid var(--em-bd); color: var(--em);
+}
+.chip svg { width: 16px; height: 16px; }
 
-  h2 {
-    font-size: clamp(24px, 3.5vw, 42px);
-    font-weight: 700;
-    color: var(--white);
-    margin-bottom: 24px;
-    line-height: 1.2;
-  }
+/* ── feature card ───────────────────────────────────────── */
+.feat {
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.09);
+  border-radius: 10px; padding: 16px;
+  display: flex; flex-direction: column; gap: 8px; min-height: 0;
+}
+.feat h3 { font-size: 13px; margin: 0; }
+.feat p  { font-size: 12px; color: var(--z400); line-height: 1.5; }
 
-  h3 {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--green);
-    margin-bottom: 10px;
-  }
+/* ── stat ───────────────────────────────────────────────── */
+.stat-n { font-size: clamp(22px, 3vw, 36px); font-weight: 800; color: var(--em); line-height: 1; }
+.stat-d { font-size: 11px; color: var(--z400); margin-top: 3px; line-height: 1.4; }
 
-  p, li {
-    font-size: clamp(14px, 1.8vw, 18px);
-    line-height: 1.65;
-    color: #c8d8e8;
-  }
+/* ── flow ───────────────────────────────────────────────── */
+.flow { display: flex; align-items: flex-start; width: 100%; gap: 4px; }
+.fstep { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; min-width: 0; }
+.ficon { width: 40px; height: 40px; border-radius: 50%; background: var(--em-bg); border: 1.5px solid var(--em-bd); color: var(--em); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ficon svg { width: 16px; height: 16px; }
+.flabel { font-size: 11px; font-weight: 600; color: var(--z300); }
+.fdesc  { font-size: 10px; color: var(--z500); line-height: 1.4; }
+.farr   { display: flex; align-items: center; padding-top: 20px; color: var(--z700); flex-shrink: 0; }
+.farr svg { width: 14px; height: 14px; }
 
-  .highlight { color: var(--green); font-weight: 700; }
-  .accent    { color: var(--accent); font-weight: 700; }
-  .muted     { color: var(--gray); font-size: 14px; }
+/* ── market rings ───────────────────────────────────────── */
+.rings { position: relative; width: 200px; height: 200px; flex-shrink: 0; }
+.ring  { position: absolute; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.ring-a { inset: 0;    background: rgba(16,185,129,.08); border: 1.5px solid rgba(16,185,129,.28); }
+.ring-b { inset: 28px; background: rgba(16,185,129,.13); border: 1.5px solid rgba(16,185,129,.38); }
+.ring-c { inset: 64px; background: rgba(16,185,129,.22); border: 1.5px solid var(--em); }
+.ring-tag { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--em); }
+.ring-val { font-size: 14px; font-weight: 800; color: var(--z50); }
 
-  /* ── Layout helpers ──────────────────────────────────────── */
-  .cols {
-    display: grid;
-    gap: 32px;
-    width: 100%;
-    max-width: 1100px;
-  }
-  .cols-2  { grid-template-columns: 1fr 1fr; }
-  .cols-3  { grid-template-columns: 1fr 1fr 1fr; }
-  .cols-4  { grid-template-columns: repeat(4, 1fr); }
+/* ── comparison table ───────────────────────────────────── */
+.comp { width: 100%; border-collapse: collapse; font-size: 12px; }
+.comp th { padding: 8px 12px; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--em); background: rgba(16,185,129,.07); text-align: center; }
+.comp th:first-child { text-align: left; }
+.comp td { padding: 8px 12px; text-align: center; color: var(--z500); border-top: 1px solid rgba(255,255,255,.05); }
+.comp td:first-child { text-align: left; color: var(--z300); font-weight: 500; }
+.comp .us  { color: var(--z50); font-weight: 700; }
+.comp .chk { color: var(--em); }
+.comp svg  { width: 14px; height: 14px; }
 
-  .card {
-    background: rgba(255,255,255,.06);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 16px;
-    padding: 28px;
-  }
+/* ── bar chart ──────────────────────────────────────────── */
+.chart { display: flex; align-items: flex-end; gap: 14px; height: 110px; }
+.bgrp  { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 1; }
+.bar   { width: 100%; border-radius: 5px 5px 0 0; background: linear-gradient(to top, var(--em2), var(--em)); }
+.bval  { font-size: 12px; font-weight: 700; color: var(--z50); }
+.byr   { font-size: 11px; color: var(--z500); }
 
-  .card-green {
-    background: rgba(46,204,113,.1);
-    border-color: rgba(46,204,113,.3);
-    border-radius: 16px;
-    padding: 28px;
-  }
+/* ── use-of-funds ───────────────────────────────────────── */
+.uf-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.uf-pct { font-size: 18px; font-weight: 800; color: var(--em); width: 46px; flex-shrink: 0; }
+.uf-bar { flex: 1; height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; }
+.uf-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--em2), var(--em)); }
+.uf-lbl { font-size: 12px; color: var(--z300); }
 
-  .card-red {
-    background: rgba(231,76,60,.1);
-    border-color: rgba(231,76,60,.3);
-    border-radius: 16px;
-    padding: 28px;
-  }
+/* ── checklist ──────────────────────────────────────────── */
+ul.cl { list-style: none; }
+ul.cl li { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: var(--z400); padding: 3px 0; line-height: 1.5; }
+ul.cl li svg { width: 12px; height: 12px; color: var(--em); flex-shrink: 0; margin-top: 2px; }
 
-  ul { list-style: none; padding: 0; }
-  ul li { padding: 6px 0 6px 22px; position: relative; }
-  ul li::before { content: '→'; position: absolute; left: 0; color: var(--green); }
+/* ── badge ──────────────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--em-bg); border: 1px solid var(--em-bd); color: #6ee7b7; }
+.badge svg { width: 11px; height: 11px; }
 
-  /* ── Slide 1: Hero ───────────────────────────────────────── */
-  .hero-logo {
-    font-size: 72px;
-    margin-bottom: 16px;
-    filter: drop-shadow(0 0 30px rgba(46,204,113,.5));
-  }
+/* ── backgrounds ────────────────────────────────────────── */
+.bg1 { background: radial-gradient(ellipse at 15% 50%, rgba(16,185,129,.07) 0%, transparent 55%), var(--z950); }
+.bg2 { background: radial-gradient(ellipse at 85% 20%, rgba(220,38,38,.05)  0%, transparent 55%), var(--z950); }
+.bg3 { background: radial-gradient(ellipse at 15% 80%, rgba(16,185,129,.07) 0%, transparent 55%), var(--z950); }
 
-  .hero-name {
-    font-size: clamp(48px, 7vw, 84px);
-    font-weight: 900;
-    background: linear-gradient(90deg, #2ecc71, #a8f0c6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 12px;
-  }
+/* ── hero ───────────────────────────────────────────────── */
+.hero-title {
+  font-size: clamp(48px, 8vw, 88px); font-weight: 900; line-height: 1;
+  background: linear-gradient(140deg, #fff 35%, var(--em) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
 
-  .hero-tagline {
-    font-size: clamp(18px, 2.5vw, 26px);
-    color: var(--gray);
-    margin-bottom: 40px;
-  }
+/* ── navigation ─────────────────────────────────────────── */
+.nav {
+  position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav);
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  background: rgba(9,9,11,.88); backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,255,255,.07); z-index: 200;
+}
+.nbtn {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05);
+  color: var(--z300); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.nbtn:hover:not(:disabled) { background: rgba(255,255,255,.1); }
+.nbtn:disabled { opacity: .3; cursor: default; }
+.nbtn svg { width: 15px; height: 15px; }
+.dots { display: flex; gap: 5px; }
+.dot  { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,.2); cursor: pointer; transition: background .2s, transform .2s; }
+.dot.on { background: var(--em); transform: scale(1.5); }
+.ctr  { font-size: 11px; color: var(--z500); font-weight: 600; min-width: 36px; text-align: center; }
+.snum { position: fixed; top: 18px; right: 24px; font-size: 11px; color: rgba(255,255,255,.2); z-index: 200; letter-spacing: .05em; }
 
-  .badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: rgba(46,204,113,.15);
-    border: 1px solid rgba(46,204,113,.4);
-    border-radius: 50px;
-    padding: 8px 20px;
-    font-size: 14px;
-    color: var(--green-light);
-    font-weight: 600;
-  }
-
-  /* ── Big stat ────────────────────────────────────────────── */
-  .big-stat {
-    font-size: clamp(40px, 6vw, 72px);
-    font-weight: 900;
-    line-height: 1;
-    margin-bottom: 8px;
-  }
-
-  /* ── Feature icon card ───────────────────────────────────── */
-  .feat {
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 20px;
-    padding: 28px 24px;
-    text-align: center;
-  }
-  .feat-icon { font-size: 36px; margin-bottom: 14px; }
-  .feat h3   { font-size: 15px; color: var(--white); margin-bottom: 8px; }
-  .feat p    { font-size: 13px; color: var(--gray); line-height: 1.5; }
-
-  /* ── Flow step ───────────────────────────────────────────── */
-  .flow {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    width: 100%;
-    max-width: 1000px;
-  }
-  .step {
-    flex: 1;
-    text-align: center;
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 16px;
-    padding: 24px 16px;
-  }
-  .step-icon { font-size: 32px; margin-bottom: 10px; }
-  .step h3   { font-size: 14px; color: var(--white); margin-bottom: 6px; }
-  .step p    { font-size: 12px; color: var(--gray); }
-  .arrow { font-size: 22px; color: var(--green); padding: 0 8px; flex-shrink: 0; }
-
-  /* ── Market circles ──────────────────────────────────────── */
-  .market-rings {
-    position: relative;
-    width: 280px;
-    height: 280px;
-    flex-shrink: 0;
-  }
-  .ring {
-    position: absolute;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    text-align: center;
-  }
-  .ring-tam { width: 280px; height: 280px; background: rgba(46,204,113,.12); border: 2px solid rgba(46,204,113,.4); top: 0; left: 0; }
-  .ring-sam { width: 190px; height: 190px; background: rgba(46,204,113,.18); border: 2px solid rgba(46,204,113,.5); top: 45px; left: 45px; }
-  .ring-som { width: 110px; height: 110px; background: rgba(46,204,113,.3); border: 2px solid var(--green); top: 85px; left: 85px; }
-  .ring-label { font-size: 12px; font-weight: 700; color: var(--green); }
-  .ring-val   { font-size: 16px; font-weight: 900; color: var(--white); }
-
-  /* ── Comparison table ────────────────────────────────────── */
-  .comp-table {
-    width: 100%;
-    max-width: 900px;
-    border-collapse: separate;
-    border-spacing: 0;
-    border-radius: 16px;
-    overflow: hidden;
-  }
-  .comp-table th, .comp-table td {
-    padding: 14px 20px;
-    text-align: center;
-    font-size: 14px;
-    border-bottom: 1px solid rgba(255,255,255,.07);
-  }
-  .comp-table th {
-    background: rgba(46,204,113,.2);
-    color: var(--green);
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-size: 12px;
-  }
-  .comp-table tr:nth-child(even) td { background: rgba(255,255,255,.03); }
-  .comp-table td:first-child { text-align: left; color: var(--white); font-weight: 600; }
-  .comp-table .us { color: var(--green); font-weight: 800; }
-  .check { color: var(--green); }
-  .cross { color: #666; }
-
-  /* ── Progress bar ────────────────────────────────────────── */
-  .progress-row { margin-bottom: 18px; }
-  .progress-label { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
-  .progress-bar { height: 8px; background: rgba(255,255,255,.1); border-radius: 4px; overflow: hidden; }
-  .progress-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--green-dark), var(--green)); }
-
-  /* ── Roadmap ─────────────────────────────────────────────── */
-  .roadmap {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-    width: 100%;
-    max-width: 900px;
-  }
-  .rm-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 24px;
-  }
-  .rm-line {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0;
-    flex-shrink: 0;
-  }
-  .rm-dot {
-    width: 14px; height: 14px;
-    border-radius: 50%;
-    background: var(--green);
-    flex-shrink: 0;
-    margin-top: 4px;
-  }
-  .rm-connector {
-    width: 2px;
-    height: 36px;
-    background: linear-gradient(to bottom, var(--green), transparent);
-    opacity: .4;
-  }
-  .rm-content { padding-bottom: 28px; }
-  .rm-phase { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--green); margin-bottom: 4px; }
-  .rm-content p { font-size: 14px; color: #a0b4c8; }
-
-  /* ── Team card ───────────────────────────────────────────── */
-  .team-card {
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 20px;
-    padding: 32px 24px;
-    text-align: center;
-  }
-  .avatar {
-    width: 72px; height: 72px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--green-dark), var(--green));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    margin: 0 auto 16px;
-  }
-  .team-card h3 { color: var(--white); font-size: 16px; margin-bottom: 4px; }
-  .team-role { font-size: 12px; color: var(--green); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; }
-  .team-card p { font-size: 13px; color: var(--gray); }
-
-  /* ── Financial chart ─────────────────────────────────────── */
-  .chart {
-    display: flex;
-    align-items: flex-end;
-    gap: 20px;
-    height: 180px;
-    padding: 0 10px;
-  }
-  .bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
-  .bar {
-    width: 100%;
-    border-radius: 8px 8px 0 0;
-    background: linear-gradient(to top, var(--green-dark), var(--green));
-    position: relative;
-    transition: height .8s ease;
-  }
-  .bar-val { font-size: 13px; font-weight: 700; color: var(--white); }
-  .bar-year { font-size: 12px; color: var(--gray); }
-
-  /* ── Ask slide ───────────────────────────────────────────── */
-  .use-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-  }
-  .use-pct {
-    font-size: 32px;
-    font-weight: 900;
-    color: var(--green);
-    width: 80px;
-    flex-shrink: 0;
-  }
-  .use-bar-wrap { flex: 1; }
-  .use-bar { height: 10px; background: rgba(255,255,255,.1); border-radius: 5px; overflow: hidden; }
-  .use-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--green-dark), var(--green)); }
-  .use-label { font-size: 14px; color: #c8d8e8; margin-top: 4px; }
-
-  /* ── Navigation ──────────────────────────────────────────── */
-  .nav {
-    position: fixed;
-    bottom: 32px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    z-index: 100;
-    background: rgba(13,27,42,.8);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 50px;
-    padding: 10px 20px;
-  }
-
-  .nav-btn {
-    background: rgba(46,204,113,.15);
-    border: 1px solid rgba(46,204,113,.3);
-    color: var(--green);
-    width: 36px; height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .2s;
-  }
-  .nav-btn:hover { background: rgba(46,204,113,.3); }
-  .nav-btn:disabled { opacity: .3; cursor: default; }
-
-  .slide-counter {
-    font-size: 13px;
-    color: var(--gray);
-    min-width: 60px;
-    text-align: center;
-    font-weight: 600;
-  }
-
-  .dots {
-    display: flex;
-    gap: 6px;
-  }
-  .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: rgba(255,255,255,.2);
-    cursor: pointer;
-    transition: background .2s, transform .2s;
-  }
-  .dot.active { background: var(--green); transform: scale(1.4); }
-
-  /* ── Slide number badge ──────────────────────────────────── */
-  .slide-num {
-    position: fixed;
-    top: 24px;
-    right: 32px;
-    font-size: 12px;
-    color: rgba(255,255,255,.3);
-    z-index: 100;
-    font-weight: 600;
-    letter-spacing: 1px;
-  }
-
-  /* ── Section divider ─────────────────────────────────────── */
-  .divider {
-    width: 60px;
-    height: 3px;
-    background: linear-gradient(90deg, var(--green), transparent);
-    border-radius: 2px;
-    margin: 20px 0;
-  }
-
-  /* ── Inline stat strip ───────────────────────────────────── */
-  .stat-strip {
-    display: flex;
-    gap: 0;
-    background: rgba(255,255,255,.04);
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 16px;
-    overflow: hidden;
-    width: 100%;
-    max-width: 900px;
-  }
-  .stat-item {
-    flex: 1;
-    padding: 24px 20px;
-    text-align: center;
-    border-right: 1px solid rgba(255,255,255,.08);
-  }
-  .stat-item:last-child { border-right: none; }
-  .stat-num { font-size: 32px; font-weight: 900; color: var(--green); }
-  .stat-desc { font-size: 12px; color: var(--gray); margin-top: 4px; line-height: 1.4; }
-
-  /* ── Responsive adjustments ──────────────────────────────── */
-  @media (max-width: 768px) {
-    .slide { padding: 40px 24px; }
-    .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr; }
-    .flow { flex-direction: column; }
-    .arrow { transform: rotate(90deg); }
-    .market-rings { width: 200px; height: 200px; }
-    .ring-tam { width: 200px; height: 200px; }
-    .ring-sam { width: 140px; height: 140px; top: 30px; left: 30px; }
-    .ring-som { width: 80px;  height: 80px;  top: 60px; left: 60px; }
-  }
+/* util */
+.row  { display: flex; align-items: center; gap: 10px; }
+.kv   { display: flex; justify-content: space-between; align-items: center; }
+.kv span:last-child { font-size: 13px; font-weight: 700; color: var(--em); }
+.divw { width: 36px; height: 2px; background: var(--em); border-radius: 1px; margin: 10px 0; }
 </style>
 </head>
 <body>
+<div class="deck">
 
-<div class="deck" id="deck">
+<!-- ══ 1 · TITLE ═══════════════════════════════════════════ -->
+<div class="slide bg1 active" style="justify-content:center;align-items:center;text-align:center;">
+  <div style="color:var(--em);margin-bottom:16px;"><i data-lucide="refrigerator" style="width:40px;height:40px;"></i></div>
+  <div class="hero-title">FridgeFriend</div>
+  <div class="divw" style="margin:18px auto;"></div>
+  <p style="max-width:480px;margin:0 auto 28px;font-size:15px;color:var(--z400);">AI-powered kitchen assistant that eliminates food waste and makes meal planning effortless for every household.</p>
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+    <span class="badge"><i data-lucide="leaf"></i> Zero Food Waste</span>
+    <span class="badge"><i data-lucide="smartphone"></i> iOS &amp; Android</span>
+    <span class="badge"><i data-lucide="circle-dollar-sign"></i> Seed Round 2026</span>
+  </div>
+</div>
 
-  <!-- ══ SLIDE 1: HERO ════════════════════════════════════════ -->
-  <div class="slide bg-hero active" id="s1">
-    <div style="text-align:center;">
-      <div class="hero-logo">🥦</div>
-      <div class="hero-name">FridgeFriend</div>
-      <div class="hero-tagline">Your kitchen's smartest companion</div>
-      <div class="divider" style="margin:0 auto 32px;"></div>
-      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-        <span class="badge">🌱 Seed Round</span>
-        <span class="badge">📱 Mobile AI App</span>
-        <span class="badge">♻️ Zero Food Waste</span>
-      </div>
-      <p style="margin-top:40px;color:var(--gray);font-size:14px;">Investor Presentation · 2026</p>
+<!-- ══ 2 · PROBLEM ══════════════════════════════════════════ -->
+<div class="slide bg2">
+  <div class="sh">
+    <div class="label"><i data-lucide="triangle-alert"></i> Problem</div>
+    <h2>Every household wastes food — and money</h2>
+  </div>
+  <div class="g3" style="margin-bottom:14px;">
+    <div class="card" style="text-align:center;">
+      <div class="stat-n">$1T</div>
+      <div class="stat-d">worth of food wasted globally every year</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="stat-n">$1,500</div>
+      <div class="stat-d">average annual loss per household on wasted groceries</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="stat-n">30%</div>
+      <div class="stat-d">of purchased groceries never make it to the table</div>
     </div>
   </div>
-
-  <!-- ══ SLIDE 2: PROBLEM ═════════════════════════════════════ -->
-  <div class="slide bg-problem" id="s2">
-    <div style="width:100%;max-width:1100px;">
-      <div class="label">Проблема</div>
-      <h2>Мы выбрасываем еду, деньги и будущее</h2>
-      <div class="cols cols-3" style="margin-top:32px;">
-        <div class="card-red">
-          <div class="big-stat" style="color:#e74c3c;">$1T</div>
-          <h3 style="color:#e74c3c;">в год</h3>
-          <p>стоимость выброшенных продуктов питания в мире ежегодно</p>
-        </div>
-        <div class="card-red">
-          <div class="big-stat" style="color:#e74c3c;">$1,500</div>
-          <h3 style="color:#e74c3c;">на семью</h3>
-          <p>средние потери домохозяйства в год только на выброшенной еде</p>
-        </div>
-        <div class="card-red">
-          <div class="big-stat" style="color:#e74c3c;">30%</div>
-          <h3 style="color:#e74c3c;">продуктов</h3>
-          <p>купленных в магазине не доходят до тарелки и оседают в мусоре</p>
-        </div>
-      </div>
-      <div class="card" style="margin-top:24px;">
-        <p>💔 &nbsp;<strong style="color:var(--white);">Настоящая боль:</strong> люди не знают, что лежит в холодильнике, забывают о сроках годности, не могут быстро придумать, что приготовить — и идут в магазин, покупая дублирующиеся продукты.</p>
-      </div>
+  <div class="card" style="flex:1;display:flex;align-items:flex-start;gap:12px;">
+    <div class="chip" style="margin-top:2px;"><i data-lucide="message-circle"></i></div>
+    <div>
+      <h3>The root cause</h3>
+      <p style="font-size:13px;">People don't know what's in their fridge, forget expiry dates, struggle to decide what to cook — then go shopping again and buy duplicates. No single app solves all of this together.</p>
     </div>
   </div>
+</div>
 
-  <!-- ══ SLIDE 3: SOLUTION ════════════════════════════════════ -->
-  <div class="slide bg-solution" id="s3">
-    <div style="width:100%;max-width:1100px;">
-      <div class="label">Решение</div>
-      <h2>ИИ-ассистент для кухни в вашем смартфоне</h2>
-      <div class="cols cols-4" style="margin-top:32px;">
-        <div class="feat">
-          <div class="feat-icon">📸</div>
-          <h3>Умная инвентаризация</h3>
-          <p>Фото, штрихкод или ручной ввод. ИИ сам распознаёт продукты и сроки годности.</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">⏰</div>
-          <h3>Контроль сроков</h3>
-          <p>Умные уведомления о продуктах, которые скоро испортятся. Ничего не пропадёт.</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">🍳</div>
-          <h3>Рецепты из холодильника</h3>
-          <p>ИИ предлагает рецепты из того, что уже есть дома, приоритизируя «горящие» продукты.</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">🛒</div>
-          <h3>Умный шопинг-лист</h3>
-          <p>Планирование питания на неделю + список покупок только того, чего реально не хватает.</p>
-        </div>
-      </div>
-      <div class="stat-strip" style="margin-top:28px;">
-        <div class="stat-item">
-          <div class="stat-num">30s</div>
-          <div class="stat-desc">от фото холодильника<br>до готового рецепта</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">∞</div>
-          <div class="stat-desc">работает офлайн<br>без интернета</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">👨‍👩‍👧</div>
-          <div class="stat-desc">синхронизация для<br>всей семьи в реальном времени</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">iOS+Android</div>
-          <div class="stat-desc">единое Flutter-приложение<br>для всех платформ</div>
-        </div>
-      </div>
+<!-- ══ 3 · SOLUTION ════════════════════════════════════════ -->
+<div class="slide bg3">
+  <div class="sh">
+    <div class="label"><i data-lucide="zap"></i> Solution</div>
+    <h2>One app. Four core capabilities.</h2>
+  </div>
+  <div class="g4" style="flex:1;min-height:0;">
+    <div class="feat">
+      <div class="chip"><i data-lucide="camera"></i></div>
+      <h3>Smart Inventory</h3>
+      <p>Photograph your fridge, scan a barcode, or add manually. AI identifies items and expiry dates automatically.</p>
+    </div>
+    <div class="feat">
+      <div class="chip"><i data-lucide="clock"></i></div>
+      <h3>Expiry Tracking</h3>
+      <p>Intelligent notifications before items go bad, ranked by urgency so nothing gets overlooked.</p>
+    </div>
+    <div class="feat">
+      <div class="chip"><i data-lucide="chef-hat"></i></div>
+      <h3>Recipe Engine</h3>
+      <p>AI-ranked recipes biased toward expiring ingredients. Cook what you have before buying more.</p>
+    </div>
+    <div class="feat">
+      <div class="chip"><i data-lucide="calendar-days"></i></div>
+      <h3>Meal Planning</h3>
+      <p>3–7 day plans with a smart shopping list that shows only what the household actually needs to buy.</p>
     </div>
   </div>
+  <div class="card" style="margin-top:12px;display:flex;align-items:center;gap:10px;">
+    <div class="chip"><i data-lucide="users"></i></div>
+    <p style="font-size:12px;color:var(--z300);">Real-time household sync — all family members share one fridge view, updated live across devices via server-sent events.</p>
+  </div>
+</div>
 
-  <!-- ══ SLIDE 4: HOW IT WORKS ════════════════════════════════ -->
-  <div class="slide bg-dark" id="s4">
-    <div style="width:100%;max-width:1100px;text-align:center;">
-      <div class="label">Как это работает</div>
-      <h2>От пустого холодильника до готового ужина — за минуту</h2>
-      <div class="flow" style="margin-top:40px;">
-        <div class="step">
-          <div class="step-icon">📷</div>
-          <h3>Сфотографировал</h3>
-          <p>Открываешь холодильник, делаешь фото</p>
-        </div>
-        <div class="arrow">→</div>
-        <div class="step">
-          <div class="step-icon">🤖</div>
-          <h3>ИИ распознал</h3>
-          <p>GPT-4 Vision определяет продукты и сроки</p>
-        </div>
-        <div class="arrow">→</div>
-        <div class="step">
-          <div class="step-icon">🍽️</div>
-          <h3>Получил рецепты</h3>
-          <p>Персональные рецепты из того, что есть</p>
-        </div>
-        <div class="arrow">→</div>
-        <div class="step">
-          <div class="step-icon">📅</div>
-          <h3>Запланировал</h3>
-          <p>Добавил в план питания на неделю</p>
-        </div>
-        <div class="arrow">→</div>
-        <div class="step">
-          <div class="step-icon">✅</div>
-          <h3>Купил нужное</h3>
-          <p>Умный список — только недостающие продукты</p>
-        </div>
-      </div>
-      <div class="card" style="margin-top:32px;text-align:left;">
-        <p>🏠 &nbsp;<strong style="color:var(--white);">Семейный режим:</strong> все члены домохозяйства видят один общий холодильник в реальном времени. Добавил продукт — партнёр сразу видит на своём телефоне.</p>
-      </div>
+<!-- ══ 4 · HOW IT WORKS ════════════════════════════════════ -->
+<div class="slide" style="background:var(--z950);">
+  <div class="sh">
+    <div class="label"><i data-lucide="play"></i> How It Works</div>
+    <h2>From empty fridge to dinner plan in 60 seconds</h2>
+  </div>
+  <div class="flow" style="flex:1;align-items:center;">
+    <div class="fstep">
+      <div class="ficon"><i data-lucide="camera"></i></div>
+      <div class="flabel">Photograph</div>
+      <div class="fdesc">Open the app, take a photo of your fridge</div>
+    </div>
+    <div class="farr"><i data-lucide="arrow-right"></i></div>
+    <div class="fstep">
+      <div class="ficon"><i data-lucide="cpu"></i></div>
+      <div class="flabel">AI Parses</div>
+      <div class="fdesc">GPT-4 Vision identifies items &amp; dates</div>
+    </div>
+    <div class="farr"><i data-lucide="arrow-right"></i></div>
+    <div class="fstep">
+      <div class="ficon"><i data-lucide="chef-hat"></i></div>
+      <div class="flabel">Get Recipes</div>
+      <div class="fdesc">Personalised from what you already have</div>
+    </div>
+    <div class="farr"><i data-lucide="arrow-right"></i></div>
+    <div class="fstep">
+      <div class="ficon"><i data-lucide="calendar"></i></div>
+      <div class="flabel">Plan Meals</div>
+      <div class="fdesc">Build a weekly schedule in one tap</div>
+    </div>
+    <div class="farr"><i data-lucide="arrow-right"></i></div>
+    <div class="fstep">
+      <div class="ficon"><i data-lucide="shopping-cart"></i></div>
+      <div class="flabel">Shop Smart</div>
+      <div class="fdesc">Buy only what's genuinely missing</div>
     </div>
   </div>
+  <div class="g3" style="margin-top:14px;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:12px;font-weight:700;color:var(--em);">Offline-first</div>
+      <div class="muted" style="margin-top:3px;">SQLite cache — works without internet</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:12px;font-weight:700;color:var(--em);">Real-time sync</div>
+      <div class="muted" style="margin-top:3px;">Shared household via server-sent events</div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:12px;font-weight:700;color:var(--em);">Barcode scanning</div>
+      <div class="muted" style="margin-top:3px;">Open Food Facts — 3M+ products</div>
+    </div>
+  </div>
+</div>
 
-  <!-- ══ SLIDE 5: MARKET ══════════════════════════════════════ -->
-  <div class="slide bg-market" id="s5">
-    <div style="width:100%;max-width:1100px;">
-      <div class="label">Рынок</div>
-      <h2>Огромный рынок с устойчивым ростом</h2>
-      <div class="cols cols-2" style="margin-top:32px;align-items:center;">
-        <div>
-          <div class="market-rings">
-            <div class="ring ring-tam">
-              <div class="ring-label">TAM</div>
-              <div class="ring-val" style="font-size:20px;">$4.5B</div>
-            </div>
-            <div class="ring ring-sam">
-              <div class="ring-label">SAM</div>
-              <div class="ring-val" style="font-size:15px;">$800M</div>
-            </div>
-            <div class="ring ring-som">
-              <div class="ring-label" style="font-size:10px;">SOM</div>
-              <div class="ring-val" style="font-size:12px;">$90M</div>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="card-green" style="margin-bottom:16px;">
-            <h3>TAM · $4.5B</h3>
-            <p>Глобальный рынок приложений для управления едой, планирования питания и food-tech</p>
-          </div>
-          <div class="card-green" style="margin-bottom:16px;">
-            <h3>SAM · $800M</h3>
-            <p>Домохозяйства с доходом $50k+, смартфон-пользователи с интересом к zero-waste и здоровью</p>
-          </div>
-          <div class="card-green">
-            <h3>SOM · $90M</h3>
-            <p>Цель — <span class="highlight">500k MAU</span> за 3 года при ARPU $15/мес (freemium + premium)</p>
-          </div>
-          <div style="margin-top:20px;">
-            <p>📈 &nbsp;Рынок food-tech растёт на <span class="highlight">+18% в год</span>. Тренды zero-waste, AI-lifestyle и осознанного потребления добавляют попутный ветер.</p>
-          </div>
-        </div>
+<!-- ══ 5 · MARKET ══════════════════════════════════════════ -->
+<div class="slide bg1">
+  <div class="sh">
+    <div class="label"><i data-lucide="globe"></i> Market</div>
+    <h2>A large, growing opportunity</h2>
+  </div>
+  <div class="g2" style="flex:1;min-height:0;align-items:center;">
+    <div style="display:flex;justify-content:center;align-items:center;">
+      <div class="rings">
+        <div class="ring ring-a"><div class="ring-tag">TAM</div><div class="ring-val">$4.5B</div></div>
+        <div class="ring ring-b"><div class="ring-tag">SAM</div><div class="ring-val">$800M</div></div>
+        <div class="ring ring-c"><div class="ring-tag">SOM</div><div class="ring-val">$90M</div></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card-em">
+        <div class="muted" style="color:var(--em);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-bottom:4px;">TAM · $4.5B</div>
+        <p style="font-size:12px;color:var(--z300);">Global food management, meal planning, and food-tech app market</p>
+      </div>
+      <div class="card-em">
+        <div class="muted" style="color:var(--em);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-bottom:4px;">SAM · $800M</div>
+        <p style="font-size:12px;color:var(--z300);">Smartphone households $50k+ income, sustainability-conscious users</p>
+      </div>
+      <div class="card-em">
+        <div class="muted" style="color:var(--em);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:10px;margin-bottom:4px;">SOM · $90M</div>
+        <p style="font-size:12px;color:var(--z300);">Target 500k MAU at ~$15 ARPU by year 3</p>
+      </div>
+      <div class="row" style="margin-top:4px;">
+        <i data-lucide="trending-up" style="width:13px;height:13px;color:var(--em);flex-shrink:0;"></i>
+        <p class="muted">Food-tech market growing +18% CAGR. Zero-waste and AI-lifestyle trends add strong tailwinds.</p>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ══ SLIDE 6: BUSINESS MODEL ══════════════════════════════ -->
-  <div class="slide bg-biz" id="s6">
-    <div style="width:100%;max-width:1100px;">
-      <div class="label">Бизнес-модель</div>
-      <h2>Freemium + B2B2C — два источника роста</h2>
-      <div class="cols cols-2" style="margin-top:28px;">
-        <div>
-          <div class="card" style="margin-bottom:16px;">
-            <h3>🆓 Бесплатный план</h3>
-            <ul>
-              <li>Инвентаризация до 30 позиций</li>
-              <li>Базовые уведомления о сроках</li>
-              <li>5 рецептов в день</li>
-              <li>1 устройство на домохозяйство</li>
-            </ul>
-          </div>
-          <div class="card-green" style="margin-bottom:16px;">
-            <h3>⭐ Premium · $4.99/мес</h3>
-            <ul>
-              <li>ИИ-распознавание фото холодильника</li>
-              <li>Неограниченный инвентарь и рецепты</li>
-              <li>Планировщик питания на 7 дней</li>
-              <li>Несколько домохозяйств и устройств</li>
-              <li>Приоритетная поддержка</li>
-            </ul>
-          </div>
-          <div class="card" style="background:rgba(243,156,18,.08);border-color:rgba(243,156,18,.3);">
-            <h3 style="color:var(--accent);">🤝 B2B2C партнёрства</h3>
-            <p style="font-size:14px;color:#c8d8e8;">Ритейлеры (Whole Foods, Rewe) платят за таргетированные замены истекающим продуктам прямо в интерфейсе приложения</p>
-          </div>
+<!-- ══ 6 · BUSINESS MODEL ══════════════════════════════════ -->
+<div class="slide" style="background:var(--z950);">
+  <div class="sh">
+    <div class="label"><i data-lucide="layers"></i> Business Model</div>
+    <h2>Freemium SaaS + B2B2C partnerships</h2>
+  </div>
+  <div class="g2" style="flex:1;min-height:0;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card">
+        <div class="row" style="margin-bottom:8px;">
+          <div class="chip" style="width:28px;height:28px;"><i data-lucide="unlock" style="width:13px;height:13px;"></i></div>
+          <h3>Free Tier</h3>
         </div>
-        <div>
-          <h3 style="margin-bottom:16px;">Юнит-экономика</h3>
-          <div class="progress-row">
-            <div class="progress-label"><span>Инфраструктура AWS</span><span class="muted">~$78/мес</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:20%;"></div></div>
-          </div>
-          <div class="progress-row">
-            <div class="progress-label"><span>LLM токены (ИИ)</span><span class="muted">GPT-4.1-mini</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:35%;"></div></div>
-          </div>
-          <div class="progress-row">
-            <div class="progress-label"><span>API рецептов (Spoonacular)</span><span class="muted">per call</span></div>
-            <div class="progress-bar"><div class="progress-fill" style="width:15%;"></div></div>
-          </div>
-          <div class="card" style="margin-top:24px;">
-            <div style="display:flex;gap:32px;text-align:center;">
-              <div>
-                <div class="stat-num" style="font-size:28px;">$0.12</div>
-                <div class="stat-desc">стоимость<br>1 ИИ-скана</div>
-              </div>
-              <div>
-                <div class="stat-num" style="font-size:28px;">80k</div>
-                <div class="stat-desc">платных юзеров<br>до breakeven</div>
-              </div>
-              <div>
-                <div class="stat-num" style="font-size:28px;">&gt;70%</div>
-                <div class="stat-desc">gross margin<br>на подписку</div>
-              </div>
-            </div>
-          </div>
+        <ul class="cl">
+          <li><i data-lucide="check"></i>Up to 30 inventory items</li>
+          <li><i data-lucide="check"></i>Basic expiry notifications</li>
+          <li><i data-lucide="check"></i>5 recipe suggestions per day</li>
+        </ul>
+      </div>
+      <div class="card-em">
+        <div class="row" style="margin-bottom:8px;">
+          <div class="chip" style="width:28px;height:28px;"><i data-lucide="star" style="width:13px;height:13px;"></i></div>
+          <h3>Premium · $4.99 / mo</h3>
         </div>
+        <ul class="cl">
+          <li><i data-lucide="check"></i>AI photo recognition</li>
+          <li><i data-lucide="check"></i>Unlimited inventory &amp; recipes</li>
+          <li><i data-lucide="check"></i>7-day meal planner</li>
+          <li><i data-lucide="check"></i>Multiple households &amp; devices</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="row" style="margin-bottom:6px;">
+          <div class="chip" style="width:28px;height:28px;"><i data-lucide="handshake" style="width:13px;height:13px;"></i></div>
+          <h3>B2B2C</h3>
+        </div>
+        <p class="muted">Retailers pay for targeted in-app placement linked to expiring items</p>
       </div>
     </div>
-  </div>
-
-  <!-- ══ SLIDE 7: TRACTION ════════════════════════════════════ -->
-  <div class="slide bg-dark" id="s7">
-    <div style="width:100%;max-width:1100px;">
-      <div class="label">Тяга / Метрики</div>
-      <h2>Продукт работает — цифры говорят сами</h2>
-      <div class="cols cols-4" style="margin-top:28px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <p class="muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;color:var(--z500);">Unit Economics</p>
+      <div class="g2" style="gap:8px;">
         <div class="card" style="text-align:center;">
-          <div class="stat-num">4.8★</div>
-          <div class="stat-desc">Рейтинг<br>App Store</div>
+          <div class="stat-n" style="font-size:24px;">$0.12</div>
+          <div class="stat-d">cost per AI photo scan</div>
         </div>
         <div class="card" style="text-align:center;">
-          <div class="stat-num">65%</div>
-          <div class="stat-desc">Retention<br>Day-30</div>
+          <div class="stat-n" style="font-size:24px;">&gt;70%</div>
+          <div class="stat-d">gross margin on subscription</div>
         </div>
         <div class="card" style="text-align:center;">
-          <div class="stat-num">8.2</div>
-          <div class="stat-desc">Сканов в неделю<br>на активного юзера</div>
+          <div class="stat-n" style="font-size:24px;">$78</div>
+          <div class="stat-d">monthly AWS infra cost today</div>
         </div>
         <div class="card" style="text-align:center;">
-          <div class="stat-num">-40%</div>
-          <div class="stat-desc">Снижение выброшенных<br>продуктов у пользователей</div>
-        </div>
-      </div>
-      <div class="cols cols-2" style="margin-top:20px;">
-        <div class="card">
-          <h3>Ключевые достижения</h3>
-          <ul style="margin-top:12px;">
-            <li>Полностью рабочий MVP на iOS и Android</li>
-            <li>Интеграция GPT-4 Vision для распознавания продуктов</li>
-            <li>Real-time синхронизация для семей (SSE)</li>
-            <li>Оффлайн-режим с SQLite кэшем</li>
-            <li>AWS инфраструктура готова к масштабированию</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>Что говорят пользователи</h3>
-          <div style="margin-top:12px;">
-            <p style="font-style:italic;color:#c8d8e8;margin-bottom:12px;">"Перестала выбрасывать продукты, экономлю ~$200 в месяц. Это просто меняет жизнь."</p>
-            <p class="muted">— Beta-пользователь, Берлин</p>
-          </div>
-          <div style="margin-top:16px;">
-            <p style="font-style:italic;color:#c8d8e8;margin-bottom:12px;">"Наконец-то мы с мужем знаем, что в холодильнике. Больше никаких дублирующихся покупок."</p>
-            <p class="muted">— Beta-пользователь, Нью-Йорк</p>
-          </div>
+          <div class="stat-n" style="font-size:24px;">80k</div>
+          <div class="stat-d">paid users to breakeven</div>
         </div>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- ══ SLIDE 8: COMPETITION ═════════════════════════════════ -->
-  <div class="slide bg-dark" id="s8">
-    <div style="width:100%;max-width:1000px;text-align:center;">
-      <div class="label">Конкуренты</div>
-      <h2>Мы единственные, кто объединяет всё вместе</h2>
-      <table class="comp-table" style="margin-top:32px;">
+<!-- ══ 7 · COMPETITION ═════════════════════════════════════ -->
+<div class="slide" style="background:var(--z950);">
+  <div class="sh">
+    <div class="label"><i data-lucide="bar-chart-2"></i> Competitive Landscape</div>
+    <h2>We're the only app that does all of this</h2>
+  </div>
+  <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;">
+    <table class="comp">
+      <thead>
         <tr>
-          <th style="text-align:left;">Функция</th>
-          <th class="us">FridgeFriend</th>
+          <th style="width:30%;">Feature</th>
+          <th style="color:var(--z50);">FridgeFriend</th>
           <th>Mealime</th>
           <th>Paprika</th>
           <th>Yummly</th>
-          <th>OurGroceries</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>AI photo recognition</td>
+          <td class="us chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
+          <td><i data-lucide="minus"></i></td>
+          <td><i data-lucide="minus"></i></td>
         </tr>
         <tr>
-          <td>ИИ-распознавание фото</td>
-          <td class="us check">✓</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
+          <td>Expiry tracking</td>
+          <td class="us chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
+          <td class="chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
         </tr>
         <tr>
-          <td>Контроль сроков годности</td>
-          <td class="us check">✓</td>
-          <td class="cross">—</td>
-          <td class="check" style="color:var(--green);">✓</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
+          <td>Shared household fridge</td>
+          <td class="us chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
+          <td><i data-lucide="minus"></i></td>
+          <td><i data-lucide="minus"></i></td>
         </tr>
         <tr>
-          <td>Семейный общий холодильник</td>
-          <td class="us check">✓</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-          <td class="check" style="color:var(--green);">✓</td>
+          <td>Recipes from available items</td>
+          <td class="us chk"><i data-lucide="check"></i></td>
+          <td class="chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
+          <td class="chk"><i data-lucide="check"></i></td>
         </tr>
         <tr>
-          <td>Рецепты из остатков</td>
-          <td class="us check">✓</td>
-          <td class="check" style="color:var(--green);">✓</td>
-          <td class="cross">—</td>
-          <td class="check" style="color:var(--green);">✓</td>
-          <td class="cross">—</td>
+          <td>Meal planner + shopping list</td>
+          <td class="us chk"><i data-lucide="check"></i></td>
+          <td class="chk"><i data-lucide="check"></i></td>
+          <td class="chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
         </tr>
         <tr>
-          <td>Планировщик питания + шопинг</td>
-          <td class="us check">✓</td>
-          <td class="check" style="color:var(--green);">✓</td>
-          <td class="check" style="color:var(--green);">✓</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
+          <td>Offline mode</td>
+          <td class="us chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
+          <td class="chk"><i data-lucide="check"></i></td>
+          <td><i data-lucide="minus"></i></td>
         </tr>
-        <tr>
-          <td>Офлайн-режим</td>
-          <td class="us check">✓</td>
-          <td class="cross">—</td>
-          <td class="check" style="color:var(--green);">✓</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-        </tr>
-        <tr>
-          <td>Real-time синхронизация</td>
-          <td class="us check">✓</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-          <td class="cross">—</td>
-        </tr>
-      </table>
-      <p style="margin-top:24px;color:var(--gray);">FridgeFriend — единственное приложение, объединяющее ИИ-зрение, семейный инвентарь, рецепты и планирование в одном продукте.</p>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ 8 · TECHNOLOGY ══════════════════════════════════════ -->
+<div class="slide bg3">
+  <div class="sh">
+    <div class="label"><i data-lucide="cpu"></i> Technology</div>
+    <h2>Production-ready stack, built to scale</h2>
+  </div>
+  <div class="g3" style="flex:1;min-height:0;">
+    <div class="feat">
+      <div class="chip"><i data-lucide="smartphone"></i></div>
+      <h3>Mobile</h3>
+      <ul class="cl" style="margin-top:4px;">
+        <li><i data-lucide="dot"></i>Flutter 3.24 — iOS &amp; Android</li>
+        <li><i data-lucide="dot"></i>Riverpod state management</li>
+        <li><i data-lucide="dot"></i>Drift / SQLite offline cache</li>
+        <li><i data-lucide="dot"></i>SSE real-time sync</li>
+        <li><i data-lucide="dot"></i>Apple Vision / ML Kit OCR</li>
+      </ul>
+    </div>
+    <div class="feat">
+      <div class="chip"><i data-lucide="server"></i></div>
+      <h3>Backend</h3>
+      <ul class="cl" style="margin-top:4px;">
+        <li><i data-lucide="dot"></i>FastAPI (Python 3.12) async</li>
+        <li><i data-lucide="dot"></i>PostgreSQL + SQLAlchemy</li>
+        <li><i data-lucide="dot"></i>Redis cache &amp; queues</li>
+        <li><i data-lucide="dot"></i>OpenSearch recipe index</li>
+        <li><i data-lucide="dot"></i>LiteLLM gateway — swappable LLM</li>
+      </ul>
+    </div>
+    <div class="feat">
+      <div class="chip"><i data-lucide="cloud"></i></div>
+      <h3>Infrastructure</h3>
+      <ul class="cl" style="margin-top:4px;">
+        <li><i data-lucide="dot"></i>AWS ECS Fargate — auto-scale</li>
+        <li><i data-lucide="dot"></i>RDS PostgreSQL + ElastiCache</li>
+        <li><i data-lucide="dot"></i>S3 + CloudFront CDN</li>
+        <li><i data-lucide="dot"></i>Terraform IaC</li>
+        <li><i data-lucide="dot"></i>Amplitude · Sentry · FCM</li>
+      </ul>
     </div>
   </div>
+  <div class="card" style="margin-top:12px;display:flex;align-items:center;gap:10px;">
+    <div class="chip" style="flex-shrink:0;"><i data-lucide="sparkles"></i></div>
+    <p class="muted">AI layer uses <strong style="color:var(--z300);">GPT-4.1 Vision</strong> for photo parsing and <strong style="color:var(--z300);">Spoonacular API</strong> for recipes. LiteLLM gateway allows provider swaps without code changes.</p>
+  </div>
+</div>
 
-  <!-- ══ SLIDE 9: TECHNOLOGY ══════════════════════════════════ -->
-  <div class="slide bg-tech" id="s9">
-    <div style="width:100%;max-width:1100px;">
-      <div class="label">Технологии</div>
-      <h2>Надёжный стек для масштабирования до миллионов</h2>
-      <div class="cols cols-3" style="margin-top:28px;">
-        <div class="card">
-          <h3>📱 Мобильное приложение</h3>
-          <ul style="margin-top:12px;">
-            <li><strong>Flutter 3.24</strong> — iOS + Android из одной базы</li>
-            <li><strong>Riverpod</strong> — state management</li>
-            <li><strong>Drift / SQLite</strong> — офлайн-кэш</li>
-            <li><strong>SSE</strong> — real-time синхронизация</li>
-            <li>Apple Vision / ML Kit — OCR на устройстве</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>⚙️ Backend</h3>
-          <ul style="margin-top:12px;">
-            <li><strong>FastAPI</strong> (Python 3.12) — async API</li>
-            <li><strong>PostgreSQL</strong> + SQLAlchemy ORM</li>
-            <li><strong>Redis</strong> — кэш и очереди</li>
-            <li><strong>OpenSearch</strong> — индекс рецептов</li>
-            <li><strong>LiteLLM gateway</strong> — гибкая смена LLM</li>
-          </ul>
-        </div>
-        <div class="card">
-          <h3>☁️ Инфраструктура</h3>
-          <ul style="margin-top:12px;">
-            <li><strong>AWS ECS Fargate</strong> — авто-масштабирование</li>
-            <li><strong>RDS PostgreSQL</strong> + ElastiCache</li>
-            <li><strong>S3 + CloudFront</strong> — медиа CDN</li>
-            <li><strong>Terraform IaC</strong> — infrastructure as code</li>
-            <li>Firebase FCM · Amplitude · Sentry</li>
-          </ul>
+<!-- ══ 9 · FINANCIALS ══════════════════════════════════════ -->
+<div class="slide bg1">
+  <div class="sh">
+    <div class="label"><i data-lucide="trending-up"></i> Financial Projections</div>
+    <h2>Path to $1.8M ARR — year 3</h2>
+  </div>
+  <div class="g2" style="flex:1;min-height:0;align-items:start;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:18px;">
+        <div class="chart">
+          <div class="bgrp"><div class="bval">$120k</div><div class="bar" style="height:28px;"></div><div class="byr">Year 1</div></div>
+          <div class="bgrp"><div class="bval">$600k</div><div class="bar" style="height:72px;"></div><div class="byr">Year 2</div></div>
+          <div class="bgrp"><div class="bval">$1.8M</div><div class="bar" style="height:110px;"></div><div class="byr">Year 3</div></div>
         </div>
       </div>
-      <div class="stat-strip" style="margin-top:20px;">
-        <div class="stat-item">
-          <div class="stat-num">GPT-4.1</div>
-          <div class="stat-desc">Vision для распознавания<br>содержимого холодильника</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">Spoonacular</div>
-          <div class="stat-desc">Database 5000+ рецептов<br>с фильтрами по диетам</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">Open Food Facts</div>
-          <div class="stat-desc">Open-source база данных<br>штрихкодов продуктов</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">99.9%</div>
-          <div class="stat-desc">целевой uptime<br>на AWS ECS Fargate</div>
-        </div>
-      </div>
+      <p class="muted" style="text-align:center;">* projections based on freemium conversion benchmarks</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="card kv"><span style="font-size:12px;color:var(--z300);">MAU target (Year 1 → 3)</span><span>50k → 500k</span></div>
+      <div class="card kv"><span style="font-size:12px;color:var(--z300);">Freemium conversion</span><span>4% → 8%</span></div>
+      <div class="card kv"><span style="font-size:12px;color:var(--z300);">Annual ARPU (premium)</span><span>$39.99</span></div>
+      <div class="card kv"><span style="font-size:12px;color:var(--z300);">Gross margin (SaaS)</span><span>&gt;70%</span></div>
+      <div class="card-em kv"><span style="font-size:12px;color:var(--z300);">Breakeven</span><span>~80k paid users</span></div>
     </div>
   </div>
+</div>
 
-  <!-- ══ SLIDE 10: GTM ════════════════════════════════════════ -->
-  <div class="slide bg-dark" id="s10">
-    <div style="width:100%;max-width:1000px;">
-      <div class="label">Go-to-Market стратегия</div>
-      <h2>Органика → Платный рост → Партнёрства</h2>
-      <div class="roadmap" style="margin-top:36px;">
-        <div class="rm-item">
-          <div class="rm-line">
-            <div class="rm-dot"></div>
-            <div class="rm-connector"></div>
-          </div>
-          <div class="rm-content">
-            <div class="rm-phase">Фаза 1 · 0–6 месяцев</div>
-            <h3 style="font-size:16px;color:var(--white);margin-bottom:6px;">Органический рост и сообщество</h3>
-            <p>App Store / Google Play оптимизация · TikTok и Instagram для zero-waste аудитории · партнёрства с food bloggers · реферальная программа "пригласи семью"</p>
-          </div>
-        </div>
-        <div class="rm-item">
-          <div class="rm-line">
-            <div class="rm-dot"></div>
-            <div class="rm-connector"></div>
-          </div>
-          <div class="rm-content">
-            <div class="rm-phase">Фаза 2 · 6–18 месяцев</div>
-            <h3 style="font-size:16px;color:var(--white);margin-bottom:6px;">Платный UA и экологические партнёрства</h3>
-            <p>Meta + Google Ads UAC кампании · партнёрства с WWF, экологическими движениями · корпоративный HR-продукт как welfare-бенефит для сотрудников</p>
-          </div>
-        </div>
-        <div class="rm-item">
-          <div class="rm-line">
-            <div class="rm-dot"></div>
-          </div>
-          <div class="rm-content">
-            <div class="rm-phase">Фаза 3 · 18+ месяцев</div>
-            <h3 style="font-size:16px;color:var(--white);margin-bottom:6px;">B2B2C сделки с ритейлерами</h3>
-            <p>Интеграция с Whole Foods, Rewe, Billa · умные замены истекающим продуктам прямо в приложении · white-label версия для сетей супермаркетов</p>
-          </div>
-        </div>
+<!-- ══ 10 · ASK ════════════════════════════════════════════ -->
+<div class="slide bg3">
+  <div class="sh">
+    <div class="label"><i data-lucide="target"></i> The Ask</div>
+    <h2>Seed round: <span style="color:var(--em);">$800k</span></h2>
+  </div>
+  <div class="g2" style="flex:1;min-height:0;">
+    <div style="display:flex;flex-direction:column;justify-content:space-between;">
+      <div>
+        <p class="muted" style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;margin-bottom:12px;">Use of Funds</p>
+        <div class="uf-row"><div class="uf-pct">40%</div><div class="uf-bar"><div class="uf-fill" style="width:40%;"></div></div><div class="uf-lbl">Product &amp; Engineering (2–3 hires)</div></div>
+        <div class="uf-row"><div class="uf-pct">35%</div><div class="uf-bar"><div class="uf-fill" style="width:35%;"></div></div><div class="uf-lbl">Marketing &amp; User Acquisition</div></div>
+        <div class="uf-row"><div class="uf-pct">15%</div><div class="uf-bar"><div class="uf-fill" style="width:15%;"></div></div><div class="uf-lbl">Operations &amp; Infrastructure</div></div>
+        <div class="uf-row"><div class="uf-pct">10%</div><div class="uf-bar"><div class="uf-fill" style="width:10%;"></div></div><div class="uf-lbl">Legal &amp; Reserve</div></div>
+      </div>
+      <div class="card kv" style="margin-top:10px;">
+        <span style="font-size:12px;color:var(--z300);">Runway</span>
+        <span style="font-size:13px;font-weight:700;color:var(--em);">18–24 months → Series A</span>
       </div>
     </div>
-  </div>
-
-  <!-- ══ SLIDE 11: TEAM ═══════════════════════════════════════ -->
-  <div class="slide bg-dark" id="s11">
-    <div style="width:100%;max-width:1000px;text-align:center;">
-      <div class="label">Команда</div>
-      <h2>Строим это, потому что сами чувствовали боль</h2>
-      <div class="cols cols-3" style="margin-top:36px;">
-        <div class="team-card">
-          <div class="avatar">👨‍💻</div>
-          <h3>CTO / Co-founder</h3>
-          <div class="team-role">Технологии</div>
-          <p>10+ лет в mobile разработке. Ранее — Tech Lead в food-delivery стартапе. Автор архитектуры FridgeFriend.</p>
-        </div>
-        <div class="team-card">
-          <div class="avatar">🎨</div>
-          <h3>CPO / Co-founder</h3>
-          <div class="team-role">Продукт</div>
-          <p>Ex-Product Manager в крупном food-tech. Запустил 3 успешных мобильных продукта. Специализация — consumer behavior.</p>
-        </div>
-        <div class="team-card">
-          <div class="avatar">📊</div>
-          <h3>CGO / Co-founder</h3>
-          <div class="team-role">Рост</div>
-          <p>5 лет в growth marketing для мобильных приложений. Экспертиза в zero-waste и sustainability нишах.</p>
-        </div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="card-em">
+        <h3 style="margin-bottom:8px;">18-month milestones</h3>
+        <ul class="cl">
+          <li><i data-lucide="check"></i>200k MAU, 15k paid subscribers</li>
+          <li><i data-lucide="check"></i>2+ B2B2C retail partnerships signed</li>
+          <li><i data-lucide="check"></i>$600k ARR — Series A ready</li>
+        </ul>
       </div>
-      <div class="card" style="margin-top:28px;text-align:left;">
-        <p>🏆 &nbsp;<strong style="color:var(--white);">Почему мы?</strong> Команда прошла путь от идеи до работающего продукта с полной AWS-инфраструктурой, AI-зрением и real-time синхронизацией — без внешнего финансирования. Мы знаем, как строить и запускать.</p>
+      <div class="card">
+        <h3 style="margin-bottom:8px;">What we look for in a partner</h3>
+        <ul class="cl">
+          <li><i data-lucide="check"></i>Consumer mobile or food-tech background</li>
+          <li><i data-lucide="check"></i>Access to retail partnership networks</li>
+          <li><i data-lucide="check"></i>Smart money + hiring network</li>
+        </ul>
       </div>
-    </div>
-  </div>
-
-  <!-- ══ SLIDE 12: FINANCIALS ═════════════════════════════════ -->
-  <div class="slide bg-biz" id="s12">
-    <div style="width:100%;max-width:1100px;">
-      <div class="label">Финансовый прогноз</div>
-      <h2>Путь к $1.8M ARR за 3 года</h2>
-      <div class="cols cols-2" style="margin-top:28px;align-items:start;">
+      <div class="card row">
+        <div class="chip"><i data-lucide="mail"></i></div>
         <div>
-          <h3 style="margin-bottom:20px;">ARR по годам</h3>
-          <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:24px;">
-            <div class="chart">
-              <div class="bar-wrap">
-                <div class="bar-val">$120k</div>
-                <div class="bar" style="height:40px;"></div>
-                <div class="bar-year">Год 1</div>
-              </div>
-              <div class="bar-wrap">
-                <div class="bar-val">$600k</div>
-                <div class="bar" style="height:100px;"></div>
-                <div class="bar-year">Год 2</div>
-              </div>
-              <div class="bar-wrap">
-                <div class="bar-val">$1.8M</div>
-                <div class="bar" style="height:160px;"></div>
-                <div class="bar-year">Год 3</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div>
-          <h3 style="margin-bottom:16px;">Ключевые показатели</h3>
-          <div class="card" style="margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span>MAU (Год 1 → 3)</span>
-              <span class="highlight">50k → 500k</span>
-            </div>
-          </div>
-          <div class="card" style="margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span>Конверсия в Premium</span>
-              <span class="highlight">~4% → 8%</span>
-            </div>
-          </div>
-          <div class="card" style="margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span>ARPU (Premium)</span>
-              <span class="highlight">$39.99/год</span>
-            </div>
-          </div>
-          <div class="card" style="margin-bottom:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span>Breakeven</span>
-              <span class="highlight">~80k платных юзеров</span>
-            </div>
-          </div>
-          <div class="card-green">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span>Gross Margin (SaaS)</span>
-              <span class="highlight">&gt;70%</span>
-            </div>
-          </div>
+          <div style="font-size:13px;font-weight:600;color:var(--z50);">hello@fridgefriend.app</div>
+          <div class="muted">Reach out to schedule a 30-min call</div>
         </div>
       </div>
     </div>
   </div>
-
-  <!-- ══ SLIDE 13: THE ASK ════════════════════════════════════ -->
-  <div class="slide bg-ask" id="s13">
-    <div style="width:100%;max-width:1000px;">
-      <div class="label">Инвестиционный запрос</div>
-      <h2>Seed раунд: $800k</h2>
-      <div class="cols cols-2" style="margin-top:28px;">
-        <div>
-          <h3 style="margin-bottom:20px;">Использование средств</h3>
-          <div class="use-row">
-            <div class="use-pct">40%</div>
-            <div class="use-bar-wrap">
-              <div class="use-bar"><div class="use-fill" style="width:40%;"></div></div>
-              <div class="use-label">Product & Engineering — 2–3 разработчика</div>
-            </div>
-          </div>
-          <div class="use-row">
-            <div class="use-pct">35%</div>
-            <div class="use-bar-wrap">
-              <div class="use-bar"><div class="use-fill" style="width:35%;"></div></div>
-              <div class="use-label">Marketing & User Acquisition</div>
-            </div>
-          </div>
-          <div class="use-row">
-            <div class="use-pct">15%</div>
-            <div class="use-bar-wrap">
-              <div class="use-bar"><div class="use-fill" style="width:15%;"></div></div>
-              <div class="use-label">Операции и инфраструктура</div>
-            </div>
-          </div>
-          <div class="use-row">
-            <div class="use-pct">10%</div>
-            <div class="use-bar-wrap">
-              <div class="use-bar"><div class="use-fill" style="width:10%;"></div></div>
-              <div class="use-label">Резерв и юридические расходы</div>
-            </div>
-          </div>
-        </div>
-        <div>
-          <div class="card-green" style="margin-bottom:16px;">
-            <h3>🎯 Цели на 18 месяцев</h3>
-            <ul style="margin-top:10px;">
-              <li>200k MAU и 15k платных подписчиков</li>
-              <li>Запуск B2B2C партнёрств с 2+ ритейлерами</li>
-              <li>$600k ARR — готовность к Series A</li>
-            </ul>
-          </div>
-          <div class="card">
-            <h3>💼 Что ищем в инвесторе</h3>
-            <ul style="margin-top:10px;">
-              <li>Опыт в consumer mobile или food-tech</li>
-              <li>Доступ к ритейл-партнёрствам (B2B2C)</li>
-              <li>Smart money + нетворк для найма</li>
-            </ul>
-          </div>
-          <div style="background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);border-radius:12px;padding:16px;margin-top:16px;text-align:center;">
-            <div class="stat-num" style="font-size:24px;">18–24 мес</div>
-            <div class="stat-desc">Runway до Series A</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ SLIDE 14: IMPACT ═════════════════════════════════════ -->
-  <div class="slide bg-solution" id="s14">
-    <div style="width:100%;max-width:1000px;text-align:center;">
-      <div class="label">Социальный импакт</div>
-      <h2>Прибыль и планета — не противоречие</h2>
-      <div class="cols cols-3" style="margin-top:36px;">
-        <div class="card-green" style="text-align:center;">
-          <div style="font-size:48px;margin-bottom:12px;">🌍</div>
-          <div class="big-stat" style="font-size:36px;color:var(--green);">-40%</div>
-          <p style="margin-top:8px;">снижение пищевых отходов у активных пользователей — это реальный вклад в ESG-повестку</p>
-        </div>
-        <div class="card-green" style="text-align:center;">
-          <div style="font-size:48px;margin-bottom:12px;">💰</div>
-          <div class="big-stat" style="font-size:36px;color:var(--green);">$1,500</div>
-          <p style="margin-top:8px;">ежегодная экономия для каждой семьи — немедленная и ощутимая ценность продукта</p>
-        </div>
-        <div class="card-green" style="text-align:center;">
-          <div style="font-size:48px;margin-bottom:12px;">🌱</div>
-          <div class="big-stat" style="font-size:36px;color:var(--green);">CO₂↓</div>
-          <p style="margin-top:8px;">меньше выброшенной еды = меньше углеродного следа. Измеримый климатический импакт.</p>
-        </div>
-      </div>
-      <div class="card" style="margin-top:28px;">
-        <p>🏆 &nbsp;<strong style="color:var(--white);">Двойная отдача для инвестора:</strong> FridgeFriend — это одновременно сильный consumer SaaS бизнес <em>и</em> ESG-инвестиция с измеримым положительным воздействием на окружающую среду.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ SLIDE 15: CTA ════════════════════════════════════════ -->
-  <div class="slide bg-hero" id="s15">
-    <div style="text-align:center;max-width:800px;">
-      <div style="font-size:60px;margin-bottom:20px;">🥦</div>
-      <div class="hero-name" style="font-size:clamp(36px,5vw,64px);margin-bottom:8px;">Давайте строить</div>
-      <div class="hero-name" style="font-size:clamp(36px,5vw,64px);margin-bottom:24px;">вместе</div>
-      <p style="font-size:18px;color:#a0b4c8;max-width:560px;margin:0 auto 40px;">Мы решаем реальную проблему, у нас есть продукт, технологии и команда. Осталось одно — правильный партнёр.</p>
-      <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:48px;">
-        <div class="card-green" style="padding:20px 32px;text-align:center;">
-          <div style="font-size:20px;margin-bottom:4px;">📧</div>
-          <div style="font-size:14px;font-weight:700;color:var(--white);">hello@fridgefriend.app</div>
-          <div class="muted">Написать основателям</div>
-        </div>
-        <div class="card-green" style="padding:20px 32px;text-align:center;">
-          <div style="font-size:20px;margin-bottom:4px;">📱</div>
-          <div style="font-size:14px;font-weight:700;color:var(--white);">Попробовать демо</div>
-          <div class="muted">iOS · Android · Web</div>
-        </div>
-        <div class="card-green" style="padding:20px 32px;text-align:center;">
-          <div style="font-size:20px;margin-bottom:4px;">📅</div>
-          <div style="font-size:14px;font-weight:700;color:var(--white);">Calendly / Zoom-звонок</div>
-          <div class="muted">30 минут — без обязательств</div>
-        </div>
-      </div>
-      <div class="badge" style="margin:0 auto;">
-        <span>Seed Round · $800k · 18-month runway to Series A</span>
-      </div>
-    </div>
-  </div>
+</div>
 
 </div><!-- /deck -->
 
-<!-- ── Navigation ──────────────────────────────────────────── -->
-<div class="slide-num" id="slideNum">1 / 15</div>
-
-<div class="nav">
-  <button class="nav-btn" id="prevBtn" onclick="go(-1)" disabled>‹</button>
+<div class="snum" id="snum">1 / 10</div>
+<nav class="nav">
+  <button class="nbtn" id="prev" onclick="go(-1)" disabled><i data-lucide="chevron-left"></i></button>
   <div class="dots" id="dots"></div>
-  <div class="slide-counter" id="counter">1 / 15</div>
-  <button class="nav-btn" id="nextBtn" onclick="go(1)">›</button>
-</div>
+  <div class="ctr" id="ctr">1 / 10</div>
+  <button class="nbtn" id="next" onclick="go(1)"><i data-lucide="chevron-right"></i></button>
+</nav>
 
 <script>
-  const slides = document.querySelectorAll('.slide');
-  const total  = slides.length;
-  let current  = 0;
+lucide.createIcons();
 
-  // Build dots
-  const dotsEl = document.getElementById('dots');
-  slides.forEach((_, i) => {
-    const d = document.createElement('div');
-    d.className = 'dot' + (i === 0 ? ' active' : '');
-    d.onclick = () => goTo(i);
-    dotsEl.appendChild(d);
-  });
+const slides = Array.from(document.querySelectorAll('.slide'));
+const N = slides.length;
+let cur = 0;
 
-  function goTo(n) {
-    slides[current].classList.remove('active');
-    slides[current].classList.add('exit');
-    setTimeout(() => slides[current < n ? current : n + (current > n ? 1 : 0)]?.classList.remove('exit'), 450);
+const dotsEl = document.getElementById('dots');
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' on' : '');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+});
 
-    slides[current].classList.add('exit');
-    const prev = current;
-    current = Math.max(0, Math.min(total - 1, n));
-    slides[prev].classList.remove('active');
-    setTimeout(() => slides[prev].classList.remove('exit'), 450);
-    slides[current].classList.add('active');
+function goTo(n) {
+  if (n === cur || n < 0 || n >= N) return;
+  slides[cur].classList.remove('active');
+  slides[cur].classList.add('exit');
+  const prev = cur;
+  cur = n;
+  setTimeout(() => slides[prev].classList.remove('exit'), 360);
+  slides[cur].classList.add('active');
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('on', i === cur));
+  const t = `${cur + 1} / ${N}`;
+  document.getElementById('ctr').textContent  = t;
+  document.getElementById('snum').textContent = t;
+  document.getElementById('prev').disabled = cur === 0;
+  document.getElementById('next').disabled = cur === N - 1;
+}
 
-    // Update dots
-    document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+function go(d) { goTo(cur + d); }
 
-    // Update counter
-    const txt = `${current + 1} / ${total}`;
-    document.getElementById('counter').textContent = txt;
-    document.getElementById('slideNum').textContent = txt;
+document.addEventListener('keydown', e => {
+  if (['ArrowRight','ArrowDown',' '].includes(e.key)) { e.preventDefault(); go(1); }
+  if (['ArrowLeft','ArrowUp'].includes(e.key))        { e.preventDefault(); go(-1); }
+  if (e.key === 'Home') goTo(0);
+  if (e.key === 'End')  goTo(N - 1);
+});
 
-    // Buttons
-    document.getElementById('prevBtn').disabled = current === 0;
-    document.getElementById('nextBtn').disabled = current === total - 1;
-  }
-
-  function go(dir) { goTo(current + dir); }
-
-  // Keyboard
-  document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') { e.preventDefault(); go(1); }
-    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')                    { e.preventDefault(); go(-1); }
-    if (e.key === 'Home') goTo(0);
-    if (e.key === 'End')  goTo(total - 1);
-  });
-
-  // Touch swipe
-  let touchStartX = 0;
-  document.addEventListener('touchstart', e => touchStartX = e.touches[0].clientX);
-  document.addEventListener('touchend',   e => {
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
-  });
+let tx = 0;
+document.addEventListener('touchstart', e => tx = e.touches[0].clientX, { passive: true });
+document.addEventListener('touchend',   e => { const dx = e.changedTouches[0].clientX - tx; if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1); });
 </script>
 </body>
 </html>
