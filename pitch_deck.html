@@ -174,30 +174,30 @@ ul.cl li svg { width: 12px; height: 12px; color: var(--em); flex-shrink: 0; marg
 .ctr  { font-size: 11px; color: var(--z500); font-weight: 600; min-width: 36px; text-align: center; }
 .snum { position: fixed; top: 18px; right: 24px; font-size: 11px; color: rgba(255,255,255,.2); z-index: 200; letter-spacing: .05em; }
 
-/* ── waste cycle (slide 2) ──────────────────────────────── */
-.waste-cycle {
-  position: relative; width: 100%; max-width: 260px; aspect-ratio: 1;
-  margin: 0 auto;
+/* ── slide 2 illustrations ─────────────────────────────── */
+.illus-pair {
+  display: flex; gap: 16px; flex: 1; min-height: 0;
+  align-items: stretch; justify-content: center;
 }
-.wc-arcs { position: absolute; inset: 0; width: 100%; height: 100%; }
-.wc-center {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  color: rgba(220,38,38,.6);
+.illus-frame {
+  flex: 1; max-width: 320px;
+  background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center;
+  position: relative;
 }
-.wc-center svg { width: 20px; height: 20px; }
-.wc-center span { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.wc-node {
-  position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3px;
-  background: rgba(220,38,38,.08); border: 1px solid rgba(220,38,38,.25);
-  border-radius: 10px; padding: 10px 12px; min-width: 64px; text-align: center;
+.illus-frame svg { width: 100%; flex: 1; min-height: 0; }
+.illus-caption {
+  padding: 8px 14px; width: 100%; text-align: center;
+  font-size: 11px; font-weight: 600; letter-spacing: .06em;
 }
-.wc-node svg  { width: 16px; height: 16px; color: #f87171; }
-.wc-node span { font-size: 10px; font-weight: 600; color: #fca5a5; }
-.wc-n1 { top: 0; left: 50%; transform: translateX(-50%); }
-.wc-n2 { top: 50%; right: 0; transform: translateY(-50%); }
-.wc-n3 { bottom: 0; left: 50%; transform: translateX(-50%); }
-.wc-n4 { top: 50%; left: 0; transform: translateY(-50%); }
+.illus-caption.good { color: var(--em); background: var(--em-bg); }
+.illus-caption.bad  { color: #f87171;  background: rgba(220,38,38,.08); }
+.illus-arrow {
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; color: var(--z700);
+}
+.illus-arrow svg { width: 24px; height: 24px; }
 
 /* util */
 .row  { display: flex; align-items: center; gap: 10px; }
@@ -242,27 +242,104 @@ ul.cl li svg { width: 12px; height: 12px; color: var(--em); flex-shrink: 0; marg
       <div class="stat-d">of purchased groceries never make it to the table</div>
     </div>
   </div>
-  <div class="g2" style="flex:1;min-height:0;align-items:start;">
-    <div class="card" style="display:flex;align-items:flex-start;gap:12px;">
-      <div class="chip" style="margin-top:2px;flex-shrink:0;"><i data-lucide="message-circle"></i></div>
-      <div>
-        <h3>The root cause</h3>
-        <p style="font-size:13px;">People don't know what's in their fridge, forget expiry dates, struggle to decide what to cook — then go shopping again and buy duplicates.</p>
-      </div>
-    </div>
-    <!-- waste cycle illustration -->
-    <div class="waste-cycle">
-      <div class="wc-center"><i data-lucide="refresh-cw"></i><span>Waste Cycle</span></div>
-      <div class="wc-node wc-n1"><i data-lucide="shopping-cart"></i><span>Overbuy</span></div>
-      <div class="wc-node wc-n2"><i data-lucide="refrigerator"></i><span>Forget</span></div>
-      <div class="wc-node wc-n3"><i data-lucide="clock"></i><span>Expires</span></div>
-      <div class="wc-node wc-n4"><i data-lucide="trash-2"></i><span>Throw away</span></div>
-      <svg class="wc-arcs" viewBox="0 0 220 220">
-        <path d="M 148 42 A 80 80 0 0 1 188 130" fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
-        <path d="M 178 148 A 80 80 0 0 1 80 192"  fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
-        <path d="M 58 178 A 80 80 0 0 1 28 80"    fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
-        <path d="M 40 60 A 80 80 0 0 1 130 28"     fill="none" stroke="rgba(220,38,38,.35)" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <div class="illus-pair">
+    <!-- Full fridge -->
+    <div class="illus-frame">
+      <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- fridge body -->
+        <rect x="50" y="10" width="140" height="180" rx="6" fill="#1a2636" stroke="#2a3a4a" stroke-width="1.5"/>
+        <!-- top door -->
+        <rect x="54" y="14" width="132" height="70" rx="3" fill="#0f1b28"/>
+        <!-- handle top -->
+        <rect x="178" y="34" width="4" height="30" rx="2" fill="#3a5060"/>
+        <!-- bottom door -->
+        <rect x="54" y="88" width="132" height="98" rx="3" fill="#0f1b28"/>
+        <!-- handle bottom -->
+        <rect x="178" y="110" width="4" height="40" rx="2" fill="#3a5060"/>
+        <!-- shelves -->
+        <line x1="58" y1="50" x2="182" y2="50" stroke="#1e3040" stroke-width="1"/>
+        <line x1="58" y1="120" x2="182" y2="120" stroke="#1e3040" stroke-width="1"/>
+        <line x1="58" y1="150" x2="182" y2="150" stroke="#1e3040" stroke-width="1"/>
+        <!-- top shelf items: milk, juice, bottle -->
+        <rect x="64" y="20" width="20" height="28" rx="2" fill="#e0e7ee" stroke="#c0c8d0" stroke-width=".5"/><text x="74" y="38" text-anchor="middle" font-size="5" fill="#4a5568">Milk</text>
+        <rect x="90" y="22" width="18" height="26" rx="2" fill="#fbbf24" stroke="#d69e2e" stroke-width=".5"/><text x="99" y="39" text-anchor="middle" font-size="5" fill="#744210">OJ</text>
+        <rect x="114" y="18" width="14" height="30" rx="3" fill="#68d391" stroke="#48bb78" stroke-width=".5"/>
+        <rect x="134" y="24" width="16" height="24" rx="2" fill="#feb2b2" stroke="#fc8181" stroke-width=".5"/>
+        <rect x="156" y="20" width="18" height="28" rx="2" fill="#bee3f8" stroke="#90cdf4" stroke-width=".5"/>
+        <!-- mid shelf: fruits, veggies -->
+        <circle cx="72" cy="60" r="8" fill="#f56565"/><text x="72" y="63" text-anchor="middle" font-size="5" fill="#fff">🍎</text>
+        <circle cx="92" cy="62" r="7" fill="#ed8936"/>
+        <circle cx="110" cy="60" r="8" fill="#48bb78"/>
+        <circle cx="128" cy="62" r="7" fill="#ecc94b"/>
+        <rect x="140" y="54" width="28" height="16" rx="3" fill="#9ae6b4" stroke="#68d391" stroke-width=".5"/>
+        <!-- bottom section: containers, meat, cheese -->
+        <rect x="62" y="94" width="30" height="22" rx="3" fill="#fc8181" stroke="#f56565" stroke-width=".5"/><text x="77" y="108" text-anchor="middle" font-size="4.5" fill="#fff">Meat</text>
+        <rect x="98" y="96" width="26" height="18" rx="2" fill="#fbd38d" stroke="#ecc94b" stroke-width=".5"/>
+        <rect x="130" y="94" width="24" height="22" rx="2" fill="#e9d8fd" stroke="#d6bcfa" stroke-width=".5"/>
+        <rect x="160" y="96" width="16" height="18" rx="2" fill="#bee3f8" stroke="#90cdf4" stroke-width=".5"/>
+        <!-- crisper drawer items -->
+        <rect x="62" y="124" width="50" height="22" rx="3" fill="#c6f6d5" stroke="#9ae6b4" stroke-width=".5"/><text x="87" y="138" text-anchor="middle" font-size="5" fill="#276749">Vegetables</text>
+        <rect x="118" y="124" width="56" height="22" rx="3" fill="#fefcbf" stroke="#ecc94b" stroke-width=".5"/><text x="146" y="138" text-anchor="middle" font-size="5" fill="#744210">Cheese &amp; Dairy</text>
+        <!-- bottom drawer -->
+        <rect x="62" y="154" width="112" height="28" rx="3" fill="#e2e8f0" stroke="#cbd5e0" stroke-width=".5"/>
+        <circle cx="82" cy="168" r="7" fill="#68d391"/>
+        <circle cx="100" cy="168" r="6" fill="#f6ad55"/>
+        <circle cx="116" cy="168" r="7" fill="#fc8181"/>
+        <circle cx="134" cy="168" r="5" fill="#ecc94b"/>
+        <circle cx="150" cy="168" r="6" fill="#9ae6b4"/>
+        <!-- glow -->
+        <rect x="54" y="14" width="132" height="172" rx="3" fill="url(#fridgeGlow)" opacity=".12"/>
+        <defs><linearGradient id="fridgeGlow" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff"/><stop offset="100%" stop-color="transparent"/></linearGradient></defs>
       </svg>
+      <div class="illus-caption good">Just bought groceries</div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="illus-arrow">
+      <i data-lucide="arrow-right"></i>
+    </div>
+
+    <!-- Wasted food / trash -->
+    <div class="illus-frame">
+      <svg viewBox="0 0 240 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- trash bin -->
+        <path d="M70 70 L78 180 Q80 188 90 188 L150 188 Q160 188 162 180 L170 70" fill="#1e2a38" stroke="#2a3e52" stroke-width="1.5" stroke-linejoin="round"/>
+        <!-- bin lid -->
+        <rect x="60" y="60" width="120" height="14" rx="4" fill="#253545" stroke="#2a3e52" stroke-width="1.5"/>
+        <rect x="110" y="54" width="20" height="8" rx="4" fill="#3a5060"/>
+        <!-- food items sticking out / overflowing -->
+        <!-- banana peel -->
+        <path d="M 95 62 Q 88 40 82 30 Q 78 24 84 28 Q 92 36 98 56" fill="#ecc94b" stroke="#d69e2e" stroke-width=".8"/>
+        <path d="M 100 62 Q 96 44 92 35 Q 90 30 95 33 Q 100 40 103 56" fill="#f6e05e" stroke="#d69e2e" stroke-width=".5"/>
+        <!-- apple core -->
+        <ellipse cx="130" cy="55" rx="10" ry="12" fill="#9b6b4a" opacity=".7"/>
+        <path d="M 130 43 Q 134 36 132 30" fill="none" stroke="#68503a" stroke-width="1"/>
+        <!-- lettuce wilted -->
+        <path d="M 148 60 Q 160 42 168 38 Q 172 36 170 42 Q 164 52 155 62" fill="#68946a" opacity=".6"/>
+        <path d="M 152 58 Q 162 45 172 44 Q 175 44 172 48 Q 166 56 156 62" fill="#88b48a" opacity=".5"/>
+        <!-- bread slice -->
+        <rect x="105" y="48" width="16" height="18" rx="4" fill="#c5956a" opacity=".5" stroke="#a07850" stroke-width=".5"/>
+        <circle cx="110" cy="56" r="1.5" fill="#7a8a60" opacity=".6"/>
+        <circle cx="115" cy="60" r="1" fill="#7a8a60" opacity=".6"/>
+        <circle cx="112" cy="62" r="1.2" fill="#7a8a60" opacity=".6"/>
+        <!-- items inside bin (visible through translucent top) -->
+        <circle cx="100" cy="100" r="9" fill="#e07060" opacity=".3"/>
+        <rect  x="120" y="95" width="22" height="14" rx="3" fill="#d0a050" opacity=".25"/>
+        <circle cx="92" cy="130" r="7" fill="#70a070" opacity=".2"/>
+        <rect  x="110" y="125" width="18" height="20" rx="2" fill="#c0c0d0" opacity=".2"/>
+        <circle cx="140" cy="135" r="6" fill="#d08080" opacity=".2"/>
+        <rect  x="82" y="150" width="24" height="12" rx="3" fill="#a0a070" opacity=".15"/>
+        <circle cx="135" cy="158" r="8" fill="#d0b060" opacity=".15"/>
+        <!-- stink lines -->
+        <path d="M 105 28 Q 103 18 106 10" fill="none" stroke="#4a5568" stroke-width=".8" opacity=".4"/>
+        <path d="M 115 24 Q 114 14 116 6"  fill="none" stroke="#4a5568" stroke-width=".8" opacity=".35"/>
+        <path d="M 125 26 Q 124 16 127 8"  fill="none" stroke="#4a5568" stroke-width=".8" opacity=".3"/>
+        <!-- dollar signs floating away -->
+        <text x="75" y="30" font-size="12" fill="#f56565" opacity=".5" font-weight="700">$</text>
+        <text x="160" y="24" font-size="10" fill="#f56565" opacity=".4" font-weight="700">$</text>
+        <text x="170" y="48" font-size="8"  fill="#f56565" opacity=".3" font-weight="700">$</text>
+      </svg>
+      <div class="illus-caption bad">2 weeks later</div>
     </div>
   </div>
 </div>
